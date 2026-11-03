@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이관고객 안내문자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<script src="xlsx.full.min.js"></script>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+<style>
+/* Layout: 업무 대장(ledger) — 왼쪽은 순서가 있는 3단계(불러오기·설정·고르기), 오른쪽은 복사할 문자 더미. 강조색은 인주색 하나, 주 버튼은 '전체 복사' 하나. */
+:root{
+  --paper:#f3f4f1;      /* 장부 종이: 초록기 도는 옅은 회색 */
+  --sheet:#ffffff;
+  --ink:#1b2220;
+  --ink-2:#56625d;      /* 보조 글자, 대비 6:1 이상 */
+  --rule:#d9ded7;       /* 장부 괘선 */
+  --rule-2:#eceee9;
+  --seal:#a8362a;       /* 인주색 강조 */
+  --seal-soft:#f6e5e1;
+  --amber:#8a5a10; --amber-soft:#f6ecd8;   /* 실효 */
+  --plum:#6b4a7a;  --plum-soft:#eee6f2;    /* 수신거부 */
+  --moss:#2f6a45;  --moss-soft:#e3efe6;    /* 접촉함·안심 */
+  --pick:#fbf3f1;
+  --f:"IBM Plex Sans KR","Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  --r-s:4px; --r-m:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --plum:#c9a6d9; --plum-soft:#2f2536;
+  --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --plum:#c9a6d9; --plum-soft:#2f2536;
+  --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;
+  word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased;
+  scrollbar-color:var(--rule) transparent}
+/* Windows 기본 스크롤바가 두껍고 회색이라 얇게 맞춤 */
+*{scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--rule);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+.wrap{max-width:1200px;margin:0 auto;padding-block:24px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-bottom:16px;margin-bottom:24px;border-bottom:2px solid var(--ink)}
+h1{font-size:26px;line-height:1.25;font-weight:700;margin:0;letter-spacing:-.02em;text-wrap:balance}
+.lede{margin:4px 0 0;color:var(--ink-2);font-size:14px;max-width:40em}
+.safe{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--moss)}
+.safe::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--moss);flex:none}
+
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+
+/* 왼쪽 단계 */
+.steps{display:flex;flex-direction:column;gap:24px;min-width:0}
+.step{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-h{display:flex;align-items:center;gap:10px}
+.step-n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+.step-h h2{margin:0;font-size:16px;font-weight:700}
+
+.drop{display:flex;flex-direction:column;gap:4px;border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:20px 16px;cursor:pointer;background:var(--sheet);transition:border-color .15s,background-color .15s}
+.drop:hover,.drop.over{border-color:var(--seal);background:var(--pick)}
+.drop:focus-within{outline:2px solid var(--seal);outline-offset:2px}
+.drop strong{font-size:15px;font-weight:600}
+.drop span{font-size:13px;color:var(--ink-2)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.status{font-size:13px;padding:8px 12px;border-radius:var(--r-s);line-height:1.5}
+.status.sample{background:var(--amber-soft);color:var(--amber)}
+.status.loaded{background:var(--moss-soft);color:var(--moss)}
+.status.loaded b{font-weight:600}
+.status.error{background:var(--seal-soft);color:var(--seal)}
+.status.busy{background:var(--rule-2);color:var(--ink-2)}
+
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fields.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:420px){.fields.three{grid-template-columns:repeat(2,minmax(0,1fr))}.fields.three .wide{grid-column:1/-1}}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:13px;color:var(--ink-2);font-weight:500}
+input[type=text],textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-s);padding:8px 10px;width:100%;min-width:0;line-height:1.5}
+input[type=text]:hover,textarea:hover{border-color:var(--ink-2)}
+input[type=text]::placeholder{color:var(--ink-2);opacity:.7}
+textarea{font-size:14px;line-height:1.7;resize:vertical;min-height:168px}
+:focus-visible{outline:2px solid var(--seal);outline-offset:1px}
+input[type=checkbox]{accent-color:var(--seal);width:16px;height:16px;margin:0;flex:none}
+
+details.tpl{border-top:1px solid var(--rule);padding-top:12px}
+details.tpl summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none;display:flex;align-items:center;gap:6px}
+details.tpl summary::-webkit-details-marker{display:none}
+details.tpl summary::before{content:"";width:0;height:0;border-left:5px solid var(--ink);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
+details.tpl[open] summary::before{transform:rotate(90deg)}
+.tpl-body{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.tokens button{font-size:13px;padding:2px 8px;border-radius:var(--r-s);background:var(--rule-2);border:1px solid var(--rule);color:var(--ink)}
+
+button{font:inherit;cursor:pointer;border-radius:var(--r-s);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 14px;font-size:14px;font-weight:500;line-height:1.4;min-height:36px}
+button:hover{border-color:var(--ink-2)}
+button.primary{background:var(--seal);border-color:var(--seal);color:var(--sheet);font-weight:600}
+button.primary:hover{filter:brightness(.94)}
+button.text{border-color:transparent;background:transparent;color:var(--ink-2);padding-inline:8px}
+button.text:hover{color:var(--ink);text-decoration:underline}
+
+.pickbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
+.pickbar .left{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.tally{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tally b{color:var(--ink);font-weight:600}
+
+/* 고객 장부 */
+.ledger{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);max-height:440px;overflow:auto}
+.lrow{display:grid;grid-template-columns:20px 64px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--rule-2);cursor:pointer}
+.lrow:last-child{border-bottom:0}
+.lrow:hover{background:var(--rule-2)}
+.lrow.on{background:var(--pick);box-shadow:inset 3px 0 0 var(--seal)}
+.no{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.who{min-width:0}
+.who .nm{font-weight:600}
+.who .sub{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:12px;line-height:1.5;padding:1px 7px;border-radius:var(--r-s);white-space:nowrap;font-weight:500}
+.tag.cnt{background:var(--rule-2);color:var(--ink-2)}
+.tag.lapse{background:var(--amber-soft);color:var(--amber)}
+.tag.optout{background:var(--plum-soft);color:var(--plum)}
+.tag.done{background:var(--moss-soft);color:var(--moss)}
+.ledger .empty{padding:24px 16px;color:var(--ink-2);font-size:14px}
+
+/* 오른쪽 문자 더미 */
+.out{display:flex;flex-direction:column;gap:16px;min-width:0}
+.out-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule);position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);z-index:2;padding-top:4px}
+.out-h h2{margin:0;font-size:16px;font-weight:700}
+.out-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:12px}
+.msg{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);min-width:0}
+.msg-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:12px 16px 0}
+.msg-h .id{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.msg-h .nm{font-weight:700;font-size:16px}
+.msg-h .ph{font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink-2);user-select:all}
+.msg-b{margin:12px 16px;padding:12px 14px;background:var(--rule-2);border-radius:var(--r-m);white-space:pre-wrap;font-size:15px;line-height:1.75}
+.msg-f{display:flex;justify-content:flex-end;gap:6px;padding:0 16px 12px}
+.blank{color:var(--ink-2);padding:40px 20px;border:1px dashed var(--rule);border-radius:var(--r-m);text-align:center;font-size:14px}
+
+.kbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.kstate{font-size:13px;color:var(--ink-2)}
+.kstate.on{color:var(--moss)}
+.kbtn{background:#FEE500;border-color:#FEE500;color:#191600;font-weight:600}
+.kbtn:hover{filter:brightness(.96)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:var(--r-m);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+
+@media (forced-colors:active){
+  .lrow.on{outline:2px solid Highlight}
+  .tag,.status{border:1px solid CanvasText}
+  .step-n{border-color:CanvasText}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1>이관고객 안내문자</h1>
+      <p class="lede">이관고객 엑셀을 넣고 고객을 고르면, 전화 전에 보낼 안내 문자가 고객별로 만들어집니다.</p>
+    </div>
+    <div class="kbar"><span class="safe">엑셀은 이 컴퓨터 안에서만 읽습니다.</span><span id="kstate" class="kstate">카카오 로그인 안 됨</span><button type="button" id="klogin" class="kbtn">카카오 로그인</button><button type="button" id="klogout" class="text" hidden>로그아웃</button></div>
+  </header>
+
+  <div class="grid">
+    <div class="steps">
+      <section class="step" aria-labelledby="s1">
+        <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2 id="s1">엑셀 불러오기</h2></div>
+        <label class="drop" id="drop" for="file">
+          <strong>엑셀 파일을 여기로 끌어 놓기</strong>
+          <span>또는 눌러서 파일 선택 · .xlsx, .xls</span>
+          <input type="file" id="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+        </label>
+        <div id="status" class="status sample" role="status">지금 보이는 고객은 예시입니다. 엑셀을 넣으면 실제 고객으로 바뀝니다.</div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2 id="s2">문자 설정</h2></div>
+        <div class="fields">
+          <label class="field" for="mgr"><span>매니저 이름</span><input type="text" id="mgr" value="정재운" autocomplete="off"></label>
+          <label class="field" for="when"><span>통화 일시</span><input type="text" id="when" value="오늘 오후 3시" autocomplete="off"></label>
+        </div>
+        <details class="tpl" id="tplbox">
+          <summary>문구 고치기</summary>
+          <div class="tpl-body">
+            <label class="field" for="tpl"><span>계약 1건</span><textarea id="tpl" spellcheck="false"></textarea></label>
+            <label class="field" for="tplMulti"><span>계약 여러 건</span><textarea id="tplMulti" spellcheck="false"></textarea></label>
+            <label class="field" for="tplLapse"><span>여러 건 중 실효 계약이 있을 때 덧붙일 문장</span><input type="text" id="tplLapse" spellcheck="false"></label>
+            <div class="tokens"><span>넣을 항목</span>
+              <button type="button" data-t="{고객명}">고객명</button><button type="button" data-t="{매니저}">매니저</button><button type="button" data-t="{통화일시}">통화일시</button><button type="button" data-t="{상품}">상품</button><button type="button" data-t="{건수}">건수</button><button type="button" data-t="{상품목록}">상품목록</button><button type="button" data-t="{실효상품}">실효상품</button>
+            </div>
+            <div><button type="button" class="text" id="resetTpl">기본 문구로 되돌리기</button></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="step" aria-labelledby="s3">
+        <div class="step-h"><span class="step-n" aria-hidden="true">3</span><h2 id="s3">보낼 고객 고르기</h2></div>
+        <div class="fields three">
+          <label class="field" for="noFrom"><span>연번 시작</span><input type="text" inputmode="numeric" id="noFrom" placeholder="30" autocomplete="off"></label>
+          <label class="field" for="noTo"><span>연번 끝</span><input type="text" inputmode="numeric" id="noTo" placeholder="끝까지" autocomplete="off"></label>
+          <label class="field wide" for="q"><span>이름·번호 찾기</span><input type="text" id="q" placeholder="이름 또는 번호" autocomplete="off"></label>
+        </div>
+        <label class="check" for="onlyNew"><input type="checkbox" id="onlyNew" checked>접촉방식이 비어 있는 고객만</label>
+        <div class="pickbar">
+          <div class="left">
+            <button type="button" id="pickTop">앞에서 <span id="topNLabel">6</span>명 선택</button>
+            <button type="button" class="text" id="topMinus" aria-label="한 명 줄이기">−</button>
+            <button type="button" class="text" id="topPlus" aria-label="한 명 늘리기">+</button>
+            <button type="button" class="text" id="pickNone">선택 해제</button>
+          </div>
+          <span class="tally">표시 <b id="shownN">0</b> · 선택 <b id="selN">0</b></span>
+        </div>
+        <div class="ledger" id="roster" role="list" aria-label="고객 목록"></div>
+      </section>
+    </div>
+
+    <section class="out" aria-labelledby="outTitle">
+      <div class="out-h">
+        <h2 id="outTitle">보낼 문자 <span id="outN">0</span>건</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
+      </div>
+      <div class="stack" id="out"></div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DEF={
+ tpl:"안녕하세요, {고객명} 고객님! 미래에셋생명 {매니저} 매니저입니다.\n고객님께서는 미래에셋생명 ‘{상품}’에 가입하고 계십니다.\n기존 담당 매니저님의 퇴사로 이 계약을 제가 이어받게 되었습니다.\n관련 안내를 위해 {통화일시}에 전화드리겠습니다.\n감사합니다. 좋은 하루 보내세요!",
+ tplMulti:"안녕하세요, {고객명} 고객님! 미래에셋생명 {매니저} 매니저입니다.\n고객님께서 가입하신 계약은 아래 {건수}건입니다.\n{상품목록}\n기존 담당 매니저님 퇴사로 위 계약들을 제가 이어받았습니다.\n관련 안내를 위해 {통화일시}에 전화드리겠습니다.\n감사합니다. 좋은 하루 보내세요!",
+ tplLapse:"이 중 ‘{실효상품}’ 계약은 현재 보험료 미납으로 실효된 상태입니다."
+};
+// 예시 고객 (가상의 데이터)
+const SAMPLE=[
+ {no:1,name:"예시고객A",phone:"010-0000-0001",product:"A7009 무배당 예시 변액유니버셜보험",contact:"",note:""},
+ {no:2,name:"예시고객A",phone:"010-0000-0001",product:"A7008 무배당 예시 종신보험",contact:"",note:""},
+ {no:3,name:"예시고객B",phone:"010-0000-0002",product:"A7350 무배당 예시 암보험",contact:"",note:"실효(마감기준)"},
+ {no:4,name:"예시고객C",phone:"010-0000-0003",product:"A3060 예시 실손의료비보험(갱신형)",contact:"",note:"문자수신거부"},
+ {no:5,name:"예시고객D",phone:"010-0000-0004",product:"A2552 무배당 예시 연금보험",contact:"O",note:""}
+];
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let rows=SAMPLE, customers=[], selected=new Set(), topN=6;
+
+function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
+function normPhone(p){return String(p||"").replace(/\D/g,"")}
+// Windows 엑셀에서 숫자로 저장돼 앞자리 0이 빠진 번호(1012345678)를 되살림
+function fixPhone(p){
+ let s=String(p||"").trim();if(!s)return"";
+ const tail=s.replace(/^[\d\-\s.]+/,"");const d=s.replace(/\D/g,"");
+ if(/^[\d\-\s.]+/.test(s)&&(/^1\d{8,9}$/.test(d))){const z="0"+d;s=(z.length===11?z.replace(/(\d{3})(\d{4})(\d{4})/,"$1-$2-$3"):z.replace(/(\d{3})(\d{3})(\d{4})/,"$1-$2-$3"))+tail}
+ return s;
+}
+function group(rs){
+ const m=new Map();
+ for(const r of rs){
+  if(!r.name)continue;
+  const key=r.name+"|"+normPhone(r.phone);
+  if(!m.has(key))m.set(key,{key,name:r.name,phone:r.phone||"",nos:[],products:[],lapsed:[],optout:false,contacted:false});
+  const c=m.get(key);
+  c.nos.push(r.no);c.products.push(cleanProduct(r.product));
+  if(/실효/.test(r.note||""))c.lapsed.push(cleanProduct(r.product));
+  if(/수신거부/.test((r.note||"")+(r.phone||"")))c.optout=true;
+  if(String(r.contact||"").trim())c.contacted=true;
+ }
+ for(const c of m.values())c.phone=String(c.phone).split(" [")[0];
+ return [...m.values()];
+}
+function noLabel(nos){const n=nos.filter(Number.isFinite);if(!n.length)return"";const a=Math.min(...n),b=Math.max(...n);return a===b?a+"번":(n.length===b-a+1?a+"–"+b+"번":n.join("·")+"번")}
+
+function fill(t,c){
+ return t.replaceAll("{고객명}",c.name).replaceAll("{매니저}",$("mgr").value.trim())
+  .replaceAll("{통화일시}",$("when").value.trim()).replaceAll("{상품}",c.products[0]||"")
+  .replaceAll("{건수}",c.products.length).replaceAll("{상품목록}",c.products.map(p=>"‘"+p+"’").join("\n"))
+  .replaceAll("{실효상품}",[...new Set(c.lapsed)].join("’, ‘"));
+}
+function message(c){
+ const multi=c.products.length>1;
+ let body=fill(multi?$("tplMulti").value:$("tpl").value,c);
+ if(c.lapsed.length){
+  const lines=body.split("\n");
+  if(!multi){
+   const i=lines.findIndex(l=>l.includes(c.products[0]));
+   const single="고객님께서 가입하신 ‘"+c.products[0]+"’는 현재 보험료 미납으로 실효된 상태입니다.";
+   if(i>=0)lines[i]=single;else lines.splice(1,0,single);
+  }else{
+   let last=-1;lines.forEach((l,i)=>{if(c.products.some(p=>l.includes(p)))last=i});
+   lines.splice(last+1,0,fill($("tplLapse").value,c));
+  }
+  body=lines.join("\n");
+ }
+ return body;
+}
+
+function num(id){const v=parseInt(String($(id).value).replace(/\D/g,""),10);return Number.isFinite(v)?v:NaN}
+function visible(){
+ const f=num("noFrom"),t=num("noTo"),q=$("q").value.trim(),qd=normPhone(q);
+ return customers.filter(c=>{
+  const ns=c.nos.filter(Number.isFinite);const lo=ns.length?Math.min(...ns):NaN,hi=ns.length?Math.max(...ns):NaN;
+  if(Number.isFinite(f)&&Number.isFinite(hi)&&hi<f)return false;
+  if(Number.isFinite(t)&&Number.isFinite(lo)&&lo>t)return false;
+  if($("onlyNew").checked&&c.contacted)return false;
+  if(q&&!(c.name.includes(q)||(qd&&normPhone(c.phone).includes(qd))))return false;
+  return true;
+ });
+}
+function tag(cls,txt){const s=document.createElement("span");s.className="tag "+cls;s.textContent=txt;return s}
+function renderRoster(){
+ const v=visible();$("shownN").textContent=v.length;
+ const el=$("roster");el.replaceChildren();
+ if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=customers.length?"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.":"엑셀에서 고객을 찾지 못했습니다.";el.append(e);return}
+ v.forEach((c,idx)=>{
+  const on=selected.has(c.key);
+  const d=document.createElement("div");d.className="lrow"+(on?" on":"");d.setAttribute("role","listitem");
+  const cb=document.createElement("input");cb.type="checkbox";cb.checked=on;cb.id="cb"+idx;cb.setAttribute("aria-label",c.name+" 선택");
+  const no=document.createElement("span");no.className="no";no.textContent=noLabel(c.nos);
+  const who=document.createElement("div");who.className="who";
+  const nm=document.createElement("div");nm.className="nm";nm.textContent=c.name;
+  const sub=document.createElement("div");sub.className="sub";sub.textContent=(c.phone||"번호 없음")+" · "+c.products.join(", ");
+  who.append(nm,sub);
+  const tg=document.createElement("div");tg.className="tags";
+  if(c.products.length>1)tg.append(tag("cnt",c.products.length+"건"));
+  if(c.lapsed.length)tg.append(tag("lapse","실효"));
+  if(c.optout)tg.append(tag("optout","수신거부"));
+  if(c.contacted)tg.append(tag("done","접촉함"));
+  d.append(cb,no,who,tg);
+  const toggle=()=>{on?selected.delete(c.key):selected.add(c.key);render()};
+  d.addEventListener("click",e=>{if(e.target!==cb)toggle()});cb.addEventListener("change",toggle);
+  el.append(d);
+ });
+}
+function renderOut(){
+ const list=customers.filter(c=>selected.has(c.key));
+ $("selN").textContent=list.length;$("outN").textContent=list.length;
+ const out=$("out");out.replaceChildren();
+ if(!list.length){const b=document.createElement("div");b.className="blank";b.textContent="왼쪽 목록에서 고객을 고르면 여기에 문자가 만들어집니다.";out.append(b);return}
+ for(const c of list){
+  const body=message(c);
+  const box=document.createElement("article");box.className="msg";
+  const h=document.createElement("div");h.className="msg-h";
+  const id=document.createElement("div");id.className="id";
+  const no=document.createElement("span");no.className="no";no.textContent=noLabel(c.nos);
+  const nm=document.createElement("span");nm.className="nm";nm.textContent=c.name;
+  const ph=document.createElement("span");ph.className="ph";ph.textContent=c.phone||"번호 없음";
+  id.append(no,nm,ph);
+  const tg=document.createElement("div");tg.className="tags";
+  if(c.lapsed.length)tg.append(tag("lapse","실효 계약"));
+  if(c.optout)tg.append(tag("optout","문자 수신거부 · 전화 권장"));
+  h.append(id,tg);
+  const b=document.createElement("div");b.className="msg-b";b.textContent=body;
+  const f=document.createElement("div");f.className="msg-f";
+  const cpPh=document.createElement("button");cpPh.type="button";cpPh.className="text";cpPh.textContent="번호 복사";
+  const cp=document.createElement("button");cp.type="button";cp.textContent="문자 복사";
+  cp.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
+  cpPh.addEventListener("click",()=>copy(c.phone,"번호 복사됨",ph));
+  if(!c.phone)cpPh.disabled=true;
+  f.append(cpPh,cp);
+  box.append(h,b,f);out.append(box);
+ }
+}
+function render(){renderRoster();renderOut()}
+
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),1800)}
+function selectText(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
+function copy(text,msg,el){
+ const fallback=()=>{if(el)selectText(el);toast("글자를 선택해 두었습니다. Ctrl+C를 눌러 복사하세요")};
+ try{if(!navigator.clipboard)throw 0;navigator.clipboard.writeText(text).then(()=>toast(msg),fallback)}catch(e){fallback()}
+}
+
+// ---- 엑셀 읽기 ----
+const NAME=["성명","고객명","계약자","이름"];
+function findCol(h,names){const n=h.map(x=>String(x||"").replace(/\s/g,""));for(const k of names){const i=n.indexOf(k);if(i>=0)return i}for(const k of names){const i=n.findIndex(x=>x.includes(k));if(i>=0)return i}return -1}
+function parseWorkbook(wb){
+ const order=[...wb.SheetNames].sort((a,b)=>(b.trim()==="이관고객")-(a.trim()==="이관고객"));
+ for(const sn of order){
+  const ws=wb.Sheets[sn];
+  // 104만 행까지 범위가 잡힌 무거운 파일 대비: 실제 쓰는 범위만 읽기
+  if(ws["!ref"]){const r=XLSX.utils.decode_range(ws["!ref"]);if(r.e.r>20000){r.e.r=20000;ws["!ref"]=XLSX.utils.encode_range(r)}}
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:"",blankrows:false});
+  const hi=aoa.findIndex(r=>r.some(x=>NAME.includes(String(x).replace(/\s/g,""))));
+  if(hi<0)continue;
+  const h=aoa[hi];
+  const C={no:findCol(h,["연번","번호"]),name:findCol(h,NAME),product:findCol(h,["계약명","상품명"]),phone:findCol(h,["연락처","휴대폰번호","전화번호","휴대폰","핸드폰"]),contact:findCol(h,["접촉방식"]),note:findCol(h,["비고"])};
+  if(C.name<0||C.product<0)continue;
+  const out=[];
+  for(const r of aoa.slice(hi+1)){
+   const name=String(r[C.name]||"").trim();if(!name)continue;
+   out.push({no:C.no>=0?parseInt(String(r[C.no]).replace(/\D/g,""),10):NaN,name,phone:C.phone>=0?fixPhone(r[C.phone]):"",product:String(r[C.product]||"").trim(),contact:C.contact>=0?String(r[C.contact]).trim():"",note:C.note>=0?String(r[C.note]).trim():""});
+  }
+  return {sheet:sn,rows:out};
+ }
+ return null;
+}
+function setStatus(cls,nodes){const s=$("status");s.className="status "+cls;s.replaceChildren(...nodes)}
+async function loadFile(f){
+ if(!/\.(xlsx|xls|xlsm)$/i.test(f.name)){setStatus("error",[document.createTextNode("엑셀 파일(.xlsx, .xls)만 넣을 수 있습니다. 넣은 파일: "+f.name)]);return}
+ setStatus("busy",[document.createTextNode(f.name+" 읽는 중…")]);
+ await new Promise(r=>setTimeout(r,30));
+ try{
+  if(typeof XLSX==="undefined")throw new Error("엑셀 읽기 도구를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요.");
+  const buf=await f.arrayBuffer();
+  const wb=XLSX.read(buf,{type:"array",cellFormula:false,cellStyles:false,sheetStubs:false});
+  const res=parseWorkbook(wb);
+  if(!res||!res.rows.length)throw new Error("'성명'과 '계약명' 머리글이 있는 시트를 찾지 못했습니다. 첫 줄 머리글 이름을 확인하세요. (고객명·계약자, 상품명도 됩니다)");
+  rows=res.rows;customers=group(rows);selected=new Set();
+  const b=document.createElement("b");b.textContent=f.name;
+  setStatus("loaded",[b,document.createTextNode(` · '${res.sheet}' 시트 · 계약 ${rows.length}건 · 고객 ${customers.length}명`)]);
+  render();
+ }catch(e){setStatus("error",[document.createTextNode(e.message||"파일을 읽지 못했습니다. 엑셀에서 다시 저장한 뒤 넣어 보세요.")])}
+}
+
+// ---- 연결 ----
+for(const k of ["tpl","tplMulti","tplLapse","mgr","when"]){const v=store.get("tcn_"+k);$(k).value=v!=null?v:(DEF[k]!==undefined?DEF[k]:$(k).value)}
+for(const k of ["tpl","tplMulti","tplLapse","mgr","when"])$(k).addEventListener("input",()=>{store.set("tcn_"+k,$(k).value);renderOut()});
+for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster);
+$("onlyNew").addEventListener("change",renderRoster);
+let lastFocus=$("tpl");["tpl","tplMulti","tplLapse"].forEach(k=>$(k).addEventListener("focus",()=>lastFocus=$(k)));
+document.querySelectorAll(".tokens button").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=lastFocus,s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
+$("resetTpl").addEventListener("click",()=>{for(const k of ["tpl","tplMulti","tplLapse"]){$(k).value=DEF[k];store.set("tcn_"+k,DEF[k])}renderOut();toast("기본 문구로 되돌렸습니다")});
+const setTop=n=>{topN=Math.max(1,Math.min(99,n));$("topNLabel").textContent=topN;store.set("tcn_topN",String(topN))};
+setTop(parseInt(store.get("tcn_topN"),10)||6);
+$("topMinus").addEventListener("click",()=>setTop(topN-1));
+$("topPlus").addEventListener("click",()=>setTop(topN+1));
+$("pickTop").addEventListener("click",()=>{selected=new Set(visible().slice(0,topN).map(c=>c.key));render()});
+$("pickNone").addEventListener("click",()=>{selected.clear();render()});
+$("copyAll").addEventListener("click",()=>{const list=customers.filter(c=>selected.has(c.key));if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
+const drop=$("drop");
+$("file").addEventListener("change",e=>{if(e.target.files[0])loadFile(e.target.files[0]);e.target.value=""});
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+// 탐색기에서 끌어온 파일을 칸 밖에 놓아도 브라우저가 파일을 열어 버리지 않게
+window.addEventListener("dragover",e=>e.preventDefault());
+window.addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(f)loadFile(f)});
+
+customers=group(rows);
+selected=new Set(visible().slice(0,topN).map(c=>c.key));
+render();
+
+// ---- 카카오 '나에게 보내기' ----
+const KAKAO_JS_KEY="b3f526f7529975d22b6b542f090c32cf";
+const PAGE_URL="https://evan9852-star.github.io/transfer-notice/";
+const tokenStore={get(){try{const t=JSON.parse(sessionStorage.getItem("tcn_kakao")||"null");return t&&t.exp>Date.now()?t.token:null}catch(e){return null}},
+ set(token,sec){try{sessionStorage.setItem("tcn_kakao",JSON.stringify({token,exp:Date.now()+(sec-60)*1000}))}catch(e){}},
+ clear(){try{sessionStorage.removeItem("tcn_kakao")}catch(e){}}};
+function kRender(){const on=!!tokenStore.get();$("kstate").textContent=on?"카카오 로그인됨":"카카오 로그인 안 됨";$("kstate").classList.toggle("on",on);$("klogin").hidden=on;$("klogout").hidden=!on}
+function kReady(){return typeof Kakao!=="undefined"}
+if(kReady()&&!Kakao.isInitialized())Kakao.init(KAKAO_JS_KEY);
+async function kExchange(){
+ const p=new URLSearchParams(location.search);const code=p.get("code"),err=p.get("error");
+ if(!code&&!err)return;
+ history.replaceState(null,"",location.pathname);
+ if(err){toast("카카오 로그인을 취소했습니다");return}
+ try{
+  const r=await fetch("https://kauth.kakao.com/oauth/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=utf-8"},
+   body:new URLSearchParams({grant_type:"authorization_code",client_id:KAKAO_JS_KEY,redirect_uri:PAGE_URL,code})});
+  const j=await r.json();
+  if(!j.access_token)throw new Error(j.error_description||j.error||"토큰 없음");
+  tokenStore.set(j.access_token,j.expires_in||21599);toast("카카오 로그인됨");
+ }catch(e){toast("카카오 로그인에 실패했습니다: "+e.message)}
+ kRender();
+}
+$("klogin").addEventListener("click",()=>{
+ if(!kReady()){toast("카카오 기능을 불러오지 못했습니다. 새로고침해 보세요");return}
+ Kakao.Auth.authorize({redirectUri:PAGE_URL,scope:"talk_message"});
+});
+$("klogout").addEventListener("click",()=>{tokenStore.clear();kRender();toast("로그아웃했습니다")});
+function chunks(text,max=200){
+ if(text.length<=max)return[text];
+ const out=[];let cur="";
+ for(const line of text.split("\n")){
+  if(line.length>max){if(cur){out.push(cur);cur=""}for(let i=0;i<line.length;i+=max)out.push(line.slice(i,i+max));continue}
+  const next=cur?cur+"\n"+line:line;
+  if(next.length>max){out.push(cur);cur=line}else cur=next;
+ }
+ if(cur)out.push(cur);return out;
+}
+async function kSendText(token,text){
+ const r=await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send",{method:"POST",
+  headers:{"Authorization":"Bearer "+token,"Content-Type":"application/x-www-form-urlencoded;charset=utf-8"},
+  body:new URLSearchParams({template_object:JSON.stringify({object_type:"text",text,link:{web_url:PAGE_URL,mobile_web_url:PAGE_URL}})})});
+ const j=await r.json().catch(()=>({}));
+ if(r.status===401){tokenStore.clear();kRender();throw new Error("로그인이 만료됐습니다. 다시 로그인하세요")}
+ if(!r.ok||j.result_code!==0)throw new Error(j.msg||("오류 "+r.status));
+}
+let sending=false;
+$("ksend").addEventListener("click",async()=>{
+ if(sending)return;
+ const list=customers.filter(c=>selected.has(c.key));
+ if(!list.length){toast("먼저 고객을 고르세요");return}
+ const token=tokenStore.get();
+ if(!token){toast("오른쪽 위 '카카오 로그인'을 먼저 누르세요. 로그인 후 엑셀을 다시 넣어야 합니다");return}
+ sending=true;const btn=$("ksend");let sent=0;
+ try{
+  for(const c of list){
+   btn.textContent=`보내는 중 ${sent+1}/${list.length}`;
+   const head=`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}`;const body=message(c);
+   const parts=(head.length+1+body.length<=200)?[head+"\n"+body]:[head,...chunks(body)];
+   for(const t of parts){await kSendText(token,t);await new Promise(r=>setTimeout(r,250))}
+   sent++;
+  }
+  toast(`${sent}명 문자를 카톡 '나와의 채팅'으로 보냈습니다`);
+ }catch(e){toast(`${sent}명까지 보냈습니다. 멈춘 이유: ${e.message}`)}
+ finally{sending=false;btn.textContent="카톡 나에게 보내기"}
+});
+kRender();kExchange();
+</script>
+
+</body>
+</html>
