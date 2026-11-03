@@ -454,7 +454,17 @@ const PAGE_URL="https://evan9852-star.github.io/transfer-notice/";
 const tokenStore={get(){try{const t=JSON.parse(sessionStorage.getItem("tcn_kakao")||"null");return t&&t.exp>Date.now()?t.token:null}catch(e){return null}},
  set(token,sec){try{sessionStorage.setItem("tcn_kakao",JSON.stringify({token,exp:Date.now()+(sec-60)*1000}))}catch(e){}},
  clear(){try{sessionStorage.removeItem("tcn_kakao")}catch(e){}}};
-function kRender(){const on=!!tokenStore.get();$("kstate").textContent=on?"카카오 로그인됨":"카카오 로그인 안 됨";$("kstate").classList.toggle("on",on);$("klogin").hidden=on;$("klogout").hidden=!on}
+let kScopeOk=null;
+function kRender(){const on=!!tokenStore.get();const ready=on&&kScopeOk!==false;
+ $("kstate").textContent=!on?"카카오 로그인 안 됨":(kScopeOk===false?"카톡 보내기 동의 필요":"카카오 로그인됨");
+ $("kstate").classList.toggle("on",ready);
+ $("klogin").hidden=ready;$("klogin").textContent=on?"카톡 보내기 동의하기":"카카오 로그인";
+ $("klogout").hidden=!on}
+async function kCheckScope(){const t=tokenStore.get();if(!t){kScopeOk=null;return}
+ try{const r=await fetch("https://kapi.kakao.com/v2/user/scopes",{headers:{Authorization:"Bearer "+t}});
+  if(r.status===401){tokenStore.clear();kScopeOk=null;return}
+  const j=await r.json();const sc=(j.scopes||[]).find(x=>x.id==="talk_message");kScopeOk=!!(sc&&sc.agreed);
+ }catch(e){kScopeOk=null}}
 function kReady(){return typeof Kakao!=="undefined"}
 if(kReady()&&!Kakao.isInitialized())Kakao.init(KAKAO_JS_KEY);
 async function kExchange(){
@@ -467,7 +477,9 @@ async function kExchange(){
    body:new URLSearchParams({grant_type:"authorization_code",client_id:KAKAO_JS_KEY,redirect_uri:PAGE_URL,code})});
   const j=await r.json();
   if(!j.access_token)throw new Error(j.error_description||j.error||"토큰 없음");
-  tokenStore.set(j.access_token,j.expires_in||21599);toast("카카오 로그인됨");
+  tokenStore.set(j.access_token,j.expires_in||21599);
+  await kCheckScope();
+  toast(kScopeOk===false?"로그인은 됐지만 '카카오톡 메시지 전송'에 동의하지 않았습니다. '카톡 보내기 동의하기'를 눌러 체크해 주세요":"카카오 로그인됨");
  }catch(e){toast("카카오 로그인에 실패했습니다: "+e.message)}
  kRender();
 }
@@ -492,6 +504,7 @@ async function kSendText(token,text){
   body:new URLSearchParams({template_object:JSON.stringify({object_type:"text",text,link:{web_url:PAGE_URL,mobile_web_url:PAGE_URL}})})});
  const j=await r.json().catch(()=>({}));
  if(r.status===401){tokenStore.clear();kRender();throw new Error("로그인이 만료됐습니다. 다시 로그인하세요")}
+ if(j.code===-402){kScopeOk=false;kRender();throw new Error("'카카오톡 메시지 전송' 동의가 필요합니다. 오른쪽 위 '카톡 보내기 동의하기'를 눌러 주세요")}
  if(!r.ok||j.result_code!==0)throw new Error(j.msg||("오류 "+r.status));
 }
 let sending=false;
@@ -501,6 +514,7 @@ $("ksend").addEventListener("click",async()=>{
  if(!list.length){toast("먼저 고객을 고르세요");return}
  const token=tokenStore.get();
  if(!token){toast("오른쪽 위 '카카오 로그인'을 먼저 누르세요. 로그인 후 엑셀을 다시 넣어야 합니다");return}
+ if(kScopeOk===false){toast("오른쪽 위 '카톡 보내기 동의하기'를 먼저 눌러 주세요. 동의 후 엑셀을 다시 넣어야 합니다");return}
  sending=true;const btn=$("ksend");let sent=0;
  try{
   for(const c of list){
@@ -514,7 +528,7 @@ $("ksend").addEventListener("click",async()=>{
  }catch(e){toast(`${sent}명까지 보냈습니다. 멈춘 이유: ${e.message}`)}
  finally{sending=false;btn.textContent="카톡 나에게 보내기"}
 });
-kRender();kExchange();
+kRender();kExchange().then(async()=>{if(kScopeOk===null){await kCheckScope();kRender()}});
 </script>
 
 </body>
