@@ -143,6 +143,20 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .msg-h .ph{font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink-2);user-select:all}
 .msg-b{margin:12px 16px;padding:12px 14px;background:var(--rule-2);border-radius:var(--r-m);white-space:pre-wrap;font-size:15px;line-height:1.75}
 .msg-f{display:flex;justify-content:flex-end;gap:6px;padding:0 16px 12px}
+.card{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:12px 14px;background:var(--sheet);cursor:pointer;transition:border-color .15s,background-color .15s}
+.card:hover,.card.over{border-color:var(--seal);background:var(--pick)}
+.card:focus-within{outline:2px solid var(--seal);outline-offset:2px}
+.card input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.card .ph-box{flex:none;width:96px;height:56px;border-radius:var(--r-s);background:var(--rule-2);display:grid;place-items:center;overflow:hidden;color:var(--ink-2);font-size:12px}
+.card .ph-box img{width:100%;height:100%;object-fit:contain;background:#fff}
+.card .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.card .txt strong{font-size:15px;font-weight:600}
+.card .txt span{font-size:13px;color:var(--ink-2)}
+.card.has{border-style:solid;border-color:var(--rule)}
+.card-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.msg-card{display:flex;align-items:center;gap:10px;margin:12px 16px 0;font-size:13px;color:var(--ink-2)}
+.msg-card img{width:72px;height:42px;object-fit:contain;background:#fff;border-radius:var(--r-s);border:1px solid var(--rule)}
+.msg-f .step-lb{font-size:12px;color:var(--ink-2);align-self:center;margin-right:auto}
 .blank{color:var(--ink-2);padding:40px 20px;border:1px dashed var(--rule);border-radius:var(--r-m);text-align:center;font-size:14px}
 
 .kbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
@@ -188,6 +202,15 @@ button.text:hover{color:var(--ink);text-decoration:underline}
         <div class="fields">
           <label class="field" for="mgr"><span>매니저 이름</span><input type="text" id="mgr" value="정재운" autocomplete="off"></label>
           <label class="field" for="when"><span>통화 일시</span><input type="text" id="when" value="오늘 오후 3시" autocomplete="off"></label>
+        </div>
+        <div class="field">
+          <span>명함 사진 <small style="font-weight:400">· 한 번만 넣으면 이 컴퓨터에 기억됩니다</small></span>
+          <label class="card" id="cardDrop" for="cardFile">
+            <span class="ph-box" id="cardThumb">명함</span>
+            <span class="txt"><strong id="cardTitle">명함 사진 넣기</strong><span id="cardHint">눌러서 고르거나, 끌어다 놓거나, 복사한 뒤 Ctrl+V</span></span>
+            <input type="file" id="cardFile" accept="image/*">
+          </label>
+          <div class="card-acts" id="cardActs" hidden><button type="button" id="cardCopy">명함 복사</button><button type="button" class="text" id="cardDel">명함 지우기</button></div>
         </div>
         <details class="tpl" id="tplbox">
           <summary>문구 고치기</summary>
@@ -252,6 +275,7 @@ const SAMPLE=[
 const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let rows=SAMPLE, customers=[], selected=new Set(), topN=6;
+let card=store.get("tcn_card")||"";   // 명함 사진 (이 브라우저에만 저장)
 
 function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
 function normPhone(p){return String(p||"").replace(/\D/g,"")}
@@ -361,12 +385,35 @@ function renderOut(){
   const b=document.createElement("div");b.className="msg-b";b.textContent=body;
   const f=document.createElement("div");f.className="msg-f";
   const cpPh=document.createElement("button");cpPh.type="button";cpPh.className="text";cpPh.textContent="번호 복사";
-  const cp=document.createElement("button");cp.type="button";cp.textContent="문자 복사";
-  cp.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
   cpPh.addEventListener("click",()=>copy(c.phone,"번호 복사됨",ph));
   if(!c.phone)cpPh.disabled=true;
-  f.append(cpPh,cp);
-  box.append(h,b,f);out.append(box);
+  box.append(h);
+  if(card){
+   // 명함 → 문자 순서로, 같은 버튼을 두 번 누르면 되게
+   const mc=document.createElement("div");mc.className="msg-card";
+   const im=document.createElement("img");im.src=card;im.alt="내 명함";
+   const tx=document.createElement("span");tx.textContent="명함을 먼저 붙여넣고, 이어서 문자를 붙여넣으세요";
+   mc.append(im,tx);box.append(mc);
+   const lb=document.createElement("span");lb.className="step-lb";
+   const cp=document.createElement("button");cp.type="button";cp.className="primary";
+   let stage=0;
+   const paint=()=>{cp.textContent=stage===0?"① 명함 복사":stage===1?"② 문자 복사":"다시 ① 명함 복사";
+    lb.textContent=stage===1?"카톡 대화창에 Ctrl+V 하고 ②를 누르세요":stage===2?"완료":"";
+    cp.classList.toggle("primary",stage<2)};
+   paint();
+   cp.addEventListener("click",async()=>{
+    if(stage!==1){if(await copyCard())stage=1}
+    else{copy(body,c.name+" 고객님 문자 복사됨. 대화창에 Ctrl+V",b);stage=2}
+    paint()});
+   const cpTxt=document.createElement("button");cpTxt.type="button";cpTxt.className="text";cpTxt.textContent="문자만 복사";
+   cpTxt.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
+   f.append(lb,cpPh,cpTxt,cp);
+  }else{
+   const cp=document.createElement("button");cp.type="button";cp.textContent="문자 복사";
+   cp.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
+   f.append(cpPh,cp);
+  }
+  box.append(b,f);out.append(box);
  }
 }
 function render(){renderRoster();renderOut()}
@@ -442,7 +489,59 @@ $("file").addEventListener("change",e=>{if(e.target.files[0])loadFile(e.target.f
 drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});
 // 탐색기에서 끌어온 파일을 칸 밖에 놓아도 브라우저가 파일을 열어 버리지 않게
 window.addEventListener("dragover",e=>e.preventDefault());
-window.addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(f)loadFile(f)});
+window.addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(!f)return;if(/^image\//.test(f.type))setCard(f);else loadFile(f)});
+
+// ---- 명함 사진 ----
+function cardRender(){
+ const has=!!card;$("cardDrop").classList.toggle("has",has);$("cardActs").hidden=!has;
+ const t=$("cardThumb");t.replaceChildren();
+ if(has){const i=document.createElement("img");i.src=card;i.alt="내 명함";t.append(i)}else t.textContent="명함";
+ $("cardTitle").textContent=has?"명함 사진 들어 있음":"명함 사진 넣기";
+ $("cardHint").textContent=has?"바꾸려면 눌러서 다른 사진을 고르세요":"눌러서 앨범·사진에서 고르거나, 끌어다 놓거나, Ctrl+V";
+}
+function setCard(file){
+ if(!file||!/^image\//.test(file.type)){toast("사진 파일만 넣을 수 있습니다");return}
+ const url=URL.createObjectURL(file);const img=new Image();
+ img.onload=()=>{
+  // 너무 큰 사진은 줄여서 저장 (긴 쪽 1280px)
+  const k=Math.min(1,1280/Math.max(img.width,img.height));
+  const cv=document.createElement("canvas");cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
+  const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
+  URL.revokeObjectURL(url);
+  card=cv.toDataURL("image/jpeg",0.9);store.set("tcn_card",card);
+  if(store.get("tcn_card")!==card)toast("명함을 넣었습니다 (이 브라우저에 저장은 안 돼서 새로고침하면 다시 넣어야 해요)");
+  else toast("명함 사진을 넣었습니다");
+  cardRender();renderOut();cardPng();
+ };
+ img.onerror=()=>{URL.revokeObjectURL(url);toast("사진을 읽지 못했습니다")};
+ img.src=url;
+}
+let _png=null,_pngSrc="";
+function cardPng(){ // 카톡 붙여넣기용 PNG (한 번 만들어 두고 재사용)
+ if(_png&&_pngSrc===card)return _png;_pngSrc=card;
+ _png=new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const cv=document.createElement("canvas");cv.width=i.width;cv.height=i.height;cv.getContext("2d").drawImage(i,0,0);cv.toBlob(b=>b?res(b):rej(),"image/png")};i.onerror=rej;i.src=card});
+ _png.catch(()=>{_png=null});return _png}
+async function copyCard(){
+ if(!card)return false;
+ try{
+  if(!navigator.clipboard||typeof ClipboardItem==="undefined")throw 0;
+  await navigator.clipboard.write([new ClipboardItem({"image/png":cardPng()})]);
+  toast("명함 복사됨. 카톡 대화창에 Ctrl+V");return true;
+ }catch(e){toast("이 브라우저는 사진 복사가 안 됩니다. 카톡에서 앨범의 명함을 직접 첨부해 주세요");return false}
+}
+$("cardFile").addEventListener("change",e=>{const f=e.target.files[0];if(f)setCard(f);e.target.value=""});
+const cd=$("cardDrop");
+["dragenter","dragover"].forEach(t=>cd.addEventListener(t,e=>{e.preventDefault();e.stopPropagation();cd.classList.add("over")}));
+["dragleave","drop"].forEach(t=>cd.addEventListener(t,e=>{e.preventDefault();e.stopPropagation();cd.classList.remove("over")}));
+cd.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)setCard(f)});
+document.addEventListener("paste",e=>{
+ if(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;
+ const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>/^image\//.test(x.type));
+ if(it){e.preventDefault();setCard(it.getAsFile())}
+});
+$("cardCopy").addEventListener("click",copyCard);
+$("cardDel").addEventListener("click",()=>{card="";try{localStorage.removeItem("tcn_card")}catch(e){}cardRender();renderOut();toast("명함을 지웠습니다")});
+cardRender();if(card)cardPng();
 
 customers=group(rows);
 selected=new Set(visible().slice(0,topN).map(c=>c.key));
