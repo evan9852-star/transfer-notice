@@ -25,6 +25,10 @@
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1200px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.apps{display:flex;gap:4px;margin-bottom:16px;font-size:14px;flex-wrap:wrap}
+.apps a{padding:6px 12px;border-radius:var(--r-s);color:var(--ink-2);text-decoration:none;border:1px solid var(--rule);background:var(--sheet);white-space:nowrap}
+.apps a:hover{color:var(--ink);border-color:var(--ink-2)}
+.apps a[aria-current]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-bottom:16px;margin-bottom:24px;border-bottom:2px solid var(--ink)}
 h1{font-size:26px;line-height:1.25;font-weight:700;margin:0;letter-spacing:-.02em}
 .lede{margin:4px 0 0;color:var(--ink-2);font-size:14px;max-width:44em}
@@ -108,12 +112,13 @@ td.del{text-align:right}
 </head>
 <body>
 <div class="wrap">
+  <nav class="apps" aria-label="프로그램"><a href="../">이관고객 안내문자</a><a href="./" aria-current="page">DB 연락처 저장</a></nav>
   <header class="head">
     <div>
       <h1>DB 연락처 저장</h1>
       <p class="lede">단장님이 카톡으로 보낸 DB 목록을 붙여넣으면, 저장 이름을 붙여 연락처 파일 하나로 만들어 줍니다. 파일을 열면 휴대폰 연락처에 한 번에 들어갑니다.</p>
     </div>
-    <div class="nav"><span class="safe">붙여넣은 내용은 이 기기 안에서만 다룹니다.</span><a href="../">이관고객 안내문자</a></div>
+    <div class="nav"><span class="safe">붙여넣은 내용은 이 기기 안에서만 다룹니다.</span></div>
   </header>
 
   <div class="grid">
