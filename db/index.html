@@ -146,7 +146,7 @@ td.del{text-align:right}
         <h2 id="outTitle">저장할 연락처 <span id="outN">0</span>명</h2>
         <div class="row-btns">
           <button type="button" id="shareBtn" hidden>휴대폰으로 보내기</button>
-          <button type="button" class="primary" id="vcfBtn">연락처 파일 받기</button>
+          <button type="button" class="text" id="bookOnly" title="이미 연락처에 저장한 사람일 때">장부에만 넣기</button><button type="button" class="primary" id="vcfBtn">연락처 파일 받기</button>
         </div>
       </div>
       <div class="tally" id="tally"></div>
@@ -154,9 +154,10 @@ td.del{text-align:right}
       <div class="guide">
         <b>연락처 파일을 받은 뒤</b>
         <ol>
-          <li>아이폰: 받은 파일(.vcf)을 누르면 <b>연락처 N개 모두 추가</b>가 나옵니다.</li>
-          <li>맥: 파일을 두 번 누르면 연락처 앱에 들어가고, 아이클라우드로 휴대폰에도 들어갑니다.</li>
-          <li>카톡 친구 자동 추가가 켜져 있으면 저장한 이름 그대로 카톡 친구 목록에 뜹니다.</li>
+          <li>맥: 파일을 두 번 누르면 연락처 앱에 들어가고, 아이클라우드로 휴대폰에도 들어갑니다. 아이폰은 파일을 열고 <b>모두 추가</b>.</li>
+          <li>카카오톡 톱니바퀴 → 환경설정 → 친구 → <b>동기화</b>. 휴대폰 카톡에서도 친구 새로고침을 하면 빨리 뜹니다.</li>
+          <li>카톡 친구에서 <b>DB</b>로 찾아 '카톡 이름 확인' 표시가 붙은 사람의 카톡 이름을 봅니다.</li>
+          <li>아래 장부에서 이름을 고치고 <b>고친 사람만 연락처 파일</b>을 받아 다시 엽니다. 연락처 앱이 같은 사람이라고 물으면 '업데이트'를 고르세요.</li>
         </ol>
       </div>
     </section>
@@ -167,7 +168,7 @@ td.del{text-align:right}
       <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명</h2>
       <div class="row-btns">
         <input type="text" id="bq" placeholder="이름·번호 찾기" autocomplete="off" style="width:160px">
-        <button type="button" id="bookVcf">장부 전체 연락처 파일</button>
+        <button type="button" id="fixVcf">고친 사람만 연락처 파일</button><button type="button" id="bookVcf">장부 전체 연락처 파일</button>
         <button type="button" id="bookXlsx">엑셀로 받기</button>
       </div>
     </div>
@@ -203,7 +204,8 @@ function fmtPhone(raw){
 function cleanRegion(r){return String(r||"").replace(/_및_/g,"·").replace(/_/g," ").trim()}
 const REGION_RE=/(_|수도권|권역|경상|전라|충청|강원|제주|서울|부산|경기|인천|대구|광주|대전|울산|세종|^기타$)/;
 // 한글 이름처럼 보이지 않으면(닉네임) 확인 표시
-function looksReal(n){return /^[가-힣]{2,4}$/.test(n)}
+// 성까지 있는 한글 이름(3~4자)만 이름으로 봄. 다현·민정처럼 두 글자도 카톡 이름 확인 대상
+function looksReal(n){return /^[가-힣]{3,4}$/.test(n)}
 
 // 카톡에서 복사한 글: "[서태환 …] [오전 8:41] 서울_및_수도권 안이옥 1091092376 재운"
 // 대화 내보내기: "2026. 11. 9. 오전 8:41, 서태환 … : 서울_및_수도권 …"
@@ -264,7 +266,7 @@ function load(){
  else{
   const chk=items.filter(i=>i.on&&!looksReal(i.name)).length, dup=items.filter(i=>i.dup).length, other=items.filter(i=>!i.mine).length;
   st.className="status ok";
-  st.textContent=`${items.length}명을 찾았습니다.`+(dup?` 이미 장부에 있는 ${dup}명은 뺐습니다.`:"")+(other?` 담당이 다른 ${other}명은 뺐습니다.`:"")+(chk?` 이름 확인 ${chk}명.`:"");
+  st.textContent=`${items.length}명을 찾았습니다.`+(dup?` 이미 장부에 있는 ${dup}명은 뺐습니다.`:"")+(other?` 담당이 다른 ${other}명은 뺐습니다.`:"")+(chk?` 카톡 이름 확인 ${chk}명.`:"");
  }
  renderList();
 }
@@ -272,9 +274,9 @@ function load(){
 function renderList(){
  const el=$("list");el.replaceChildren();
  const n=picked().length;$("outN").textContent=n;
- $("vcfBtn").disabled=!n;$("shareBtn").disabled=!n;
+ $("vcfBtn").disabled=!n;$("bookOnly").disabled=!n;$("shareBtn").disabled=!n;
  const chk=items.filter(i=>i.on&&!looksReal(i.name)).length;
- $("tally").textContent=items.length?`찾은 ${items.length}명 · 저장 ${n}명`+(chk?` · 이름 확인 ${chk}명 (닉네임은 아는 이름으로 고쳐도 됩니다)`:""):"";
+ $("tally").textContent=items.length?`찾은 ${items.length}명 · 저장 ${n}명`+(chk?` · 카톡 이름 확인 ${chk}명 (저장 뒤 카톡 이름을 보고 장부에서 고치면 됩니다)`:""):"";
  if(!items.length){const b=document.createElement("div");b.className="blank";b.textContent="왼쪽에 카톡 목록을 붙여넣으면 여기에 연락처가 정리됩니다.";el.append(b);return}
  items.forEach((it,i)=>{
   const r=document.createElement("div");r.className="lrow"+(it.on?"":" off");
@@ -291,7 +293,7 @@ function renderList(){
   main.append(nm,meta);
   const tg=document.createElement("div");tg.className="tags";
   const t=(c,x)=>{const s=document.createElement("span");s.className="tag "+c;s.textContent=x;tg.append(s)};
-  if(!looksReal(it.name))t("chk","이름 확인");
+  if(!looksReal(it.name))t("chk","카톡 이름 확인");
   if(it.dup)t("dup","이미 저장");
   if(it.dupHere)t("dup","같은 번호");
   if(!it.mine)t("other","담당 "+it.owner);
@@ -307,8 +309,8 @@ function vcard(list){
  return list.map(c=>[
   "BEGIN:VCARD","VERSION:3.0",
   "N:;"+esc(c.saveName)+";;;","FN:"+esc(c.saveName),
-  "TEL;TYPE=CELL:"+c.phone,
-  "NOTE:"+esc(["DB",c.camp,c.region,c.got+" 받음",c.name!==c.orig&&c.orig?"카톡 이름 "+c.orig:""].filter(Boolean).join(" · ")),
+  "UID:db-"+digits(c.phone),"TEL;TYPE=CELL:"+c.phone,
+  "NOTE:"+esc(["DB",c.camp,c.region,c.got+" 받음",c.name!==c.orig&&c.orig?"받은 이름 "+c.orig:""].filter(Boolean).join(" · ")),
   "END:VCARD"].join("\r\n")).join("\r\n")+"\r\n";
 }
 function records(){
@@ -334,6 +336,7 @@ $("vcfBtn").addEventListener("click",()=>{
  download(vcfFile(recs,(recs[0].got||today()).replaceAll("-","")+"_"+recs.length));
  addToBook(recs);toast(recs.length+"명 연락처 파일을 받았습니다. 파일을 열어 모두 추가하세요");
 });
+$("bookOnly").addEventListener("click",()=>{const recs=records();if(!recs.length)return;addToBook(recs);toast(recs.length+"명을 장부에 넣었습니다")});
 const canShare=f=>{try{return !!(navigator.canShare&&navigator.canShare({files:[f]}))}catch(e){return false}};
 if(canShare(new File(["x"],"t.vcf",{type:"text/vcard"})))$("shareBtn").hidden=false;
 $("shareBtn").addEventListener("click",async()=>{
@@ -344,7 +347,13 @@ $("shareBtn").addEventListener("click",async()=>{
 });
 
 // ---- 장부 ----
+function bookSaveName(b){
+ const d=b.got||today();
+ return ($("fmt").value||DEF_FMT).replaceAll("{이름}",b.name||"").replaceAll("{연월}",ym(d)).replaceAll("{월일}",md(d))
+  .replaceAll("{지역}",b.region||"").replaceAll("{캠페인}",b.camp||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
+}
 function renderBook(){
+ const nf=book.filter(b=>b.fixed).length;$("fixVcf").disabled=!nf;$("fixVcf").textContent=nf?`고친 사람만 연락처 파일 (${nf}명)`:"고친 사람만 연락처 파일";
  const q=$("bq").value.trim(),qd=digits(q);
  const list=book.slice().reverse().filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));
  $("bookN").textContent=book.length;
@@ -352,7 +361,18 @@ function renderBook(){
  if(!list.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=7;td.style.color="var(--ink-2)";td.textContent=book.length?"찾는 사람이 없습니다.":"아직 저장한 DB가 없습니다.";tr.append(td);tb.append(tr);return}
  for(const b of list){
   const tr=document.createElement("tr");
-  for(const v of [b.got,b.saveName,b.name,b.phone,b.region,b.camp]){const td=document.createElement("td");td.textContent=v||"";tr.append(td)}
+  const cells=[b.got,b.saveName,null,b.phone,b.region,b.camp];
+  cells.forEach((v,i)=>{
+   const td=document.createElement("td");
+   if(i===2){
+    const inp=document.createElement("input");inp.type="text";inp.value=b.name||"";inp.setAttribute("aria-label","이름 고치기");inp.style.cssText="width:9em;padding:4px 8px;font-size:14px";
+    inp.addEventListener("change",()=>{const nv=inp.value.trim();if(!nv||nv===b.name)return;if(!b.orig)b.orig=b.name;b.name=nv;b.saveName=bookSaveName(b);b.fixed=true;store.set("db_book",JSON.stringify(book));renderBook();toast("고쳤습니다. '고친 사람만 연락처 파일'로 받으세요")});
+    td.append(inp);
+    if(!looksReal(b.name)){const s=document.createElement("span");s.className="tag chk";s.style.marginLeft="6px";s.textContent="카톡 이름 확인";td.append(s)}
+    else if(b.fixed){const s=document.createElement("span");s.className="tag dup";s.style.marginLeft="6px";s.textContent="고침";td.append(s)}
+   }else td.textContent=v||"";
+   tr.append(td);
+  });
   const td=document.createElement("td");td.className="del";
   const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
   x.addEventListener("click",()=>{book=book.filter(o=>o!==b);store.set("db_book",JSON.stringify(book));renderBook();load()});
@@ -360,6 +380,7 @@ function renderBook(){
  }
 }
 $("bq").addEventListener("input",renderBook);
+$("fixVcf").addEventListener("click",()=>{const l=book.filter(b=>b.fixed);if(!l.length)return;download(vcfFile(l,"fix_"+l.length));l.forEach(b=>delete b.fixed);store.set("db_book",JSON.stringify(book));renderBook();toast(l.length+"명 고친 연락처 파일을 받았습니다")});
 $("bookVcf").addEventListener("click",()=>{if(!book.length){toast("장부가 비어 있습니다");return}download(vcfFile(book,"all_"+book.length))});
 $("bookXlsx").addEventListener("click",()=>{
  if(!book.length){toast("장부가 비어 있습니다");return}
