@@ -466,7 +466,7 @@ $("bookXlsx").addEventListener("click",()=>{
 });
 
 // ---- 안내문자 ----
-const DEF_MSG="안녕하세요, {이름}님~~\n{신청경로}을 통해 신청해주신 {프로그램} 담당자로 배정된 미래에셋 {내이름}입니다.\n\n본 프로그램은\n✔ 월급 및 자산관리 기초\n✔ 최근 재테크 트렌드\n✔ 개인 맞춤 포트폴리오 구성까지\n금융사 소속 전문가와 함께 진행되는 금융 멘토링입니다.\n\n상담은 보통 3~5회차로 진행되며, 대면 또는 비대면으로 가능합니다.\n📍 대면\n서울 강남역 9번 출구 GT타워 9층\n부산 연산역 1번 출구 제세빌딩 10층\n\n📍 비대면\nZOOM 진행\n\n다만 OT(오리엔테이션)는 ZOOM으로만 우선 진행됩니다.\n간단한 재무현황을 파악하고 현재 자산관리 관련 고민을 들어보는 시간이라 오래 걸리지 않아 30~40분 정도 소요됩니다\n\n\nOT 일정 관련해서 아래 사항 답변주시면 일정 조율 도와드리겠습니다!\n1. 이름 :\n2. 나이 :\n3. 직업 :\n4. 지역 :\n5. 대면/비대면 여부\n6. 가능한 요일 및 시간 3개(Ex ~4시)\n\n편하신 시간으로 남겨주시면 맞춰 안내드리겠습니다. 감사합니다!\n좋은 하루 되세요~";
+const DEF_MSG="안녕하세요! {이름}님\n{신청경로}을 통해 신청해주신 {프로그램} 담당자로 배정된 미래에셋 {내이름}입니다.\n\n본 프로그램은\n✔ 월급 및 자산관리 기초\n✔ 최근 재테크 트렌드\n✔ 개인 맞춤 포트폴리오 구성까지\n금융사 소속 전문가와 함께 진행되는 금융 멘토링입니다.\n\n상담은 보통 3~5회차로 진행되며, 대면 또는 비대면으로 가능합니다.\n📍 대면\n서울 강남역 9번 출구 GT타워 9층\n부산 연산역 1번 출구 제세빌딩 10층\n\n📍 비대면\nZOOM 진행\n\n다만 OT(오리엔테이션)는 ZOOM으로만 우선 진행됩니다.\n간단한 재무현황을 파악하고 현재 자산관리 관련 고민을 들어보는 시간이라 오래 걸리지 않아 30~40분 정도 소요됩니다\n\n\nOT 일정 관련해서 아래 사항 답변주시면 일정 조율 도와드리겠습니다!\n1. 이름 :\n2. 나이 :\n3. 직업 :\n4. 지역 :\n5. 대면/비대면 여부\n6. 가능한 요일 및 시간 3개(Ex ~4시)\n\n편하신 시간으로 남겨주시면 맞춰 안내드리겠습니다. 감사합니다!\n좋은 하루 되세요~";
 const MDEF={mMgr:"정재운",mRoute:"인스타그램",mCamp:"재테크스터디",mTpl:DEF_MSG};
 let sel=new Set();
 // 신청 이름이 별명(실명처럼 안 보임)이면 "선생님"으로 부름
@@ -515,6 +515,7 @@ function renderMsgs(){
   out.append(box);
  }
 }
+{const v=store.get("db_mTpl");if(v&&v.startsWith("안녕하세요, {이름}님~~"))store.set("db_mTpl",v.replace("안녕하세요, {이름}님~~","안녕하세요! {이름}님"))}
 for(const k of Object.keys(MDEF)){const v=store.get("db_"+k);$(k).value=v!=null&&v!==""?v:MDEF[k];$(k).addEventListener("input",()=>{store.set("db_"+k,$(k).value);renderMsgs()})}
 $("mReset").addEventListener("click",()=>{$("mTpl").value=DEF_MSG;store.set("db_mTpl",DEF_MSG);renderMsgs();toast("기본 문구로 되돌렸습니다")});
 document.querySelectorAll(".mtokens button[data-m]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("mTpl"),s0=t.selectionStart??t.value.length,e=t.selectionEnd??s0;t.value=t.value.slice(0,s0)+c.dataset.m+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s0+c.dataset.m.length;t.dispatchEvent(new Event("input"))})});
