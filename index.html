@@ -132,6 +132,19 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .tag.lapse{background:var(--amber-soft);color:var(--amber)}
 .tag.optout{background:var(--plum-soft);color:var(--plum)}
 .tag.done{background:var(--moss-soft);color:var(--moss)}
+.tag.touch{background:var(--amber-soft);color:var(--amber)}
+.tag.miss{background:var(--seal-soft);color:var(--seal)}
+.tag.call{background:var(--moss-soft);color:var(--moss)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{font-size:13px;padding:5px 10px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.seg button b{font-weight:600;margin-left:3px}
+.track{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 16px 0;padding:8px 10px;border-radius:var(--r-s);background:var(--rule-2);font-size:13px}
+.track .st{margin-right:auto;color:var(--ink-2)}
+.track .st b{color:var(--ink);font-weight:600}
+.track button{font-size:13px;padding:4px 10px}
+.track button.on{background:var(--moss-soft);color:var(--moss);border-color:var(--moss)}
+.status .re{margin-left:8px;font-size:12px;padding:2px 8px}
 .ledger .empty{padding:24px 16px;color:var(--ink-2);font-size:14px}
 
 /* 오른쪽 문자 더미 */
@@ -157,6 +170,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .card .txt strong{font-size:15px;font-weight:600}
 .card .txt span{font-size:13px;color:var(--ink-2)}
 .card.has{border-style:solid;border-color:var(--rule)}
+.card-acts[hidden]{display:none}
 .card-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .msg-card{display:flex;align-items:center;gap:10px;margin:12px 16px 0;font-size:13px;color:var(--ink-2)}
 .msg-card img{width:72px;height:42px;object-fit:contain;background:#fff;border-radius:var(--r-s);border:1px solid var(--rule)}
@@ -239,6 +253,12 @@ button.text:hover{color:var(--ink);text-decoration:underline}
           <label class="field wide" for="q"><span>이름·번호 찾기</span><input type="text" id="q" placeholder="이름 또는 번호" autocomplete="off"></label>
         </div>
         <label class="check" for="onlyNew"><input type="checkbox" id="onlyNew" checked>접촉방식이 비어 있는 고객만</label>
+        <div class="seg" id="seg" role="group" aria-label="연락 진행 상황으로 보기">
+          <button type="button" data-f="all" aria-pressed="true">전체<b id="fAll"></b></button>
+          <button type="button" data-f="none" aria-pressed="false">미연락<b id="fNone"></b></button>
+          <button type="button" data-f="touch" aria-pressed="false">터치만 · 콜 안 닿음<b id="fTouch"></b></button>
+          <button type="button" data-f="call" aria-pressed="false">콜 완료<b id="fCall"></b></button>
+        </div>
         <div class="pickbar">
           <div class="left">
             <button type="button" id="pickTop">앞에서 <span id="topNLabel">6</span>명 선택</button>
@@ -281,6 +301,24 @@ const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let rows=SAMPLE, customers=[], selected=new Set(), topN=6;
 let card=store.get("tcn_card")||"";   // 명함 사진 (이 브라우저에만 저장)
+// ---- 터치(문자·카톡) → 콜 진행 기록 (이 브라우저에만 저장) ----
+let track={};try{track=JSON.parse(store.get("tcn_track")||"{}")||{}}catch(e){track={}}
+let fMode=store.get("tcn_fmode")||"all";
+const tkey=c=>c.name+"|"+normPhone(c.phone);
+const T=c=>track[tkey(c)]||{};
+function saveTrack(){store.set("tcn_track",JSON.stringify(track))}
+function stage(c){const t=T(c);if(t.call)return"call";if(t.touch)return"touch";return"none"}
+function md(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()}
+function hm(ts){const d=new Date(ts);return md(ts)+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+function mark(c,what,quiet){
+ const k=tkey(c),t=track[k]||(track[k]={});const now=Date.now();
+ if(what==="touch"){if(t.touch&&!quiet){delete t.touch}else if(!t.touch){t.touch=now;if(quiet)toast(c.name+" 고객님 터치로 표시했습니다")}}
+ else if(what==="miss"){t.miss=(t.miss||0)+1;t.lastMiss=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 부재 "+t.miss+"회")}
+ else if(what==="call"){if(t.call){delete t.call}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 콜 완료")}}
+ else if(what==="reset"){delete track[k]}
+ if(track[k]&&!Object.keys(track[k]).length)delete track[k];
+ saveTrack();render();
+}
 
 function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
 function normPhone(p){return String(p||"").replace(/\D/g,"")}
@@ -339,16 +377,23 @@ function visible(){
   const ns=c.nos.filter(Number.isFinite);const lo=ns.length?Math.min(...ns):NaN,hi=ns.length?Math.max(...ns):NaN;
   if(Number.isFinite(f)&&Number.isFinite(hi)&&hi<f)return false;
   if(Number.isFinite(t)&&Number.isFinite(lo)&&lo>t)return false;
-  if($("onlyNew").checked&&c.contacted)return false;
+  if($("onlyNew").checked&&c.contacted&&fMode==="all")return false;
   if(q&&!(c.name.includes(q)||(qd&&normPhone(c.phone).includes(qd))))return false;
+  if(fMode!=="all"&&stage(c)!==fMode)return false;
   return true;
  });
 }
 function tag(cls,txt){const s=document.createElement("span");s.className="tag "+cls;s.textContent=txt;return s}
+function renderCounts(){
+ const n={none:0,touch:0,call:0};customers.forEach(c=>n[stage(c)]++);
+ $("fAll").textContent=customers.length;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fCall").textContent=n.call;
+ document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===fMode)));
+}
 function renderRoster(){
+ renderCounts();
  const v=visible();$("shownN").textContent=v.length;
  const el=$("roster");el.replaceChildren();
- if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=customers.length?"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.":"엑셀에서 고객을 찾지 못했습니다.";el.append(e);return}
+ if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="touch"?"터치만 하고 콜이 안 닿은 고객이 없습니다.":fMode==="call"?"아직 콜 완료한 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
  v.forEach((c,idx)=>{
   const on=selected.has(c.key);
   const d=document.createElement("div");d.className="lrow"+(on?" on":"");d.setAttribute("role","listitem");
@@ -363,6 +408,10 @@ function renderRoster(){
   if(c.lapsed.length)tg.append(tag("lapse","실효"));
   if(c.optout)tg.append(tag("optout","수신거부"));
   if(c.contacted)tg.append(tag("done","접촉함"));
+  const t=T(c);
+  if(t.call)tg.append(tag("call","콜 완료 "+md(t.call)));
+  else if(t.touch)tg.append(tag("touch","터치 "+md(t.touch)));
+  if(t.miss&&!t.call)tg.append(tag("miss","부재 "+t.miss));
   d.append(cb,no,who,tg);
   const toggle=()=>{on?selected.delete(c.key):selected.add(c.key);render()};
   d.addEventListener("click",e=>{if(e.target!==cb)toggle()});cb.addEventListener("change",toggle);
@@ -393,6 +442,24 @@ function renderOut(){
   cpPh.addEventListener("click",()=>copy(c.phone,"번호 복사됨",ph));
   if(!c.phone)cpPh.disabled=true;
   box.append(h);
+  // 진행 기록 줄: 터치 → 콜
+  const t=T(c);const tr=document.createElement("div");tr.className="track";
+  const st=document.createElement("span");st.className="st";
+  const parts=[];
+  if(t.touch)parts.push("터치 "+hm(t.touch));
+  if(t.miss)parts.push("부재 "+t.miss+"회"+(t.lastMiss?" (최근 "+hm(t.lastMiss)+")":""));
+  if(t.call)parts.push("콜 완료 "+hm(t.call));
+  st.innerHTML="";const sb=document.createElement("b");sb.textContent=t.call?"콜 완료":t.touch?"터치만 · 콜 안 닿음":"아직 연락 안 함";
+  st.append(sb,document.createTextNode(parts.length?" · "+parts.join(" · "):""));
+  const bT=document.createElement("button");bT.type="button";bT.className="text"+(t.touch?" on":"");bT.textContent=t.touch?"터치 ✓":"터치함";bT.title="문자·카톡을 보냈으면 누르세요 (다시 누르면 취소)";
+  bT.addEventListener("click",()=>mark(c,"touch"));
+  const bM=document.createElement("button");bM.type="button";bM.className="text";bM.textContent="부재";bM.title="전화했는데 안 받았을 때";
+  bM.addEventListener("click",()=>mark(c,"miss"));
+  const bC=document.createElement("button");bC.type="button";bC.className=t.call?"on":"";bC.textContent=t.call?"콜 완료 ✓":"통화 연결";bC.title="통화가 됐으면 누르세요 (다시 누르면 취소)";
+  bC.addEventListener("click",()=>mark(c,"call"));
+  tr.append(st,bT,bM,bC);
+  if(t.touch||t.call||t.miss){const bR=document.createElement("button");bR.type="button";bR.className="text";bR.textContent="기록 지우기";bR.addEventListener("click",()=>{if(confirm(c.name+" 고객님의 터치·콜 기록을 지울까요?"))mark(c,"reset")});tr.append(bR)}
+  box.append(tr);
   if(card){
    // 명함 → 문자 순서로, 같은 버튼을 두 번 누르면 되게
    const mc=document.createElement("div");mc.className="msg-card";
@@ -401,21 +468,21 @@ function renderOut(){
    mc.append(im,tx);box.append(mc);
    const lb=document.createElement("span");lb.className="step-lb";
    const cp=document.createElement("button");cp.type="button";cp.className="primary";
-   let stage=0;
-   const paint=()=>{cp.textContent=stage===0?"① 명함 복사":stage===1?"② 문자 복사":"다시 ① 명함 복사";
-    lb.textContent=stage===1?"카톡 대화창에 Ctrl+V 하고 ②를 누르세요":stage===2?"완료":"";
-    cp.classList.toggle("primary",stage<2)};
+   let step=0;
+   const paint=()=>{cp.textContent=step===0?"① 명함 복사":step===1?"② 문자 복사":"다시 ① 명함 복사";
+    lb.textContent=step===1?"카톡 대화창에 Ctrl+V 하고 ②를 누르세요":step===2?"완료":"";
+    cp.classList.toggle("primary",step<2)};
    paint();
    cp.addEventListener("click",async()=>{
-    if(stage!==1){if(await copyCard())stage=1}
-    else{copy(body,c.name+" 고객님 문자 복사됨. 대화창에 Ctrl+V",b);stage=2}
-    paint()});
+    if(step!==1){if(await copyCard())step=1;paint()}
+    else{copy(body,c.name+" 고객님 문자 복사됨. 대화창에 Ctrl+V",b);step=2;paint();setTimeout(()=>mark(c,"touch",true),1500)}
+   });
    const cpTxt=document.createElement("button");cpTxt.type="button";cpTxt.className="text";cpTxt.textContent="문자만 복사";
-   cpTxt.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
+   cpTxt.addEventListener("click",()=>{copy(body,c.name+" 고객님 문자 복사됨",b);setTimeout(()=>mark(c,"touch",true),1500)});
    f.append(lb,cpPh,cpTxt,cp);
   }else{
    const cp=document.createElement("button");cp.type="button";cp.textContent="문자 복사";
-   cp.addEventListener("click",()=>copy(body,c.name+" 고객님 문자 복사됨",b));
+   cp.addEventListener("click",()=>{copy(body,c.name+" 고객님 문자 복사됨",b);setTimeout(()=>mark(c,"touch",true),1500)});
    f.append(cpPh,cp);
   }
   box.append(b,f);out.append(box);
@@ -455,7 +522,9 @@ function parseWorkbook(wb){
  return null;
 }
 function setStatus(cls,nodes){const s=$("status");s.className="status "+cls;s.replaceChildren(...nodes)}
-async function loadFile(f){
+// 엑셀 파일 연결: 크롬·엣지는 파일을 '연결'해 두고, 엑셀에서 저장하면 자동으로 다시 읽음
+let fileHandle=null,fileStamp=0;
+async function loadFile(f,opt={}){
  if(!/\.(xlsx|xls|xlsm)$/i.test(f.name)){setStatus("error",[document.createTextNode("엑셀 파일(.xlsx, .xls)만 넣을 수 있습니다. 넣은 파일: "+f.name)]);return}
  setStatus("busy",[document.createTextNode(f.name+" 읽는 중…")]);
  await new Promise(r=>setTimeout(r,30));
@@ -465,11 +534,19 @@ async function loadFile(f){
   const wb=XLSX.read(buf,{type:"array",cellFormula:false,cellStyles:false,sheetStubs:false});
   const res=parseWorkbook(wb);
   if(!res||!res.rows.length)throw new Error("'성명'과 '계약명' 머리글이 있는 시트를 찾지 못했습니다. 첫 줄 머리글 이름을 확인하세요. (고객명·계약자, 상품명도 됩니다)");
-  rows=res.rows;customers=group(rows);selected=new Set();
+  rows=res.rows;customers=group(rows);
+  const keys=new Set(customers.map(c=>c.key));
+  selected=opt.keep?new Set([...selected].filter(k=>keys.has(k))):new Set();
+  fileStamp=f.lastModified||0;
   const b=document.createElement("b");b.textContent=f.name;
-  setStatus("loaded",[b,document.createTextNode(` · '${res.sheet}' 시트 · 계약 ${rows.length}건 · 고객 ${customers.length}명`)]);
+  const nodes=[b,document.createTextNode(` · '${res.sheet}' 시트 · 계약 ${rows.length}건 · 고객 ${customers.length}명`)];
+  if(fileHandle){const t=new Date();nodes.push(document.createTextNode(` · ${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")} 기준 (엑셀에서 저장하면 자동 반영)`));
+   const re=document.createElement("button");re.type="button";re.className="text re";re.textContent="지금 다시 읽기";re.addEventListener("click",()=>recheck(true));nodes.push(re)}
+  else nodes.push(document.createTextNode(" · 엑셀을 고쳤으면 저장 후 다시 끌어 놓으세요"));
+  setStatus("loaded",nodes);
   render();
- }catch(e){setStatus("error",[document.createTextNode(e.message||"파일을 읽지 못했습니다. 엑셀에서 다시 저장한 뒤 넣어 보세요.")])}
+  if(opt.keep)toast("엑셀 수정 내용을 반영했습니다");
+ }catch(e){if(opt.keep)return;setStatus("error",[document.createTextNode(e.message||"파일을 읽지 못했습니다. 엑셀에서 다시 저장한 뒤 넣어 보세요.")])}
 }
 
 // ---- 연결 ----
@@ -477,6 +554,7 @@ for(const k of ["tpl","tplMulti","tplLapse","mgr","when"]){const v=store.get("tc
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"])$(k).addEventListener("input",()=>{store.set("tcn_"+k,$(k).value);renderOut()});
 for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster);
 $("onlyNew").addEventListener("change",renderRoster);
+document.querySelectorAll("#seg button").forEach(b=>b.addEventListener("click",()=>{fMode=b.dataset.f;store.set("tcn_fmode",fMode);renderRoster()}));
 let lastFocus=$("tpl");["tpl","tplMulti","tplLapse"].forEach(k=>$(k).addEventListener("focus",()=>lastFocus=$(k)));
 document.querySelectorAll(".tokens button").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=lastFocus,s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
 $("resetTpl").addEventListener("click",()=>{for(const k of ["tpl","tplMulti","tplLapse"]){$(k).value=DEF[k];store.set("tcn_"+k,DEF[k])}renderOut();toast("기본 문구로 되돌렸습니다")});
@@ -488,13 +566,35 @@ $("pickTop").addEventListener("click",()=>{selected=new Set(visible().slice(0,to
 $("pickNone").addEventListener("click",()=>{selected.clear();render()});
 $("copyAll").addEventListener("click",()=>{const list=customers.filter(c=>selected.has(c.key));if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
 const drop=$("drop");
-$("file").addEventListener("change",e=>{if(e.target.files[0])loadFile(e.target.files[0]);e.target.value=""});
+async function useHandle(h){if(!h||h.kind!=="file")return false;fileHandle=h;try{await loadFile(await h.getFile())}catch(e){fileHandle=null;return false}return true}
+async function recheck(force){
+ if(!fileHandle)return;
+ try{const f=await fileHandle.getFile();if(force||f.lastModified!==fileStamp)await loadFile(f,{keep:true});else if(force===undefined){} }
+ catch(e){if(force)toast("엑셀을 다시 읽지 못했습니다. 파일을 다시 끌어 놓아 주세요")}
+}
+// 다른 창(엑셀)에서 돌아오면 저장된 변경이 있는지 확인
+window.addEventListener("focus",()=>recheck());
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)recheck()});
+setInterval(()=>{if(!document.hidden)recheck()},5000);
+if(window.showOpenFilePicker){
+ drop.addEventListener("click",async e=>{
+  e.preventDefault();
+  try{const [h]=await window.showOpenFilePicker({types:[{description:"엑셀",accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx",".xlsm"],"application/vnd.ms-excel":[".xls"]}}],excludeAcceptAllOption:false});await useHandle(h)}
+  catch(err){if(err&&err.name!=="AbortError")$("file").click()}
+ });
+}
+$("file").addEventListener("change",e=>{if(e.target.files[0]){fileHandle=null;loadFile(e.target.files[0])}e.target.value=""});
 ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
 ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
-drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+drop.addEventListener("drop",async e=>{e.stopPropagation();const it=e.dataTransfer.items&&e.dataTransfer.items[0];const f=e.dataTransfer.files[0];
+ if(it&&it.getAsFileSystemHandle){const hp=it.getAsFileSystemHandle();try{if(await useHandle(await hp))return}catch(_){}}
+ fileHandle=null;if(f)loadFile(f)});
 // 탐색기에서 끌어온 파일을 칸 밖에 놓아도 브라우저가 파일을 열어 버리지 않게
 window.addEventListener("dragover",e=>e.preventDefault());
-window.addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(!f)return;if(/^image\//.test(f.type))setCard(f);else loadFile(f)});
+window.addEventListener("drop",async e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(!f)return;if(/^image\//.test(f.type)){setCard(f);return}
+ const it=e.dataTransfer.items&&e.dataTransfer.items[0];
+ if(it&&it.getAsFileSystemHandle){try{if(await useHandle(await it.getAsFileSystemHandle()))return}catch(_){}}
+ fileHandle=null;loadFile(f)});
 
 // ---- 명함 사진 ----
 function cardRender(){
