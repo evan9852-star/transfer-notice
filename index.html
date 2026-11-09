@@ -299,7 +299,14 @@ const SAMPLE=[
 ];
 const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let rows=SAMPLE, customers=[], selected=new Set(), topN=6;
+// 새로고침해도 엑셀이 빠지지 않게: 마지막으로 읽은 엑셀 내용과 파일 연결을 이 브라우저(IndexedDB)에 보관
+const idb={_d:null,
+ db(){return this._d||(this._d=new Promise((res,rej)=>{const r=indexedDB.open("tcn",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))},
+ async get(k){try{const d=await this.db();return await new Promise((res,rej)=>{const q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return undefined}},
+ async set(k,v){try{const d=await this.db();await new Promise((res,rej)=>{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}},
+ async del(k){try{const d=await this.db();await new Promise(res=>{const t=d.transaction("kv","readwrite");t.objectStore("kv").delete(k);t.oncomplete=res;t.onerror=res})}catch(e){}}
+};
+let rows=SAMPLE, customers=[], selected=new Set(), topN=6, loadedName="";
 let card=store.get("tcn_card")||"";   // 명함 사진 (이 브라우저에만 저장)
 // ---- 터치(문자·카톡) → 콜 진행 기록 (이 브라우저에만 저장) ----
 let track={};try{track=JSON.parse(store.get("tcn_track")||"{}")||{}}catch(e){track={}}
@@ -488,7 +495,7 @@ function renderOut(){
   box.append(b,f);out.append(box);
  }
 }
-function render(){renderRoster();renderOut()}
+function render(){renderRoster();renderOut();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
 
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),1800)}
 function selectText(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
@@ -524,6 +531,25 @@ function parseWorkbook(wb){
 function setStatus(cls,nodes){const s=$("status");s.className="status "+cls;s.replaceChildren(...nodes)}
 // 엑셀 파일 연결: 크롬·엣지는 파일을 '연결'해 두고, 엑셀에서 저장하면 자동으로 다시 읽음
 let fileHandle=null,fileStamp=0;
+function hhmm(ts){const t=new Date(ts);return String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0")}
+function btn(txt,fn,cls="text re"){const b=document.createElement("button");b.type="button";b.className=cls;b.textContent=txt;b.addEventListener("click",fn);return b}
+function bookStatus(name,sheet,at,pendingHandle){
+ const b=document.createElement("b");b.textContent=name;
+ const nodes=[b,document.createTextNode(` · '${sheet}' 시트 · 계약 ${rows.length}건 · 고객 ${customers.length}명 · ${hhmm(at)} 기준`)];
+ if(fileHandle){nodes.push(document.createTextNode(" (엑셀에서 저장하면 자동 반영)"),btn("지금 다시 읽기",()=>recheck(true)))}
+ else if(pendingHandle){nodes.push(document.createTextNode(" · 엑셀을 고쳤다면 →"),btn("최신 내용 불러오기",async()=>{
+   try{if(await pendingHandle.requestPermission({mode:"read"})==="granted"){fileHandle=pendingHandle;await recheck(true)}else toast("허용해야 엑셀을 다시 읽을 수 있습니다")}catch(e){toast("엑셀을 다시 읽지 못했습니다. 파일을 다시 끌어 놓아 주세요")}
+  },"re"))}
+ else nodes.push(document.createTextNode(" · 엑셀을 고쳤으면 저장 후 다시 끌어 놓으세요"));
+ nodes.push(btn("엑셀 빼기",forgetBook));
+ setStatus("loaded",nodes);
+}
+async function forgetBook(){
+ if(!confirm("화면에서 엑셀을 뺄까요? (컴퓨터의 엑셀 파일과 터치·콜 기록은 그대로 남습니다)"))return;
+ await idb.del("book");await idb.del("handle");fileHandle=null;loadedName="";try{localStorage.removeItem("tcn_sel")}catch(e){}
+ rows=SAMPLE;customers=group(rows);selected=new Set(visible().slice(0,topN).map(c=>c.key));
+ setStatus("sample",[document.createTextNode("지금 보이는 고객은 예시입니다. 엑셀을 넣으면 실제 고객으로 바뀝니다.")]);render();
+}
 async function loadFile(f,opt={}){
  if(!/\.(xlsx|xls|xlsm)$/i.test(f.name)){setStatus("error",[document.createTextNode("엑셀 파일(.xlsx, .xls)만 넣을 수 있습니다. 넣은 파일: "+f.name)]);return}
  setStatus("busy",[document.createTextNode(f.name+" 읽는 중…")]);
@@ -537,13 +563,10 @@ async function loadFile(f,opt={}){
   rows=res.rows;customers=group(rows);
   const keys=new Set(customers.map(c=>c.key));
   selected=opt.keep?new Set([...selected].filter(k=>keys.has(k))):new Set();
-  fileStamp=f.lastModified||0;
-  const b=document.createElement("b");b.textContent=f.name;
-  const nodes=[b,document.createTextNode(` · '${res.sheet}' 시트 · 계약 ${rows.length}건 · 고객 ${customers.length}명`)];
-  if(fileHandle){const t=new Date();nodes.push(document.createTextNode(` · ${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")} 기준 (엑셀에서 저장하면 자동 반영)`));
-   const re=document.createElement("button");re.type="button";re.className="text re";re.textContent="지금 다시 읽기";re.addEventListener("click",()=>recheck(true));nodes.push(re)}
-  else nodes.push(document.createTextNode(" · 엑셀을 고쳤으면 저장 후 다시 끌어 놓으세요"));
-  setStatus("loaded",nodes);
+  fileStamp=f.lastModified||0;loadedName=f.name;
+  idb.set("book",{name:f.name,sheet:res.sheet,rows,at:Date.now()});
+  if(fileHandle)idb.set("handle",fileHandle);else idb.del("handle");
+  bookStatus(f.name,res.sheet,Date.now());
   render();
   if(opt.keep)toast("엑셀 수정 내용을 반영했습니다");
  }catch(e){if(opt.keep)return;setStatus("error",[document.createTextNode(e.message||"파일을 읽지 못했습니다. 엑셀에서 다시 저장한 뒤 넣어 보세요.")])}
@@ -651,6 +674,22 @@ cardRender();if(card)cardPng();
 customers=group(rows);
 selected=new Set(visible().slice(0,topN).map(c=>c.key));
 render();
+// 지난번에 넣은 엑셀 되살리기
+(async()=>{
+ const bk=await idb.get("book");if(!bk||!bk.rows||!bk.rows.length)return;
+ rows=bk.rows;customers=group(rows);loadedName=bk.name;
+ let sel=[];try{sel=JSON.parse(store.get("tcn_sel")||"[]")}catch(e){}
+ const keys=new Set(customers.map(c=>c.key));selected=new Set(sel.filter(k=>keys.has(k)));
+ bookStatus(bk.name,bk.sheet,bk.at,null);render();
+ // 파일 연결 되살리기 (지난번 시도에서 브라우저가 멈췄다면 건너뛰고 연결만 지움)
+ if(store.get("tcn_hr")==="1"){await idb.del("handle");try{localStorage.removeItem("tcn_hr")}catch(e){}return}
+ store.set("tcn_hr","1");
+ const h=await idb.get("handle");let pending=null;
+ if(h&&h.queryPermission){try{if(await h.queryPermission({mode:"read"})==="granted")fileHandle=h;else pending=h}catch(e){}}
+ try{localStorage.removeItem("tcn_hr")}catch(e){}
+ if(fileHandle||pending)bookStatus(bk.name,bk.sheet,bk.at,pending);
+ if(fileHandle)recheck();   // 꺼져 있는 동안 엑셀을 고쳤으면 바로 반영
+})();
 
 // ---- 카카오 '나에게 보내기' ----
 const KAKAO_JS_KEY="b3f526f7529975d22b6b542f090c32cf";
@@ -717,8 +756,8 @@ $("ksend").addEventListener("click",async()=>{
  const list=customers.filter(c=>selected.has(c.key));
  if(!list.length){toast("먼저 고객을 고르세요");return}
  const token=tokenStore.get();
- if(!token){toast("오른쪽 위 '카카오 로그인'을 먼저 누르세요. 로그인 후 엑셀을 다시 넣어야 합니다");return}
- if(kScopeOk===false){toast("오른쪽 위 '카톡 보내기 동의하기'를 먼저 눌러 주세요. 동의 후 엑셀을 다시 넣어야 합니다");return}
+ if(!token){toast("오른쪽 위 '카카오 로그인'을 먼저 누르세요. 로그인해도 넣은 엑셀은 그대로 남습니다");return}
+ if(kScopeOk===false){toast("오른쪽 위 '카톡 보내기 동의하기'를 먼저 눌러 주세요. 동의해도 넣은 엑셀은 그대로 남습니다");return}
  sending=true;const btn=$("ksend");let sent=0;
  try{
   for(const c of list){
