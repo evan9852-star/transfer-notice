@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DB 연락처 저장</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="../xlsx.full.min.js"></script>
+<style>
+/* 이관고객 안내문자와 같은 장부 느낌. 강조색은 인주색 하나, 주 버튼은 '연락처 파일 받기' 하나. */
+:root{
+  --paper:#f3f4f1; --sheet:#ffffff; --ink:#1b2220; --ink-2:#56625d;
+  --rule:#d9ded7; --rule-2:#eceee9; --seal:#a8362a; --seal-soft:#f6e5e1;
+  --amber:#8a5a10; --amber-soft:#f6ecd8; --moss:#2f6a45; --moss-soft:#e3efe6; --pick:#fbf3f1;
+  --f:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;
+  --r-s:4px; --r-m:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-bottom:16px;margin-bottom:24px;border-bottom:2px solid var(--ink)}
+h1{font-size:26px;line-height:1.25;font-weight:700;margin:0;letter-spacing:-.02em}
+.lede{margin:4px 0 0;color:var(--ink-2);font-size:14px;max-width:44em}
+.nav{display:flex;gap:16px;font-size:14px;align-items:center;flex-wrap:wrap}
+.nav a{color:var(--ink-2)}
+.safe{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--moss)}
+.safe::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--moss);flex:none}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.steps{display:flex;flex-direction:column;gap:24px;min-width:0}
+.step{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-h{display:flex;align-items:center;gap:10px}
+.step-n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+h2{margin:0;font-size:16px;font-weight:700}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:13px;color:var(--ink-2);font-weight:500}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+input[type=text],input[type=date],textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-s);padding:8px 10px;width:100%;min-width:0;line-height:1.5}
+input:hover,textarea:hover{border-color:var(--ink-2)}
+input::placeholder,textarea::placeholder{color:var(--ink-2);opacity:.7}
+textarea{font-size:14px;line-height:1.7;resize:vertical;min-height:180px}
+:focus-visible{outline:2px solid var(--seal);outline-offset:1px}
+input[type=checkbox]{accent-color:var(--seal);width:16px;height:16px;margin:0;flex:none}
+button{font:inherit;cursor:pointer;border-radius:var(--r-s);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 14px;font-size:14px;font-weight:500;line-height:1.4;min-height:36px;white-space:nowrap}
+button:hover{border-color:var(--ink-2)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--seal);border-color:var(--seal);color:var(--sheet);font-weight:600}
+button.primary:hover{filter:brightness(.94)}
+button.text{border-color:transparent;background:transparent;color:var(--ink-2);padding-inline:8px}
+button.text:hover{color:var(--ink);text-decoration:underline}
+.row-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.status{font-size:13px;padding:8px 12px;border-radius:var(--r-s);line-height:1.5}
+.status.idle{background:var(--rule-2);color:var(--ink-2)}
+.status.ok{background:var(--moss-soft);color:var(--moss)}
+.status.warn{background:var(--amber-soft);color:var(--amber)}
+.hint{font-size:13px;color:var(--ink-2);margin:0}
+.tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.tokens button{font-size:13px;padding:2px 8px;min-height:28px;background:var(--rule-2)}
+.preview{font-size:14px;color:var(--ink-2)}
+.preview b{color:var(--ink);font-weight:600}
+/* 오른쪽 */
+.out{display:flex;flex-direction:column;gap:16px;min-width:0}
+.out-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.out-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.tally{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ledger{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m)}
+.lrow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule-2)}
+.lrow:last-child{border-bottom:0}
+.lrow.off{opacity:.55}
+.lrow .main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:4px 12px;align-items:center;min-width:0}
+@media (max-width:560px){.lrow .main{grid-template-columns:minmax(0,1fr)}}
+.lrow input.nm{font-weight:600;padding:5px 8px;font-size:15px}
+.lrow .meta{font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.lrow .meta .ph{color:var(--ink);font-weight:500;white-space:nowrap}
+.lrow .meta span{white-space:nowrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:12px;line-height:1.5;padding:1px 7px;border-radius:var(--r-s);white-space:nowrap;font-weight:500}
+.tag.chk{background:var(--amber-soft);color:var(--amber)}
+.tag.dup{background:var(--rule-2);color:var(--ink-2)}
+.tag.other{background:var(--rule-2);color:var(--ink-2)}
+.save-name{grid-column:2/-1;font-size:13px;color:var(--ink-2)}
+.save-name b{color:var(--ink);font-weight:600}
+.blank{color:var(--ink-2);padding:40px 20px;border:1px dashed var(--rule);border-radius:var(--r-m);text-align:center;font-size:14px}
+.guide{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:14px 16px;font-size:14px}
+.guide ol{margin:6px 0 0;padding-left:20px}
+.guide li{margin:2px 0}
+/* 장부 */
+.book{margin-top:40px;display:flex;flex-direction:column;gap:12px}
+.book-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
+.book-h h2{font-size:18px}
+.book-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.tbl-wrap{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);overflow:auto;max-height:520px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+th{position:sticky;top:0;background:var(--sheet);font-weight:600;color:var(--ink-2);font-size:13px;border-bottom:1px solid var(--rule)}
+td.del{text-align:right}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:var(--r-m);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1>DB 연락처 저장</h1>
+      <p class="lede">단장님이 카톡으로 보낸 DB 목록을 붙여넣으면, 저장 이름을 붙여 연락처 파일 하나로 만들어 줍니다. 파일을 열면 휴대폰 연락처에 한 번에 들어갑니다.</p>
+    </div>
+    <div class="nav"><span class="safe">붙여넣은 내용은 이 기기 안에서만 다룹니다.</span><a href="../">이관고객 안내문자</a></div>
+  </header>
+
+  <div class="grid">
+    <div class="steps">
+      <section class="step" aria-labelledby="s1">
+        <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2 id="s1">카톡 붙여넣기</h2></div>
+        <textarea id="src" spellcheck="false" placeholder="단장님 카톡에서 목록을 길게 눌러(또는 전체보기에서) 복사한 뒤 여기에 붙여넣기&#10;&#10;예) 서울_및_수도권  홍길동  1012345678  재운"></textarea>
+        <div class="row-btns"><button type="button" id="pasteBtn">복사한 내용 붙여넣기</button><button type="button" class="text" id="clearBtn">지우기</button></div>
+        <div id="status" class="status idle" role="status">붙여넣으면 바로 정리됩니다.</div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2 id="s2">저장 이름 정하기</h2></div>
+        <div class="fields">
+          <label class="field" for="got"><span>받은 날</span><input type="date" id="got"></label>
+          <label class="field" for="me"><span>내 이름 (담당 칸)</span><input type="text" id="me" value="재운" autocomplete="off"></label>
+        </div>
+        <label class="field" for="camp"><span>캠페인 <small style="font-weight:400">· 없으면 비워 두기</small></span><input type="text" id="camp" placeholder="예) 돈관리재테크스터디" autocomplete="off"></label>
+        <label class="field" for="fmt"><span>저장 이름 모양</span><input type="text" id="fmt" spellcheck="false" autocomplete="off"></label>
+        <div class="tokens"><span>넣을 항목</span>
+          <button type="button" data-t="{이름}">이름</button><button type="button" data-t="{연월}">연월</button><button type="button" data-t="{월일}">월일</button><button type="button" data-t="{지역}">지역</button><button type="button" data-t="{캠페인}">캠페인</button>
+          <button type="button" class="text" id="fmtReset">기본으로</button>
+        </div>
+        <p class="preview" id="fmtPrev"></p>
+      </section>
+    </div>
+
+    <section class="out" aria-labelledby="outTitle">
+      <div class="out-h">
+        <h2 id="outTitle">저장할 연락처 <span id="outN">0</span>명</h2>
+        <div class="row-btns">
+          <button type="button" id="shareBtn" hidden>휴대폰으로 보내기</button>
+          <button type="button" class="primary" id="vcfBtn">연락처 파일 받기</button>
+        </div>
+      </div>
+      <div class="tally" id="tally"></div>
+      <div class="ledger" id="list"></div>
+      <div class="guide">
+        <b>연락처 파일을 받은 뒤</b>
+        <ol>
+          <li>아이폰: 받은 파일(.vcf)을 누르면 <b>연락처 N개 모두 추가</b>가 나옵니다.</li>
+          <li>맥: 파일을 두 번 누르면 연락처 앱에 들어가고, 아이클라우드로 휴대폰에도 들어갑니다.</li>
+          <li>카톡 친구 자동 추가가 켜져 있으면 저장한 이름 그대로 카톡 친구 목록에 뜹니다.</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
+  <section class="book" aria-labelledby="bookTitle">
+    <div class="book-h">
+      <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명</h2>
+      <div class="row-btns">
+        <input type="text" id="bq" placeholder="이름·번호 찾기" autocomplete="off" style="width:160px">
+        <button type="button" id="bookVcf">장부 전체 연락처 파일</button>
+        <button type="button" id="bookXlsx">엑셀로 받기</button>
+      </div>
+    </div>
+    <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 엑셀로 받아 두세요. 다음 단계의 안내문자는 이 장부에서 만듭니다.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>받은 날</th><th>저장 이름</th><th>이름</th><th>전화</th><th>지역</th><th>캠페인</th><th></th></tr></thead>
+      <tbody id="book"></tbody>
+    </table></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const DEF_FMT="DB {이름} ({연월})";
+let items=[];   // 이번에 붙여넣은 목록
+let book=[];    // 장부
+try{book=JSON.parse(store.get("db_book")||"[]")||[]}catch(e){book=[]}
+
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),2200)}
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function digits(s){return String(s||"").replace(/\D/g,"")}
+// 1091092376 → 010-9109-2376 (엑셀 숫자로 앞 0이 빠진 번호)
+function fmtPhone(raw){
+ let d=digits(raw);
+ if(/^1[016789]\d{7,8}$/.test(d))d="0"+d;
+ if(d.startsWith("82")&&d.length>=11)d="0"+d.slice(2);
+ if(/^01\d{9}$/.test(d))return d.replace(/(\d{3})(\d{4})(\d{4})/,"$1-$2-$3");
+ if(/^01\d{8}$/.test(d))return d.replace(/(\d{3})(\d{3})(\d{4})/,"$1-$2-$3");
+ return d;
+}
+function cleanRegion(r){return String(r||"").replace(/_및_/g,"·").replace(/_/g," ").trim()}
+const REGION_RE=/(_|수도권|권역|경상|전라|충청|강원|제주|서울|부산|경기|인천|대구|광주|대전|울산|세종|^기타$)/;
+// 한글 이름처럼 보이지 않으면(닉네임) 확인 표시
+function looksReal(n){return /^[가-힣]{2,4}$/.test(n)}
+
+// 카톡에서 복사한 글: "[서태환 …] [오전 8:41] 서울_및_수도권 안이옥 1091092376 재운"
+// 대화 내보내기: "2026. 11. 9. 오전 8:41, 서태환 … : 서울_및_수도권 …"
+function stripPrefix(line){
+ let s=line.replace(/\u00a0/g," ").trim();
+ s=s.replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/,"");
+ s=s.replace(/^\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?\s*(오전|오후)?\s*\d{1,2}:\d{2},?\s*[^:]*?\s:\s/,"");
+ s=s.replace(/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?,"?[^,]*"?,"?/,"");
+ return s.replace(/"$/,"").trim();
+}
+function parse(text){
+ const out=[];
+ for(const raw of String(text||"").split(/\r?\n/)){
+  const line=stripPrefix(raw);if(!line)continue;
+  const m=line.match(/(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/);
+  if(!m)continue;
+  const phone=fmtPhone(m[0]);if(!/^01\d-\d{3,4}-\d{4}$/.test(phone))continue;
+  const before=line.slice(0,m.index).trim(), after=line.slice(m.index+m[0].length).trim();
+  let parts=before.split(/\t+/).map(x=>x.trim()).filter(Boolean);
+  if(parts.length<2)parts=before.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean);
+  let region="",name="";
+  if(parts.length>=2){region=parts[0];name=parts.slice(1).join(" ")}
+  else{
+   const w=before.split(/\s+/).filter(Boolean);
+   if(w.length>=2&&REGION_RE.test(w[0])){region=w[0];name=w.slice(1).join(" ")}
+   else name=before;
+  }
+  if(region&&!REGION_RE.test(region)){name=(region+" "+name).trim();region=""}
+  out.push({region:cleanRegion(region),name:name.trim(),phone,owner:after.split(/\s+/)[0]||""});
+ }
+ return out;
+}
+
+function ym(d){return d?d.slice(2,4)+"."+d.slice(5,7):""}
+function md(d){return d?d.slice(5,7)+"."+d.slice(8,10):""}
+function saveName(it){
+ const d=$("got").value||today(), camp=$("camp").value.trim();
+ let s=($("fmt").value||DEF_FMT)
+  .replaceAll("{이름}",it.name||"").replaceAll("{연월}",ym(d)).replaceAll("{월일}",md(d))
+  .replaceAll("{지역}",it.region||"").replaceAll("{캠페인}",camp);
+ return s.replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
+}
+function inBook(phone){return book.some(b=>b.phone===phone)}
+function picked(){return items.filter(it=>it.on)}
+
+function load(){
+ const me=$("me").value.trim();
+ const seen=new Set();
+ items=parse($("src").value).map(it=>{
+  const mine=!me||!it.owner||it.owner.includes(me)||me.includes(it.owner);
+  const dupHere=seen.has(it.phone);seen.add(it.phone);
+  const dup=inBook(it.phone);
+  return {...it,orig:it.name,mine,dup,dupHere,on:mine&&!dup&&!dupHere};
+ });
+ const st=$("status");
+ if(!$("src").value.trim()){st.className="status idle";st.textContent="붙여넣으면 바로 정리됩니다."}
+ else if(!items.length){st.className="status warn";st.textContent="전화번호가 있는 줄을 찾지 못했습니다. 한 줄에 '지역 이름 번호' 모양인지 확인하세요."}
+ else{
+  const chk=items.filter(i=>i.on&&!looksReal(i.name)).length, dup=items.filter(i=>i.dup).length, other=items.filter(i=>!i.mine).length;
+  st.className="status ok";
+  st.textContent=`${items.length}명을 찾았습니다.`+(dup?` 이미 장부에 있는 ${dup}명은 뺐습니다.`:"")+(other?` 담당이 다른 ${other}명은 뺐습니다.`:"")+(chk?` 이름 확인 ${chk}명.`:"");
+ }
+ renderList();
+}
+
+function renderList(){
+ const el=$("list");el.replaceChildren();
+ const n=picked().length;$("outN").textContent=n;
+ $("vcfBtn").disabled=!n;$("shareBtn").disabled=!n;
+ const chk=items.filter(i=>i.on&&!looksReal(i.name)).length;
+ $("tally").textContent=items.length?`찾은 ${items.length}명 · 저장 ${n}명`+(chk?` · 이름 확인 ${chk}명 (닉네임은 아는 이름으로 고쳐도 됩니다)`:""):"";
+ if(!items.length){const b=document.createElement("div");b.className="blank";b.textContent="왼쪽에 카톡 목록을 붙여넣으면 여기에 연락처가 정리됩니다.";el.append(b);return}
+ items.forEach((it,i)=>{
+  const r=document.createElement("div");r.className="lrow"+(it.on?"":" off");
+  const cb=document.createElement("input");cb.type="checkbox";cb.checked=it.on;cb.setAttribute("aria-label",it.name+" 저장");
+  cb.addEventListener("change",()=>{it.on=cb.checked;renderList()});
+  const main=document.createElement("div");main.className="main";
+  const nm=document.createElement("input");nm.type="text";nm.className="nm";nm.value=it.name;nm.setAttribute("aria-label","이름");
+  nm.addEventListener("input",()=>{it.name=nm.value.trim();sv.querySelector("b").textContent=saveName(it)});
+  nm.addEventListener("change",renderList);
+  const meta=document.createElement("div");meta.className="meta";
+  const ph=document.createElement("span");ph.className="ph";ph.textContent=it.phone;
+  const rg=document.createElement("span");rg.textContent=it.region||"지역 없음";
+  meta.append(ph,rg);
+  main.append(nm,meta);
+  const tg=document.createElement("div");tg.className="tags";
+  const t=(c,x)=>{const s=document.createElement("span");s.className="tag "+c;s.textContent=x;tg.append(s)};
+  if(!looksReal(it.name))t("chk","이름 확인");
+  if(it.dup)t("dup","이미 저장");
+  if(it.dupHere)t("dup","같은 번호");
+  if(!it.mine)t("other","담당 "+it.owner);
+  const sv=document.createElement("div");sv.className="save-name";
+  sv.append("저장 이름 ");const b=document.createElement("b");b.textContent=saveName(it);sv.append(b);
+  r.append(cb,main,tg,sv);el.append(r);
+ });
+}
+
+// ---- 연락처 파일(vCard) ----
+function esc(v){return String(v||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/[,;]/g,m=>"\\"+m)}
+function vcard(list){
+ return list.map(c=>[
+  "BEGIN:VCARD","VERSION:3.0",
+  "N:;"+esc(c.saveName)+";;;","FN:"+esc(c.saveName),
+  "TEL;TYPE=CELL:"+c.phone,
+  "NOTE:"+esc(["DB",c.camp,c.region,c.got+" 받음",c.name!==c.orig&&c.orig?"카톡 이름 "+c.orig:""].filter(Boolean).join(" · ")),
+  "END:VCARD"].join("\r\n")).join("\r\n")+"\r\n";
+}
+function records(){
+ const d=$("got").value||today(), camp=$("camp").value.trim();
+ return picked().map(it=>({got:d,saveName:saveName(it),name:it.name,orig:it.orig||it.name,phone:it.phone,region:it.region,camp}));
+}
+function vcfFile(list,label){
+ const blob=new Blob([vcard(list)],{type:"text/vcard;charset=utf-8"});
+ return new File([blob],`DB_${label}.vcf`,{type:"text/vcard"});  // 한글 파일 이름은 일부 브라우저에서 "download"로 바뀌어 영문으로
+}
+function download(file){
+ const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.append(a);a.click();
+ setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+function addToBook(recs){
+ for(const r of recs){const i=book.findIndex(b=>b.phone===r.phone);if(i>=0)book[i]=r;else book.push(r)}
+ store.set("db_book",JSON.stringify(book));renderBook();
+ items.forEach(it=>{if(it.on){it.dup=true;it.on=false}});renderList();
+ const st=$("status");st.className="status ok";st.textContent=`${recs.length}명을 연락처 파일로 받고 아래 장부에 넣었습니다.`;
+}
+$("vcfBtn").addEventListener("click",()=>{
+ const recs=records();if(!recs.length)return;
+ download(vcfFile(recs,(recs[0].got||today()).replaceAll("-","")+"_"+recs.length));
+ addToBook(recs);toast(recs.length+"명 연락처 파일을 받았습니다. 파일을 열어 모두 추가하세요");
+});
+const canShare=f=>{try{return !!(navigator.canShare&&navigator.canShare({files:[f]}))}catch(e){return false}};
+if(canShare(new File(["x"],"t.vcf",{type:"text/vcard"})))$("shareBtn").hidden=false;
+$("shareBtn").addEventListener("click",async()=>{
+ const recs=records();if(!recs.length)return;
+ const f=vcfFile(recs,(recs[0].got||today()).replaceAll("-","")+"_"+recs.length);
+ try{await navigator.share({files:[f],title:f.name});addToBook(recs);toast("보냈습니다. 휴대폰에서 파일을 열어 모두 추가하세요")}
+ catch(e){if(e&&e.name!=="AbortError")toast("보내지 못했습니다. '연락처 파일 받기'를 쓰세요")}
+});
+
+// ---- 장부 ----
+function renderBook(){
+ const q=$("bq").value.trim(),qd=digits(q);
+ const list=book.slice().reverse().filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));
+ $("bookN").textContent=book.length;
+ const tb=$("book");tb.replaceChildren();
+ if(!list.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=7;td.style.color="var(--ink-2)";td.textContent=book.length?"찾는 사람이 없습니다.":"아직 저장한 DB가 없습니다.";tr.append(td);tb.append(tr);return}
+ for(const b of list){
+  const tr=document.createElement("tr");
+  for(const v of [b.got,b.saveName,b.name,b.phone,b.region,b.camp]){const td=document.createElement("td");td.textContent=v||"";tr.append(td)}
+  const td=document.createElement("td");td.className="del";
+  const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
+  x.addEventListener("click",()=>{book=book.filter(o=>o!==b);store.set("db_book",JSON.stringify(book));renderBook();load()});
+  td.append(x);tr.append(td);tb.append(tr);
+ }
+}
+$("bq").addEventListener("input",renderBook);
+$("bookVcf").addEventListener("click",()=>{if(!book.length){toast("장부가 비어 있습니다");return}download(vcfFile(book,"all_"+book.length))});
+$("bookXlsx").addEventListener("click",()=>{
+ if(!book.length){toast("장부가 비어 있습니다");return}
+ if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
+ const aoa=[["받은 날","저장 이름","이름","전화","지역","캠페인"],...book.map(b=>[b.got,b.saveName,b.name,b.phone,b.region,b.camp])];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:22},{wch:12},{wch:15},{wch:14},{wch:18}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"DB");
+ XLSX.writeFile(wb,"DB_list_"+today().replaceAll("-","")+".xlsx");
+});
+
+// ---- 연결 ----
+$("got").value=today();
+for(const k of ["me","camp","fmt"]){const v=store.get("db_"+k);if(v!=null)$(k).value=v}
+if(!$("fmt").value)$("fmt").value=DEF_FMT;
+function prev(){$("fmtPrev").replaceChildren("예) ",Object.assign(document.createElement("b"),{textContent:saveName({name:"홍길동",region:"서울·수도권"})}))}
+for(const k of ["me","camp","fmt"])$(k).addEventListener("input",()=>{store.set("db_"+k,$(k).value);prev();if(k==="me")load();else renderList()});
+$("got").addEventListener("input",()=>{prev();renderList()});
+$("fmtReset").addEventListener("click",()=>{$("fmt").value=DEF_FMT;store.set("db_fmt",DEF_FMT);prev();renderList()});
+document.querySelectorAll(".tokens button[data-t]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("fmt"),s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
+$("src").addEventListener("input",load);
+$("pasteBtn").addEventListener("click",async()=>{
+ try{const t=await navigator.clipboard.readText();if(!t){toast("복사한 내용이 없습니다");return}$("src").value=t;load()}
+ catch(e){$("src").focus();toast("칸을 누르고 붙여넣기(⌘V / 길게 눌러 붙여넣기) 하세요")}
+});
+$("clearBtn").addEventListener("click",()=>{$("src").value="";load();$("src").focus()});
+prev();load();renderBook();
+</script>
+</body>
+</html>
