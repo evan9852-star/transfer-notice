@@ -120,7 +120,7 @@ td.del{text-align:right}
     <div class="steps">
       <section class="step" aria-labelledby="s1">
         <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2 id="s1">카톡 붙여넣기</h2></div>
-        <textarea id="src" spellcheck="false" placeholder="단장님 카톡에서 목록을 길게 눌러(또는 전체보기에서) 복사한 뒤 여기에 붙여넣기&#10;&#10;예) 서울_및_수도권  홍길동  1012345678  재운"></textarea>
+        <textarea id="src" spellcheck="false" placeholder="단장님 카톡에서 목록을 길게 눌러(또는 전체보기에서) 복사한 뒤 여기에 붙여넣기&#10;&#10;예) 서울_및_수도권  홍길동  1000000000  재운"></textarea>
         <div class="row-btns"><button type="button" id="pasteBtn">복사한 내용 붙여넣기</button><button type="button" class="text" id="clearBtn">지우기</button></div>
         <div id="status" class="status idle" role="status">붙여넣으면 바로 정리됩니다.</div>
       </section>
@@ -131,7 +131,7 @@ td.del{text-align:right}
           <label class="field" for="got"><span>받은 날</span><input type="date" id="got"></label>
           <label class="field" for="me"><span>내 이름 (담당 칸)</span><input type="text" id="me" value="재운" autocomplete="off"></label>
         </div>
-        <label class="field" for="camp"><span>캠페인 <small style="font-weight:400">· 없으면 비워 두기</small></span><input type="text" id="camp" placeholder="예) 돈관리재테크스터디" autocomplete="off"></label>
+        <label class="field" for="camp"><span>캠페인 <small style="font-weight:400">· 없으면 비워 두기</small></span><input type="text" id="camp" placeholder="예) 재테크스터디" autocomplete="off"></label>
         <label class="field" for="fmt"><span>저장 이름 모양</span><input type="text" id="fmt" spellcheck="false" autocomplete="off"></label>
         <div class="tokens"><span>넣을 항목</span>
           <button type="button" data-t="{이름}">이름</button><button type="button" data-t="{연월}">연월</button><button type="button" data-t="{월일}">월일</button><button type="button" data-t="{지역}">지역</button><button type="button" data-t="{캠페인}">캠페인</button>
@@ -192,7 +192,7 @@ try{book=JSON.parse(store.get("db_book")||"[]")||[]}catch(e){book=[]}
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),2200)}
 function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
 function digits(s){return String(s||"").replace(/\D/g,"")}
-// 1091092376 → 010-9109-2376 (엑셀 숫자로 앞 0이 빠진 번호)
+// 1000000000 → 010-0000-0000 (엑셀 숫자로 앞 0이 빠진 번호)
 function fmtPhone(raw){
  let d=digits(raw);
  if(/^1[016789]\d{7,8}$/.test(d))d="0"+d;
@@ -204,11 +204,11 @@ function fmtPhone(raw){
 function cleanRegion(r){return String(r||"").replace(/_및_/g,"·").replace(/_/g," ").trim()}
 const REGION_RE=/(_|수도권|권역|경상|전라|충청|강원|제주|서울|부산|경기|인천|대구|광주|대전|울산|세종|^기타$)/;
 // 한글 이름처럼 보이지 않으면(닉네임) 확인 표시
-// 성까지 있는 한글 이름(3~4자)만 이름으로 봄. 다현·민정처럼 두 글자도 카톡 이름 확인 대상
+// 성까지 있는 한글 이름(3~4자)만 이름으로 봄. 성 없는 두 글자 이름도 카톡 이름 확인 대상
 function looksReal(n){return /^[가-힣]{3,4}$/.test(n)}
 
-// 카톡에서 복사한 글: "[서태환 …] [오전 8:41] 서울_및_수도권 안이옥 1091092376 재운"
-// 대화 내보내기: "2026. 11. 9. 오전 8:41, 서태환 … : 서울_및_수도권 …"
+// 카톡에서 복사한 글: "[보낸 사람] [오전 8:41] 서울_및_수도권 홍길동 1000000000 재운"
+// 대화 내보내기: "2026. 11. 9. 오전 8:41, 보낸 사람 : 서울_및_수도권 …"
 function stripPrefix(line){
  let s=line.replace(/\u00a0/g," ").trim();
  s=s.replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/,"");
