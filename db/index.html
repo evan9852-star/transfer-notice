@@ -123,6 +123,20 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .msg-h .ph{font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .msg-b{margin:12px 16px;padding:12px 14px;background:var(--rule-2);border-radius:var(--r-m);white-space:pre-wrap;font-size:15px;line-height:1.75}
 .msg-f{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+.imgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.imgs{grid-template-columns:minmax(0,1fr)}}
+.slot{display:flex;align-items:center;gap:12px;background:var(--sheet);border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:10px 12px;min-width:0}
+.slot.has{border-style:solid;border-color:var(--rule)}
+.slot.over{border-color:var(--seal);background:var(--pick)}
+.slot .ph-box{flex:none;width:72px;height:72px;border-radius:var(--r-s);background:var(--rule-2);display:grid;place-items:center;overflow:hidden;color:var(--ink-2);font-size:12px}
+.slot .ph-box img{width:100%;height:100%;object-fit:contain;background:#fff}
+.slot .txt{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.slot .txt strong{font-size:15px}
+.slot .acts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.slot input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.msg-imgs{display:flex;gap:8px;margin:12px 16px 0;align-items:center;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
+.msg-imgs img{height:48px;max-width:80px;object-fit:contain;background:#fff;border:1px solid var(--rule);border-radius:var(--r-s)}
+.step-lb{font-size:12px;color:var(--ink-2);align-self:center;margin-right:auto}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:var(--r-m);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -215,6 +229,7 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
       <label class="field" for="mRoute"><span>신청 경로</span><input type="text" id="mRoute" autocomplete="off"></label>
       <label class="field" for="mCamp"><span>프로그램 <small style="font-weight:400">· 장부에 캠페인이 없을 때</small></span><input type="text" id="mCamp" autocomplete="off"></label>
     </div>
+    <div class="imgs" id="imgSlots"></div>
     <details class="tpl">
       <summary>문구 고치기</summary>
       <div class="tpl-body">
@@ -481,8 +496,19 @@ function renderMsgs(){
   const mk=(txt,cls,fn)=>{const x=document.createElement("button");x.type="button";if(cls)x.className=cls;x.textContent=txt;x.addEventListener("click",fn);f.append(x);return x};
   mk("번호 복사","text",()=>copyText(b.phone,"번호 복사됨"));
   mk(b.sent?"보냄 취소":"보냄 표시","text",()=>{b.sent=b.sent?undefined:today();store.set("db_book",JSON.stringify(book));renderBook()});
-  mk("문자 복사","primary",()=>copyText(msgFor(b),b.name+" 문자 복사됨"));
-  box.append(h,body,f);out.append(box);
+  const steps=[...activeImgs().map(sl=>({label:sl.label+" 복사",run:()=>copyImg(sl)})),{label:"문자 복사",run:async()=>{copyText(msgFor(b),b.name+" 문자 복사됨. 대화창에 붙여넣기");return true}}];
+  const lb=document.createElement("span");lb.className="step-lb";f.prepend(lb);
+  if(steps.length===1){mk("문자 복사","primary",()=>copyText(msgFor(b),b.name+" 문자 복사됨"))}
+  else{
+   let st=0;const N="①②③④";
+   const cp=mk("","primary",async()=>{if(st>=steps.length)st=0;if(await steps[st].run())st++;paint()});
+   const paint=()=>{cp.textContent=st>=steps.length?"다시 "+N[0]+" "+steps[0].label:N[st]+" "+steps[st].label;lb.textContent=st===0||st>=steps.length?"":"카톡 대화창에 붙여넣고 다음 버튼을 누르세요"};
+   paint();
+  }
+  const ims=activeImgs();
+  if(ims.length){const mi=document.createElement("div");mi.className="msg-imgs";mi.append("같이 보낼 사진");ims.forEach(sl=>{const im=document.createElement("img");im.src=sl.src();im.alt=sl.label;mi.append(im)});box.append(h,mi,body,f)}
+  else box.append(h,body,f);
+  out.append(box);
  }
 }
 for(const k of Object.keys(MDEF)){const v=store.get("db_"+k);$(k).value=v!=null&&v!==""?v:MDEF[k];$(k).addEventListener("input",()=>{store.set("db_"+k,$(k).value);renderMsgs()})}
@@ -492,6 +518,64 @@ $("hideSent").addEventListener("change",renderMsgs);
 $("copyAllMsg").addEventListener("click",()=>{const l=msgList();if(!l.length){toast("먼저 장부에서 사람을 고르세요");return}copyText(l.map(b=>`▼ ${b.name} ${b.phone}\n${msgFor(b)}`).join("\n\n"),l.length+"명 문자 전체 복사됨")});
 $("allPick").addEventListener("change",()=>{const on=$("allPick").checked;items.forEach(i=>i.on=on);renderList()});
 $("bookAll").addEventListener("change",()=>{const q=$("bq").value.trim(),qd=digits(q);const vis=book.filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));if($("bookAll").checked)vis.forEach(b=>sel.add(b.phone));else vis.forEach(b=>sel.delete(b.phone));renderBook()});
+
+// ---- 같이 보낼 사진 (명함은 이관고객 안내문자와 같은 저장값을 씀) ----
+const SLOTS=[
+ {id:"card",key:"tcn_card",label:"명함",hint:"한 번 넣으면 이 기기에 기억됩니다. 이관고객 안내문자에 넣은 명함도 여기 보입니다.",def:""},
+ {id:"poster",key:"db_poster",label:"홍보 사진",hint:"급여관리&재테크 스터디 안내 사진이 기본으로 들어 있습니다.",def:"poster.jpg"}
+];
+SLOTS.forEach(sl=>{sl.data=store.get(sl.key)||"";sl.on=store.get(sl.key+"_on")!=="0";sl.src=()=>sl.data||sl.def;sl._png=null;sl._pngSrc=""});
+function activeImgs(){return SLOTS.filter(sl=>sl.on&&sl.src())}
+function slotPng(sl){
+ const src=sl.src();if(sl._png&&sl._pngSrc===src)return sl._png;sl._pngSrc=src;
+ sl._png=new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const cv=document.createElement("canvas");cv.width=i.naturalWidth;cv.height=i.naturalHeight;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(i,0,0);cv.toBlob(b=>b?res(b):rej(),"image/png")};i.onerror=rej;i.src=src});
+ sl._png.catch(()=>{sl._png=null});return sl._png;
+}
+async function copyImg(sl){
+ try{
+  if(!navigator.clipboard||typeof ClipboardItem==="undefined")throw 0;
+  await navigator.clipboard.write([new ClipboardItem({"image/png":slotPng(sl)})]);
+  toast(sl.label+" 복사됨. 카톡 대화창에 붙여넣기");return true;
+ }catch(e){toast("이 브라우저는 사진 복사가 안 됩니다. 카톡에서 "+sl.label+"을 직접 첨부해 주세요");return true}
+}
+function setSlot(sl,file){
+ if(!file||!/^image\//.test(file.type)){toast("사진 파일만 넣을 수 있습니다");return}
+ const url=URL.createObjectURL(file);const img=new Image();
+ img.onload=()=>{
+  const k=Math.min(1,1280/Math.max(img.width,img.height));
+  const cv=document.createElement("canvas");cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
+  const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
+  URL.revokeObjectURL(url);sl.data=cv.toDataURL("image/jpeg",0.9);store.set(sl.key,sl.data);
+  toast(store.get(sl.key)===sl.data?sl.label+"을 넣었습니다":sl.label+"을 넣었습니다 (저장이 안 돼서 새로고침하면 다시 넣어야 해요)");
+  renderSlots();renderMsgs();
+ };
+ img.onerror=()=>{URL.revokeObjectURL(url);toast("사진을 읽지 못했습니다")};img.src=url;
+}
+function renderSlots(){
+ const wrap=$("imgSlots");wrap.replaceChildren();
+ for(const sl of SLOTS){
+  const has=!!sl.src();
+  const box=document.createElement("label");box.className="slot"+(has?" has":"");box.htmlFor="f_"+sl.id;
+  const ph=document.createElement("span");ph.className="ph-box";
+  if(has){const i=document.createElement("img");i.src=sl.src();i.alt=sl.label;ph.append(i)}else ph.textContent=sl.label;
+  const tx=document.createElement("span");tx.className="txt";
+  const st=document.createElement("strong");st.textContent=has?sl.label:sl.label+" 넣기";
+  const hi=document.createElement("span");hi.className="hint";hi.textContent=has?"눌러서 바꾸기 · "+sl.hint:"눌러서 사진 고르기 · "+sl.hint;
+  const acts=document.createElement("span");acts.className="acts";
+  const ck=document.createElement("label");ck.className="check";const cb=document.createElement("input");cb.type="checkbox";cb.checked=sl.on;cb.disabled=!has;
+  cb.addEventListener("change",()=>{sl.on=cb.checked;store.set(sl.key+"_on",sl.on?"1":"0");renderMsgs()});
+  ck.append(cb,"같이 보내기");ck.addEventListener("click",e=>e.stopPropagation());acts.append(ck);
+  if(sl.data){const d=document.createElement("button");d.type="button";d.className="text";d.textContent=sl.def?"기본 사진으로":"지우기";
+   d.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();sl.data="";try{localStorage.removeItem(sl.key)}catch(x){}renderSlots();renderMsgs()});acts.append(d)}
+  tx.append(st,hi,acts);
+  const fi=document.createElement("input");fi.type="file";fi.accept="image/*";fi.id="f_"+sl.id;
+  fi.addEventListener("change",e=>{const f=e.target.files[0];if(f)setSlot(sl,f);e.target.value=""});
+  ["dragenter","dragover"].forEach(t=>box.addEventListener(t,e=>{e.preventDefault();box.classList.add("over")}));
+  ["dragleave","drop"].forEach(t=>box.addEventListener(t,e=>{e.preventDefault();box.classList.remove("over")}));
+  box.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)setSlot(sl,f)});
+  box.append(ph,tx,fi);wrap.append(box);
+ }
+}
 
 // ---- 연결 ----
 $("got").value=today();
@@ -508,7 +592,7 @@ $("pasteBtn").addEventListener("click",async()=>{
  catch(e){$("src").focus();toast("칸을 누르고 붙여넣기(⌘V / 길게 눌러 붙여넣기) 하세요")}
 });
 $("clearBtn").addEventListener("click",()=>{$("src").value="";load();$("src").focus()});
-prev();load();renderBook();
+prev();load();renderSlots();renderBook();
 </script>
 </body>
 </html>
