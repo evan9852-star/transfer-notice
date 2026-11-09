@@ -73,6 +73,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .out{display:flex;flex-direction:column;gap:16px;min-width:0}
 .out-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .out-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.selN{font-size:15px;font-weight:600;color:var(--seal);font-variant-numeric:tabular-nums}
 .tally{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .ledger{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m)}
 .lrow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule-2)}
@@ -202,7 +203,7 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 
   <section class="book" aria-labelledby="bookTitle">
     <div class="book-h">
-      <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명</h2>
+      <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명 <span class="selN" id="bookSel" aria-live="polite"></span></h2>
       <div class="row-btns">
         <input type="text" id="bq" placeholder="이름·번호 찾기" autocomplete="off" style="width:160px">
         <button type="button" id="fixVcf">고친 사람만 연락처 파일</button><button type="button" id="bookVcf">장부 전체 연락처 파일</button>
@@ -342,7 +343,7 @@ function renderList(){
  $("vcfBtn").disabled=!n;$("bookOnly").disabled=!n;$("shareBtn").disabled=!n;
  const chk=items.filter(i=>i.on&&!looksReal(i.name)).length;
  $("allPick").checked=!!items.length&&items.every(i=>i.on);$("allPick").indeterminate=n>0&&n<items.length;$("allPick").disabled=!items.length;
- $("tally").textContent=items.length?`찾은 ${items.length}명 · 저장 ${n}명`+(chk?` · 카톡 이름 확인 ${chk}명 (저장 뒤 카톡 이름을 보고 장부에서 고치면 됩니다)`:""):"";
+ $("tally").textContent=items.length?`${items.length}명 중 ${n}명 선택`+(chk?` · 카톡 이름 확인 ${chk}명 (저장 뒤 카톡 이름을 보고 장부에서 고치면 됩니다)`:""):"";
  if(!items.length){const b=document.createElement("div");b.className="blank";b.textContent="왼쪽에 카톡 목록을 붙여넣으면 여기에 연락처가 정리됩니다.";el.append(b);return}
  items.forEach((it,i)=>{
   const r=document.createElement("div");r.className="lrow"+(it.on?"":" off");
@@ -427,6 +428,7 @@ function renderBookTable(){
  const q=$("bq").value.trim(),qd=digits(q);
  const list=book.slice().reverse().filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));
  $("bookN").textContent=book.length;
+ {const ns=book.filter(b=>sel.has(b.phone)).length;$("bookSel").textContent=ns?`· ${ns}명 선택`:""}
  const tb=$("book");tb.replaceChildren();
  if(!list.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=8;td.style.color="var(--ink-2)";td.textContent=book.length?"찾는 사람이 없습니다.":"아직 저장한 DB가 없습니다.";tr.append(td);tb.append(tr);return}
  $("bookAll").checked=!!list.length&&list.every(b=>sel.has(b.phone));$("bookAll").indeterminate=list.some(b=>sel.has(b.phone))&&!$("bookAll").checked;
