@@ -101,6 +101,9 @@ details.tpl summary::before{content:"";width:0;height:0;border-left:5px solid va
 details.tpl[open] summary::before{transform:rotate(90deg)}
 .tpl-body{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.cprev{font-size:14px;padding:8px 10px;border-radius:var(--r-s);background:var(--rule-2);min-height:40px;overflow-wrap:anywhere}
+.hint{margin:0;font-size:12px;color:var(--ink-2)}
+#vcf b{font-variant-numeric:tabular-nums;margin-left:2px}
 .tokens button{font-size:13px;padding:2px 8px;border-radius:var(--r-s);background:var(--rule-2);border:1px solid var(--rule);color:var(--ink)}
 
 button{font:inherit;cursor:pointer;border-radius:var(--r-s);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 14px;font-size:14px;font-weight:500;line-height:1.4;min-height:36px}
@@ -221,7 +224,6 @@ button.text:hover{color:var(--ink);text-decoration:underline}
         <div class="fields">
           <label class="field" for="mgr"><span>매니저 이름</span><input type="text" id="mgr" value="정재운" autocomplete="off"></label>
           <label class="field" for="when"><span>통화 일시</span><input type="text" id="when" value="오늘 오후 3시" autocomplete="off"></label>
-          <label class="field" for="ym"><span>이관 연.월 <small style="font-weight:400">· 연락처 이름용</small></span><input type="text" id="ym" placeholder="26.10" autocomplete="off" inputmode="decimal"></label>
         </div>
         <div class="field">
           <span>명함 사진 <small style="font-weight:400">· 한 번만 넣으면 이 컴퓨터에 기억됩니다</small></span>
@@ -232,6 +234,20 @@ button.text:hover{color:var(--ink);text-decoration:underline}
           </label>
           <div class="card-acts" id="cardActs" hidden><button type="button" id="cardCopy">명함 복사</button><button type="button" class="text" id="cardDel">명함 지우기</button></div>
         </div>
+        <details class="tpl" id="cbox">
+          <summary>연락처 저장 양식</summary>
+          <div class="tpl-body">
+            <label class="field" for="cfmt"><span>연락처 이름</span><input type="text" id="cfmt" spellcheck="false" autocomplete="off"></label>
+            <div class="tokens"><span>넣을 항목</span><button type="button" data-c="{이름}">이름</button><button type="button" data-c="{연월}">연.월</button><button type="button" data-c="{지역}">사는 구</button></div>
+            <div class="fields">
+              <label class="field" for="ym"><span>이관 연.월</span><input type="text" id="ym" placeholder="26.10" autocomplete="off" inputmode="decimal"></label>
+              <div class="field"><span>미리보기</span><div class="cprev" id="cprev"></div></div>
+            </div>
+            <label class="check" for="cmemo"><input type="checkbox" id="cmemo" checked>메모에 사는 구 넣기 (해운대구, 북구 …)</label>
+            <p class="hint">엑셀에 '이관일' 열이 있으면 그 날짜가 먼저 들어갑니다. 양식은 이 컴퓨터에 기억됩니다.</p>
+            <div><button type="button" class="text" id="resetC">기본 양식으로 되돌리기</button></div>
+          </div>
+        </details>
         <details class="tpl" id="tplbox">
           <summary>문구 고치기</summary>
           <div class="tpl-body">
@@ -497,7 +513,7 @@ function renderOut(){
   box.append(b,f);out.append(box);
  }
 }
-function render(){renderRoster();renderOut();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
+function render(){renderRoster();renderOut();cRender();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
 
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),1800)}
 function selectText(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
@@ -523,10 +539,23 @@ function region(a){
  return /[구군]$/.test(t1)?t1:t0.replace(/(특별시|광역시|특별자치시)$/,"");
 }
 function vEsc(x){return String(x).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n")}
-function contactName(c){const ym=toYM(c.moved)||$("ym").value.trim()||thisYM();return "이관 "+c.name+" "+ym}
+const CFMT_DEF="이관 {이름} {연월}";
+function contactName(c){
+ const ym=toYM(c.moved)||$("ym").value.trim()||thisYM();
+ const f=$("cfmt").value.trim()||CFMT_DEF;
+ return f.replaceAll("{이름}",c.name).replaceAll("{연월}",ym).replaceAll("{지역}",region(c.addr)).replace(/\s+/g," ").trim();
+}
+function canSave(){return customers.filter(c=>selected.has(c.key)&&normPhone(c.phone).length>=9)}
+function cRender(){
+ const n=canSave().length;const b=$("vcf");b.replaceChildren(document.createTextNode("연락처 저장"));
+ const nb=document.createElement("b");nb.textContent=n+"명";b.append(nb);b.disabled=!n;
+ b.title=n?`고른 고객 ${n}명을 연락처 파일로 받습니다`:"먼저 고객을 고르세요 (번호가 있는 고객만 저장됩니다)";
+ const ex=customers.find(c=>selected.has(c.key))||customers[0]||{name:"홍길동",addr:"부산 해운대구",moved:""};
+ $("cprev").textContent=contactName(ex)+($("cmemo").checked&&region(ex.addr)?"  · 메모: "+region(ex.addr):"");
+}
 function makeVcf(list){
  return list.map(c=>{const nm=contactName(c),rg=region(c.addr);
-  return ["BEGIN:VCARD","VERSION:3.0","N:"+vEsc(nm)+";;;;","FN:"+vEsc(nm),"TEL;type=CELL;type=VOICE;type=pref:"+c.phone.replace(/[^\d\-+]/g,""),rg?"NOTE:"+vEsc(rg):"","END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
+  return ["BEGIN:VCARD","VERSION:3.0","N:"+vEsc(nm)+";;;;","FN:"+vEsc(nm),"TEL;type=CELL;type=VOICE;type=pref:"+c.phone.replace(/[^\d\-+]/g,""),(rg&&$("cmemo").checked)?"NOTE:"+vEsc(rg):"","END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
 }
 function saveVcf(){
  const list=customers.filter(c=>selected.has(c.key));
@@ -610,7 +639,13 @@ async function loadFile(f,opt={}){
 
 // ---- 연결 ----
 $("ym").placeholder=thisYM();{const v=store.get("tcn_ym");if(v)$("ym").value=v}
-$("ym").addEventListener("input",()=>store.set("tcn_ym",$("ym").value.trim()));
+$("ym").addEventListener("input",()=>{store.set("tcn_ym",$("ym").value.trim());cRender()});
+$("cfmt").value=store.get("tcn_cfmt")||CFMT_DEF;
+$("cfmt").addEventListener("input",()=>{store.set("tcn_cfmt",$("cfmt").value);cRender()});
+$("cmemo").checked=store.get("tcn_cmemo")!=="0";
+$("cmemo").addEventListener("change",()=>{store.set("tcn_cmemo",$("cmemo").checked?"1":"0");cRender()});
+document.querySelectorAll("[data-c]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("cfmt"),a=t.selectionStart??t.value.length,e=t.selectionEnd??a;t.value=t.value.slice(0,a)+c.dataset.c+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=a+c.dataset.c.length;t.dispatchEvent(new Event("input"))})});
+$("resetC").addEventListener("click",()=>{$("cfmt").value=CFMT_DEF;store.set("tcn_cfmt",CFMT_DEF);$("cmemo").checked=true;store.set("tcn_cmemo","1");cRender();toast("기본 양식(이관 이름 연.월)으로 되돌렸습니다")});
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"]){const v=store.get("tcn_"+k);$(k).value=v!=null?v:(DEF[k]!==undefined?DEF[k]:$(k).value)}
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"])$(k).addEventListener("input",()=>{store.set("tcn_"+k,$(k).value);renderOut()});
 for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster);
