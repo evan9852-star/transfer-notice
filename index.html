@@ -147,6 +147,10 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .track .st b{color:var(--ink);font-weight:600}
 .track button{font-size:13px;padding:4px 10px}
 .track .meet-in{flex-basis:100%;font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
+.track .miss-step{display:inline-flex;align-items:center;border:1px solid var(--seal);border-radius:var(--r-s);background:var(--seal-soft);color:var(--seal);overflow:hidden}
+.track .miss-step button{min-height:32px;padding:2px 10px;border:0;border-radius:0;background:transparent;color:var(--seal);font-weight:700;font-size:15px}
+.track .miss-step button:hover{background:rgba(0,0,0,.06)}
+.track .miss-step .n{padding:0 4px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .track button.miss-on{background:var(--seal-soft);color:var(--seal);border-color:var(--seal);font-weight:600}
 .track button.rej{color:var(--seal);text-decoration:none;font-weight:600}
 .track button.on{background:var(--moss-soft);color:var(--moss);border-color:var(--moss)}
@@ -373,6 +377,7 @@ function hm(ts){const d=new Date(ts);return md(ts)+" "+String(d.getHours()).padS
 function mark(c,what,quiet){
  const k=tkey(c),t=track[k]||(track[k]={});const now=Date.now();
  if(what==="touch"){if(t.touch&&!quiet){delete t.touch}else if(!t.touch){t.touch=now;if(quiet)toast(c.name+" 고객님 터치로 표시했습니다")}}
+ else if(what==="miss-"){t.miss=Math.max(0,(t.miss||0)-1);if(!t.miss){delete t.miss;delete t.lastMiss}toast(c.name+" 고객님 부재 "+(t.miss||0)+"회")}
  else if(what==="miss"){t.miss=(t.miss||0)+1;t.lastMiss=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 부재 "+t.miss+"회")}
  else if(what==="call"){if(t.call){delete t.call;delete t.result;delete t.meetNote}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 통화됨")}}
  else if(what==="meet"||what==="reject"){if(t.result===what){delete t.result}else{t.result=what;t.resultAt=now;if(!t.call)t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
@@ -602,8 +607,16 @@ function renderOut(){
   st.append(sb,document.createTextNode(parts.length?" · "+parts.join(" · "):""));
   const bT=document.createElement("button");bT.type="button";bT.className="text"+(t.touch?" on":"");bT.textContent=t.touch?"터치 ✓":"터치함";bT.title="문자·카톡을 보냈으면 누르세요 (다시 누르면 취소)";
   bT.addEventListener("click",()=>mark(c,"touch"));
-  const bM=document.createElement("button");bM.type="button";bM.className=t.miss?"miss-on":"text";bM.textContent=t.miss?"부재 "+t.miss+"회 +":"부재";bM.title=t.miss?"또 안 받았으면 한 번 더 누르세요 (횟수가 올라갑니다)":"전화했는데 안 받았을 때";
-  bM.addEventListener("click",()=>mark(c,"miss"));
+  // 부재: 처음엔 '부재' 버튼 하나, 누른 뒤엔 [−] 부재 N회 [+]
+  let bM;
+  if(!t.miss){bM=document.createElement("button");bM.type="button";bM.className="text";bM.textContent="부재";bM.title="전화했는데 안 받았을 때";bM.addEventListener("click",()=>mark(c,"miss"))}
+  else{
+   bM=document.createElement("span");bM.className="miss-step";bM.setAttribute("role","group");bM.setAttribute("aria-label","부재 횟수");
+   const minus=document.createElement("button");minus.type="button";minus.textContent="−";minus.setAttribute("aria-label","부재 1회 빼기");minus.addEventListener("click",()=>mark(c,"miss-"));
+   const n=document.createElement("span");n.className="n";n.textContent="부재 "+t.miss+"회";
+   const plus=document.createElement("button");plus.type="button";plus.textContent="+";plus.setAttribute("aria-label","부재 1회 더하기");plus.addEventListener("click",()=>mark(c,"miss"));
+   bM.append(minus,n,plus);
+  }
   const bC=document.createElement("button");bC.type="button";bC.className=t.call?"on":"";bC.textContent=t.call?"통화됨 ✓":"통화 연결";bC.title="통화가 됐으면 누르세요 (다시 누르면 취소)";
   bC.addEventListener("click",()=>mark(c,"call"));
   tr.append(st,bT,bM,bC);
