@@ -221,6 +221,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
         <div class="fields">
           <label class="field" for="mgr"><span>매니저 이름</span><input type="text" id="mgr" value="정재운" autocomplete="off"></label>
           <label class="field" for="when"><span>통화 일시</span><input type="text" id="when" value="오늘 오후 3시" autocomplete="off"></label>
+          <label class="field" for="ym"><span>이관 연.월 <small style="font-weight:400">· 연락처 이름용</small></span><input type="text" id="ym" placeholder="26.10" autocomplete="off" inputmode="decimal"></label>
         </div>
         <div class="field">
           <span>명함 사진 <small style="font-weight:400">· 한 번만 넣으면 이 컴퓨터에 기억됩니다</small></span>
@@ -275,7 +276,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
     <section class="out" aria-labelledby="outTitle">
       <div class="out-h">
         <h2 id="outTitle">보낼 문자 <span id="outN">0</span>건</h2>
-        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
       </div>
       <div class="stack" id="out"></div>
     </section>
@@ -341,9 +342,10 @@ function group(rs){
  for(const r of rs){
   if(!r.name)continue;
   const key=r.name+"|"+normPhone(r.phone);
-  if(!m.has(key))m.set(key,{key,name:r.name,phone:r.phone||"",nos:[],products:[],lapsed:[],optout:false,contacted:false});
+  if(!m.has(key))m.set(key,{key,name:r.name,phone:r.phone||"",nos:[],products:[],lapsed:[],optout:false,contacted:false,addr:"",moved:""});
   const c=m.get(key);
   c.nos.push(r.no);c.products.push(cleanProduct(r.product));
+  if(!c.addr&&r.addr)c.addr=r.addr;if(!c.moved&&r.moved)c.moved=r.moved;
   if(/실효/.test(r.note||""))c.lapsed.push(cleanProduct(r.product));
   if(/수신거부/.test((r.note||"")+(r.phone||"")))c.optout=true;
   if(String(r.contact||"").trim())c.contacted=true;
@@ -504,6 +506,40 @@ function copy(text,msg,el){
  try{if(!navigator.clipboard)throw 0;navigator.clipboard.writeText(text).then(()=>toast(msg),fallback)}catch(e){fallback()}
 }
 
+// ---- 연락처(.vcf) 만들기: '이관 이름 연.월', 메모는 사는 구만 ----
+function thisYM(){const d=new Date();return String(d.getFullYear()).slice(2)+"."+String(d.getMonth()+1).padStart(2,"0")}
+function toYM(v){ // 엑셀 '이관일' 값 → 26.10
+ const s=String(v||"").trim();if(!s)return"";
+ let m=s.match(/(20\d{2}|\d{2})\s*[.\-\/년]\s*(\d{1,2})/);
+ if(m&&(m[1].length===4||+m[2]<=12)&&!/^\d{1,2}\s*[.\-\/월]\s*\d{1,2}\s*일?$/.test(s))return m[1].slice(-2)+"."+String(+m[2]).padStart(2,"0");
+ m=s.match(/^(\d{1,2})\s*[.\-\/월]\s*(\d{1,2})/); // 10/30 처럼 월/일만 있을 때
+ if(m&&+m[1]>=1&&+m[1]<=12){const d=new Date();let y=d.getFullYear();if(+m[1]>d.getMonth()+2)y--;return String(y).slice(2)+"."+String(+m[1]).padStart(2,"0")}
+ return"";
+}
+function region(a){
+ const t=String(a||"").replace(/\(.*?\)/g," ").trim().split(/\s+/);if(!t[0])return"";
+ const t0=t[0],t1=t[1]||"";
+ if(/^(경기|강원|충북|충남|전북|전남|경북|경남|제주|충청|전라|경상)/.test(t0))return /[시군]$/.test(t1)?t1:t0;
+ return /[구군]$/.test(t1)?t1:t0.replace(/(특별시|광역시|특별자치시)$/,"");
+}
+function vEsc(x){return String(x).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n")}
+function contactName(c){const ym=toYM(c.moved)||$("ym").value.trim()||thisYM();return "이관 "+c.name+" "+ym}
+function makeVcf(list){
+ return list.map(c=>{const nm=contactName(c),rg=region(c.addr);
+  return ["BEGIN:VCARD","VERSION:3.0","N:"+vEsc(nm)+";;;;","FN:"+vEsc(nm),"TEL;type=CELL;type=VOICE;type=pref:"+c.phone.replace(/[^\d\-+]/g,""),rg?"NOTE:"+vEsc(rg):"","END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
+}
+function saveVcf(){
+ const list=customers.filter(c=>selected.has(c.key));
+ if(!list.length){toast("먼저 저장할 고객을 고르세요");return}
+ const ok=list.filter(c=>normPhone(c.phone).length>=9),skip=list.length-ok.length;
+ if(!ok.length){toast("고른 고객에게 전화번호가 없습니다");return}
+ const blob=new Blob([makeVcf(ok)],{type:"text/vcard;charset=utf-8"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+ a.download="이관고객_연락처_"+ok.length+"명.vcf";document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+ toast(ok.length+"명 연락처 파일을 받았습니다"+(skip?` (번호 없는 ${skip}명 제외)`:"")+". 파일을 열면 연락처에 추가됩니다");
+}
+
 // ---- 엑셀 읽기 ----
 const NAME=["성명","고객명","계약자","이름"];
 function findCol(h,names){const n=h.map(x=>String(x||"").replace(/\s/g,""));for(const k of names){const i=n.indexOf(k);if(i>=0)return i}for(const k of names){const i=n.findIndex(x=>x.includes(k));if(i>=0)return i}return -1}
@@ -517,12 +553,12 @@ function parseWorkbook(wb){
   const hi=aoa.findIndex(r=>r.some(x=>NAME.includes(String(x).replace(/\s/g,""))));
   if(hi<0)continue;
   const h=aoa[hi];
-  const C={no:findCol(h,["연번","번호"]),name:findCol(h,NAME),product:findCol(h,["계약명","상품명"]),phone:findCol(h,["연락처","휴대폰번호","전화번호","휴대폰","핸드폰"]),contact:findCol(h,["접촉방식"]),note:findCol(h,["비고"])};
+  const C={no:findCol(h,["연번","번호"]),name:findCol(h,NAME),product:findCol(h,["계약명","상품명"]),phone:findCol(h,["연락처","휴대폰번호","전화번호","휴대폰","핸드폰"]),contact:findCol(h,["접촉방식"]),note:findCol(h,["비고"]),addr:findCol(h,["주소","자택주소","거주지"]),moved:findCol(h,["이관일","이관일자","이관날짜","이관 날짜"])};
   if(C.name<0||C.product<0)continue;
   const out=[];
   for(const r of aoa.slice(hi+1)){
    const name=String(r[C.name]||"").trim();if(!name)continue;
-   out.push({no:C.no>=0?parseInt(String(r[C.no]).replace(/\D/g,""),10):NaN,name,phone:C.phone>=0?fixPhone(r[C.phone]):"",product:String(r[C.product]||"").trim(),contact:C.contact>=0?String(r[C.contact]).trim():"",note:C.note>=0?String(r[C.note]).trim():""});
+   out.push({no:C.no>=0?parseInt(String(r[C.no]).replace(/\D/g,""),10):NaN,name,phone:C.phone>=0?fixPhone(r[C.phone]):"",product:String(r[C.product]||"").trim(),contact:C.contact>=0?String(r[C.contact]).trim():"",note:C.note>=0?String(r[C.note]).trim():"",addr:C.addr>=0?String(r[C.addr]).trim():"",moved:C.moved>=0?String(r[C.moved]).trim():""});
   }
   return {sheet:sn,rows:out};
  }
@@ -573,6 +609,8 @@ async function loadFile(f,opt={}){
 }
 
 // ---- 연결 ----
+$("ym").placeholder=thisYM();{const v=store.get("tcn_ym");if(v)$("ym").value=v}
+$("ym").addEventListener("input",()=>store.set("tcn_ym",$("ym").value.trim()));
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"]){const v=store.get("tcn_"+k);$(k).value=v!=null?v:(DEF[k]!==undefined?DEF[k]:$(k).value)}
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"])$(k).addEventListener("input",()=>{store.set("tcn_"+k,$(k).value);renderOut()});
 for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster);
@@ -587,6 +625,7 @@ $("topMinus").addEventListener("click",()=>setTop(topN-1));
 $("topPlus").addEventListener("click",()=>setTop(topN+1));
 $("pickTop").addEventListener("click",()=>{selected=new Set(visible().slice(0,topN).map(c=>c.key));render()});
 $("pickNone").addEventListener("click",()=>{selected.clear();render()});
+$("vcf").addEventListener("click",saveVcf);
 $("copyAll").addEventListener("click",()=>{const list=customers.filter(c=>selected.has(c.key));if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
 const drop=$("drop");
 async function useHandle(h){if(!h||h.kind!=="file")return false;fileHandle=h;try{await loadFile(await h.getFile())}catch(e){fileHandle=null;return false}return true}
