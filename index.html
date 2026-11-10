@@ -147,6 +147,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .track .st b{color:var(--ink);font-weight:600}
 .track button{font-size:13px;padding:4px 10px}
 .track .meet-in{flex-basis:100%;font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
+.track button.miss-on{background:var(--seal-soft);color:var(--seal);border-color:var(--seal);font-weight:600}
 .track button.rej{color:var(--seal);text-decoration:none;font-weight:600}
 .track button.on{background:var(--moss-soft);color:var(--moss);border-color:var(--moss)}
 .status .re{margin-left:8px;font-size:12px;padding:2px 8px}
@@ -601,7 +602,7 @@ function renderOut(){
   st.append(sb,document.createTextNode(parts.length?" · "+parts.join(" · "):""));
   const bT=document.createElement("button");bT.type="button";bT.className="text"+(t.touch?" on":"");bT.textContent=t.touch?"터치 ✓":"터치함";bT.title="문자·카톡을 보냈으면 누르세요 (다시 누르면 취소)";
   bT.addEventListener("click",()=>mark(c,"touch"));
-  const bM=document.createElement("button");bM.type="button";bM.className="text";bM.textContent="부재";bM.title="전화했는데 안 받았을 때";
+  const bM=document.createElement("button");bM.type="button";bM.className=t.miss?"miss-on":"text";bM.textContent=t.miss?"부재 "+t.miss+"회 +":"부재";bM.title=t.miss?"또 안 받았으면 한 번 더 누르세요 (횟수가 올라갑니다)":"전화했는데 안 받았을 때";
   bM.addEventListener("click",()=>mark(c,"miss"));
   const bC=document.createElement("button");bC.type="button";bC.className=t.call?"on":"";bC.textContent=t.call?"통화됨 ✓":"통화 연결";bC.title="통화가 됐으면 누르세요 (다시 누르면 취소)";
   bC.addEventListener("click",()=>mark(c,"call"));
