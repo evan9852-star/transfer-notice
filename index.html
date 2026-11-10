@@ -146,6 +146,8 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .track .st{margin-right:auto;color:var(--ink-2)}
 .track .st b{color:var(--ink);font-weight:600}
 .track button{font-size:13px;padding:4px 10px}
+.track .meet-in{flex-basis:100%;font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
+.track button.rej{color:var(--seal);text-decoration:none;font-weight:600}
 .track button.on{background:var(--moss-soft);color:var(--moss);border-color:var(--moss)}
 .status .re{margin-left:8px;font-size:12px;padding:2px 8px}
 .ledger .empty{padding:24px 16px;color:var(--ink-2);font-size:14px}
@@ -297,8 +299,11 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
         <div class="seg" id="seg" role="group" aria-label="연락 진행 상황으로 보기">
           <button type="button" data-f="all" aria-pressed="true">전체<b id="fAll"></b></button>
           <button type="button" data-f="none" aria-pressed="false">미연락<b id="fNone"></b></button>
-          <button type="button" data-f="touch" aria-pressed="false">터치만 · 콜 안 닿음<b id="fTouch"></b></button>
-          <button type="button" data-f="call" aria-pressed="false">콜 완료<b id="fCall"></b></button>
+          <button type="button" data-f="touch" aria-pressed="false">터치만<b id="fTouch"></b></button>
+          <button type="button" data-f="miss" aria-pressed="false">부재<b id="fMiss"></b></button>
+          <button type="button" data-f="call" aria-pressed="false">통화됨 · 결과 전<b id="fCall"></b></button>
+          <button type="button" data-f="meet" aria-pressed="false">미팅 잡힘<b id="fMeet"></b></button>
+          <button type="button" data-f="reject" aria-pressed="false">미팅 거절<b id="fReject"></b></button>
         </div>
         <div class="pickbar">
           <div class="left">
@@ -359,14 +364,17 @@ let fMode=store.get("tcn_fmode")||"all";
 const tkey=c=>c.name+"|"+normPhone(c.phone);
 const T=c=>track[tkey(c)]||{};
 function saveTrack(){store.set("tcn_track",JSON.stringify(track))}
-function stage(c){const t=T(c);if(t.call)return"call";if(t.touch)return"touch";return"none"}
+// 미연락 → 터치만 → 부재 → 통화됨(결과 전) → 미팅 잡힘 / 미팅 거절
+function stage(c){const t=T(c);if(t.call)return t.result==="meet"?"meet":t.result==="reject"?"reject":"call";if(t.miss)return"miss";if(t.touch)return"touch";return"none"}
+const STAGE_TXT={none:"아직 연락 안 함",touch:"터치만 · 전화 전",miss:"부재 · 콜 안 닿음",call:"통화됨 · 미팅 결과 전",meet:"미팅 잡힘",reject:"미팅 거절"};
 function md(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()}
 function hm(ts){const d=new Date(ts);return md(ts)+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 function mark(c,what,quiet){
  const k=tkey(c),t=track[k]||(track[k]={});const now=Date.now();
  if(what==="touch"){if(t.touch&&!quiet){delete t.touch}else if(!t.touch){t.touch=now;if(quiet)toast(c.name+" 고객님 터치로 표시했습니다")}}
  else if(what==="miss"){t.miss=(t.miss||0)+1;t.lastMiss=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 부재 "+t.miss+"회")}
- else if(what==="call"){if(t.call){delete t.call}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 콜 완료")}}
+ else if(what==="call"){if(t.call){delete t.call;delete t.result;delete t.meetNote}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 통화됨")}}
+ else if(what==="meet"||what==="reject"){if(t.result===what){delete t.result}else{t.result=what;t.resultAt=now;if(!t.call)t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
  else if(what==="reset"){delete track[k]}
  if(track[k]&&!Object.keys(track[k]).length)delete track[k];
  saveTrack();render();
@@ -516,15 +524,15 @@ function visible(){
 }
 function tag(cls,txt){const s=document.createElement("span");s.className="tag "+cls;s.textContent=txt;return s}
 function renderCounts(){
- const n={none:0,touch:0,call:0};customers.forEach(c=>n[stage(c)]++);
- $("fAll").textContent=customers.length;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fCall").textContent=n.call;
+ const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0};customers.forEach(c=>n[stage(c)]++);
+ $("fAll").textContent=customers.length;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
  document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===fMode)));
 }
 function renderRoster(){
  renderCounts();
  const v=visible();$("shownN").textContent=v.length;
  const el=$("roster");el.replaceChildren();
- if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="touch"?"터치만 하고 콜이 안 닿은 고객이 없습니다.":fMode==="call"?"아직 콜 완료한 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
+ if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode!=="all"?"'"+STAGE_TXT[fMode]+"'인 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
  v.forEach((c,idx)=>{
   const on=selected.has(c.key);
   const d=document.createElement("div");d.className="lrow"+(on?" on":"");d.setAttribute("role","listitem");
@@ -540,9 +548,12 @@ function renderRoster(){
   if(c.optout)tg.append(tag("optout","수신거부"));
   if(c.contacted)tg.append(tag("done","접촉함"));
   const t=T(c);
-  if(t.call)tg.append(tag("call","콜 완료 "+md(t.call)));
-  else if(t.touch)tg.append(tag("touch","터치 "+md(t.touch)));
-  if(t.miss&&!t.call)tg.append(tag("miss","부재 "+t.miss));
+  const sg=stage(c);
+  if(sg==="meet")tg.append(tag("call","미팅 잡힘"+(t.meetNote?" · "+t.meetNote:"")));
+  else if(sg==="reject")tg.append(tag("miss","미팅 거절"));
+  else if(sg==="call")tg.append(tag("call","통화됨 "+md(t.call)));
+  else if(sg==="miss")tg.append(tag("miss","부재 "+t.miss));
+  else if(sg==="touch")tg.append(tag("touch","터치 "+md(t.touch)));
   d.append(cb,no,who,tg);
   const toggle=()=>{on?selected.delete(c.key):selected.add(c.key);render()};
   d.addEventListener("click",e=>{if(e.target!==cb)toggle()});cb.addEventListener("change",toggle);
@@ -585,16 +596,28 @@ function renderOut(){
   const parts=[];
   if(t.touch)parts.push("터치 "+hm(t.touch));
   if(t.miss)parts.push("부재 "+t.miss+"회"+(t.lastMiss?" (최근 "+hm(t.lastMiss)+")":""));
-  if(t.call)parts.push("콜 완료 "+hm(t.call));
-  st.innerHTML="";const sb=document.createElement("b");sb.textContent=t.call?"콜 완료":t.touch?"터치만 · 콜 안 닿음":"아직 연락 안 함";
+  if(t.call)parts.push("통화 "+hm(t.call));
+  st.innerHTML="";const sb=document.createElement("b");sb.textContent=STAGE_TXT[stage(c)];
   st.append(sb,document.createTextNode(parts.length?" · "+parts.join(" · "):""));
   const bT=document.createElement("button");bT.type="button";bT.className="text"+(t.touch?" on":"");bT.textContent=t.touch?"터치 ✓":"터치함";bT.title="문자·카톡을 보냈으면 누르세요 (다시 누르면 취소)";
   bT.addEventListener("click",()=>mark(c,"touch"));
   const bM=document.createElement("button");bM.type="button";bM.className="text";bM.textContent="부재";bM.title="전화했는데 안 받았을 때";
   bM.addEventListener("click",()=>mark(c,"miss"));
-  const bC=document.createElement("button");bC.type="button";bC.className=t.call?"on":"";bC.textContent=t.call?"콜 완료 ✓":"통화 연결";bC.title="통화가 됐으면 누르세요 (다시 누르면 취소)";
+  const bC=document.createElement("button");bC.type="button";bC.className=t.call?"on":"";bC.textContent=t.call?"통화됨 ✓":"통화 연결";bC.title="통화가 됐으면 누르세요 (다시 누르면 취소)";
   bC.addEventListener("click",()=>mark(c,"call"));
   tr.append(st,bT,bM,bC);
+  if(t.call){
+   const bMeet=document.createElement("button");bMeet.type="button";bMeet.className=t.result==="meet"?"on":"";bMeet.textContent=t.result==="meet"?"미팅 잡힘 ✓":"미팅 잡힘";
+   bMeet.addEventListener("click",()=>mark(c,"meet"));
+   const bRej=document.createElement("button");bRej.type="button";bRej.className="text"+(t.result==="reject"?" rej":"");bRej.textContent=t.result==="reject"?"미팅 거절 ✓":"미팅 거절";
+   bRej.addEventListener("click",()=>mark(c,"reject"));
+   tr.append(bMeet,bRej);
+   if(t.result==="meet"){
+    const mi=document.createElement("input");mi.type="text";mi.className="meet-in";mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=t.meetNote||"";mi.setAttribute("aria-label",c.name+" 미팅 일정");
+    mi.addEventListener("change",()=>{const k=tkey(c);if(!track[k])return;track[k].meetNote=mi.value.trim();if(!track[k].meetNote)delete track[k].meetNote;saveTrack();renderRoster()});
+    tr.append(mi);
+   }
+  }
   if(t.touch||t.call||t.miss){const bR=document.createElement("button");bR.type="button";bR.className="text";bR.textContent="기록 지우기";bR.addEventListener("click",()=>{if(confirm(c.name+" 고객님의 터치·콜 기록을 지울까요?"))mark(c,"reset")});tr.append(bR)}
   box.append(tr);
   if(card){
