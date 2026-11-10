@@ -317,14 +317,19 @@ function saveName(it){
 function inBook(phone){return book.some(b=>b.phone===phone)}
 function picked(){return items.filter(it=>it.on)}
 
+// 새로고침해도 붙여넣은 목록·고친 이름·체크가 남도록 이 브라우저에 보관
+let edits={};try{edits=JSON.parse(store.get("db_edits")||"{}")||{}}catch(e){edits={}}
+function saveEdits(){const m={};items.forEach(it=>{const e={};if(it.name!==it.orig)e.name=it.name;if(it.on!==it.on0)e.on=it.on;if(Object.keys(e).length)m[it.phone]=e});edits=m;store.set("db_edits",JSON.stringify(m))}
 function load(){
+ store.set("db_src",$("src").value);
  const me=$("me").value.trim();
  const seen=new Set();
  items=parse($("src").value).map(it=>{
   const mine=!me||!it.owner||it.owner.includes(me)||me.includes(it.owner);
   const dupHere=seen.has(it.phone);seen.add(it.phone);
   const dup=inBook(it.phone);
-  return {...it,orig:it.name,mine,dup,dupHere,on:mine&&!dup&&!dupHere};
+  const on0=mine&&!dup&&!dupHere,e=edits[it.phone]||{};
+  return {...it,orig:it.name,name:e.name||it.name,mine,dup,dupHere,on0,on:e.on!=null?e.on:on0};
  });
  const st=$("status");
  if(!$("src").value.trim()){st.className="status idle";st.textContent="붙여넣으면 바로 정리됩니다."}
@@ -348,11 +353,11 @@ function renderList(){
  items.forEach((it,i)=>{
   const r=document.createElement("div");r.className="lrow"+(it.on?"":" off");
   const cb=document.createElement("input");cb.type="checkbox";cb.checked=it.on;cb.setAttribute("aria-label",it.name+" 저장");
-  cb.addEventListener("change",()=>{it.on=cb.checked;renderList()});
+  cb.addEventListener("change",()=>{it.on=cb.checked;saveEdits();renderList()});
   const main=document.createElement("div");main.className="main";
   const nm=document.createElement("input");nm.type="text";nm.className="nm";nm.value=it.name;nm.setAttribute("aria-label","이름");
   nm.addEventListener("input",()=>{it.name=nm.value.trim();sv.querySelector("b").textContent=saveName(it)});
-  nm.addEventListener("change",renderList);
+  nm.addEventListener("change",()=>{saveEdits();renderList()});
   const meta=document.createElement("div");meta.className="meta";
   const ph=document.createElement("span");ph.className="ph";ph.textContent=it.phone;
   const rg=document.createElement("span");rg.textContent=it.region||"지역 없음";
@@ -523,7 +528,7 @@ $("mReset").addEventListener("click",()=>{$("mTpl").value=DEF_MSG;store.set("db_
 document.querySelectorAll(".mtokens button[data-m]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("mTpl"),s0=t.selectionStart??t.value.length,e=t.selectionEnd??s0;t.value=t.value.slice(0,s0)+c.dataset.m+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s0+c.dataset.m.length;t.dispatchEvent(new Event("input"))})});
 $("hideSent").addEventListener("change",renderMsgs);
 $("copyAllMsg").addEventListener("click",()=>{const l=msgList();if(!l.length){toast("먼저 장부에서 사람을 고르세요");return}copyText(l.map(b=>`▼ ${b.name} ${b.phone}\n${msgFor(b)}`).join("\n\n"),l.length+"명 문자 전체 복사됨")});
-$("allPick").addEventListener("change",()=>{const on=$("allPick").checked;items.forEach(i=>i.on=on);renderList()});
+$("allPick").addEventListener("change",()=>{const on=$("allPick").checked;items.forEach(i=>i.on=on);saveEdits();renderList()});
 $("bookAll").addEventListener("change",()=>{const q=$("bq").value.trim(),qd=digits(q);const vis=book.filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));if($("bookAll").checked)vis.forEach(b=>sel.add(b.phone));else vis.forEach(b=>sel.delete(b.phone));renderBook()});
 
 // ---- 같이 보낼 사진 (명함은 이관고객 안내문자와 같은 저장값을 씀) ----
@@ -585,12 +590,13 @@ function renderSlots(){
 }
 
 // ---- 연결 ----
-$("got").value=today();
+$("got").value=(store.get("db_src")&&store.get("db_got"))||today();
+$("src").value=store.get("db_src")||"";
 for(const k of ["me","camp","fmt"]){const v=store.get("db_"+k);if(v!=null)$(k).value=v}
 if(!$("fmt").value)$("fmt").value=DEF_FMT;
 function prev(){$("fmtPrev").replaceChildren("예) ",Object.assign(document.createElement("b"),{textContent:saveName({name:"홍길동",region:"서울·수도권"})}))}
 for(const k of ["me","camp","fmt"])$(k).addEventListener("input",()=>{store.set("db_"+k,$(k).value);prev();if(k==="me")load();else renderList()});
-$("got").addEventListener("input",()=>{prev();renderList()});
+$("got").addEventListener("input",()=>{store.set("db_got",$("got").value);prev();renderList()});
 $("fmtReset").addEventListener("click",()=>{$("fmt").value=DEF_FMT;store.set("db_fmt",DEF_FMT);prev();renderList()});
 document.querySelectorAll(".tokens button[data-t]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("fmt"),s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
 $("src").addEventListener("input",load);
@@ -598,7 +604,7 @@ $("pasteBtn").addEventListener("click",async()=>{
  try{const t=await navigator.clipboard.readText();if(!t){toast("복사한 내용이 없습니다");return}$("src").value=t;load()}
  catch(e){$("src").focus();toast("칸을 누르고 붙여넣기(⌘V / 길게 눌러 붙여넣기) 하세요")}
 });
-$("clearBtn").addEventListener("click",()=>{$("src").value="";load();$("src").focus()});
+$("clearBtn").addEventListener("click",()=>{$("src").value="";edits={};store.set("db_edits","{}");store.set("db_got","");$("got").value=today();load();$("src").focus()});
 prev();load();renderSlots();renderBook();
 </script>
 </body>

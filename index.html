@@ -564,7 +564,7 @@ function saveVcf(){
  if(!ok.length){toast("고른 고객에게 전화번호가 없습니다");return}
  const blob=new Blob([makeVcf(ok)],{type:"text/vcard;charset=utf-8"});
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
- a.download="이관고객_연락처_"+ok.length+"명.vcf";document.body.append(a);a.click();a.remove();
+ a.download="transfer_contacts_"+ok.length+".vcf";document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
  toast(ok.length+"명 연락처 파일을 받았습니다"+(skip?` (번호 없는 ${skip}명 제외)`:"")+". 파일을 열면 연락처에 추가됩니다");
 }
