@@ -426,12 +426,13 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
   </section>
 
   <details class="tpl" style="margin-top:40px">
-    <summary>터치 문구 고치기 (A안 · B안 · 마감 안내)</summary>
+    <summary>터치 문구 고치기 (제목 줄 · A안 · B안 · 마감 안내)</summary>
     <div class="tpl-body">
       <div class="tokens mtokens"><span>넣을 항목</span>
         <button type="button" data-m="{호칭}">부를 이름</button><button type="button" data-m="{과정}">과정 이름</button><button type="button" data-m="{기수}">기수</button><button type="button" data-m="{내이름}">내 이름</button><button type="button" data-m="{내번호}">내 번호</button><button type="button" data-m="{마감}">마감일</button>
         <button type="button" class="text" id="tplReset">기본 문구로</button>
       </div>
+      <label class="field" for="tplH" style="margin-bottom:12px"><span>맨 윗줄 제목 · 모든 인사 위에 붙음 (비우면 안 붙음)</span><input type="text" id="tplH" spellcheck="false" autocomplete="off"></label>
       <div class="tpl-two three">
         <label class="field" for="tplA"><span>A안 · 멘토로 배정받았을 때</span><textarea id="tplA" spellcheck="false"></textarea></label>
         <label class="field" for="tplB"><span>B안 · 캠리에서 내가 발표했을 때</span><textarea id="tplB" spellcheck="false"></textarea></label>
@@ -454,6 +455,7 @@ const MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent), IOS=/iPhone|
 // ---- 설정 ----
 const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"{이름} 탐스 ({기수}기)"};
 const TPL_A="안녕하세요 {호칭}님☺️\n\n미래에셋 [{과정}] 멘토로 배정받은 {내이름}({내번호})입니다!\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요!";
+const TPL_H="[TAMS in Busan 글로벌 금융인 양성 과정 {기수}기]";
 const TPL_D="지원서는 {마감}까지 작성해서 보내주시면 됩니다!";
 const TPL_B="안녕하세요 {호칭}님 :) \n강의 시작 전 홍보 안내 드렸던 {내이름} 매니저({내번호})입니다.\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요~!";
 let cfg=Object.assign({},DEF,J("tams_cfg",{}));
@@ -673,7 +675,7 @@ $("crBulkAdd").addEventListener("click",()=>{
 $("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPresent").checked?"1":"");stage.in.forEach(s=>s.plan=route(s)!=="ad"&&$("crPresent").checked?"B":"A");saveStage();renderStage("in")});
 
 // ---- 터치 문자 ----
-let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B,D:store.get("tams_tplD")||TPL_D};
+let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B,D:store.get("tams_tplD")||TPL_D,H:store.get("tams_tplH")??TPL_H};
 function hourText(h){h=+h;return h===0?"밤 12시":h===12?"낮 12시":h<12?"오전 "+h+"시":"오후 "+(h-12)+"시"}
 function dueText(){const v=store.get("tams_due")||"",h=store.get("tams_dueH")||"";if(!v)return "";const d=new Date(v+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일(${"일월화수목금토"[d.getDay()]})`+(h!==""?" "+hourText(h):"")}
 function dueFor(b){return tpl.D.replaceAll("{마감}",dueText()||"OO월 OO일").replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{기수}",b.gisu||gisu()).replaceAll("{과정}",course(b.gisu)).replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"")}
@@ -686,7 +688,8 @@ function msgFor(b){
  L.splice(k,0,AD_LINE);return L.join("\n");
 }
 function msgBase(b){
- return (b.plan==="B"?tpl.B:tpl.A).replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{과정}",course(b.gisu)).replaceAll("{기수}",b.gisu||gisu())
+ const hd=(tpl.H||"").trim();
+ return ((hd?hd+"\n":"")+(b.plan==="B"?tpl.B:tpl.A)).replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{과정}",course(b.gisu)).replaceAll("{기수}",b.gisu||gisu())
   .replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"");
 }
 function copyText(text,msg){
@@ -752,10 +755,10 @@ function renderMsgs(){
   out.append(box);
  }
 }
-["tplA","tplB","tplD"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs()})});
-let lastTpl=$("tplA");["tplA","tplB","tplD"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
+["tplA","tplB","tplD","tplH"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs()})});
+let lastTpl=$("tplA");["tplA","tplB","tplD","tplH"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
 document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
-$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B,D:TPL_D};$("tplA").value=TPL_A;$("tplB").value=TPL_B;$("tplD").value=TPL_D;store.del("tams_tplA");store.del("tams_tplB");store.del("tams_tplD");renderMsgs();toast("기본 문구로 되돌렸습니다")});
+$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B,D:TPL_D,H:TPL_H};$("tplA").value=TPL_A;$("tplB").value=TPL_B;$("tplD").value=TPL_D;$("tplH").value=TPL_H;store.del("tams_tplA");store.del("tams_tplB");store.del("tams_tplD");store.del("tams_tplH");renderMsgs();toast("기본 문구로 되돌렸습니다")});
 $("hideSent").addEventListener("change",renderMsgs);
 {const hs=$("dueHour"),o=document.createElement("option");o.value="";o.textContent="시간 없이";hs.append(o);
  for(let h=0;h<24;h++){const x=document.createElement("option");x.value=String(h);x.textContent=hourText(h);hs.append(x)}
