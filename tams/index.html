@@ -125,6 +125,15 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .msg-h .ph{font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .msg-b{margin:12px 16px;padding:12px 14px;background:var(--rule-2);border-radius:var(--r-m);white-space:pre-wrap;font-size:15px;line-height:1.75}
 .msg-f{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+.msg-doc{margin:0 16px;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2)}
+.msg-doc .chip{font-size:13px}
+.msg-only{margin:0 16px 12px;font-size:13px;color:var(--ink-2)}
+.steps3{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-right:auto}
+.steps3 .done::after{content:" ✓"}
+.duebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
+.duebar input{width:auto}
+.tpl-two.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.tpl-two.three{grid-template-columns:1fr}}
 .imgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:640px){.imgs{grid-template-columns:minmax(0,1fr)}}
 .slot{display:flex;align-items:center;gap:12px;background:var(--sheet);border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:10px 12px;min-width:0}
@@ -150,7 +159,7 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
 .tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
-.pane[hidden]{display:none}
+[hidden]{display:none!important}
 .golink{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border-radius:var(--r-s);background:var(--seal);color:var(--sheet);font-weight:600;text-decoration:none;white-space:nowrap}
 .golink:hover{filter:brightness(.94)}
 .ed-top{display:flex;flex-wrap:wrap;gap:12px 16px;justify-content:space-between}
@@ -292,12 +301,13 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
           <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2>연락처 넣기</h2></div>
           <div class="seg how" role="group" aria-label="넣는 방법"><button type="button" data-how="hand">직접 쓰기</button><button type="button" data-how="paste">카톡 붙여넣기</button></div>
           <div id="howHand">
+            <label class="check" for="crAd" style="margin-bottom:8px;white-space:normal;align-items:flex-start"><input type="checkbox" id="crAd">탐스 광고로 들어온 사람 (지원서를 먼저 받음 · 캠리 정보 없이 A안 · 인사만)</label>
             <form class="add" id="crForm" autocomplete="off">
               <label class="field" for="crName"><span>이름</span><input type="text" id="crName" enterkeyhint="next"></label>
               <label class="field" for="crTel"><span>전화</span><input type="tel" id="crTel" inputmode="tel" placeholder="01012345678" enterkeyhint="done"></label>
               <button type="submit">추가</button>
             </form>
-            <p class="hint" style="margin-top:8px">종이를 보고 이름, 번호를 쓰고 엔터. 추가되면 이름 칸으로 돌아갑니다.</p>
+            <p class="hint" style="margin-top:8px">종이를 보고 이름, 번호를 쓰고 엔터. 추가되면 이름 칸으로 돌아갑니다. 체크를 켜면 탐스 광고, 끄면 캠리 종이로 들어갑니다.</p>
             <details class="tpl" style="margin-top:8px">
               <summary>여러 명 한 번에 쓰기</summary>
               <div class="tpl-body">
@@ -307,8 +317,7 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
             </details>
           </div>
           <div id="howPaste" class="stack" hidden>
-            <div class="seg route" role="group" aria-label="어디서 들어온 사람"><button type="button" data-route="qr">캠리 QR</button><button type="button" data-route="ad">탐스 광고</button></div>
-            <p class="hint" id="routeHint"></p>
+            <p class="hint">캠리 때 QR로 들어온 사람입니다. 위 캠리 정보가 같이 붙습니다.</p>
             <textarea id="dbSrc" spellcheck="false" placeholder="카톡으로 받은 줄을 그대로 붙여넣기&#10;&#10;예) 2026. 11. 9 오후 1:09:26   홍길동   1000000000   hong@gmail.com   ○○대학교   네 동의합니다.   2   21   경영학과"></textarea>
             <div class="row-btns"><button type="button" id="dbPaste">복사한 내용 붙여넣기</button><button type="button" class="text" id="dbClear">지우기</button></div>
             <div id="dbStatus" class="status idle" role="status">붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다.</div>
@@ -332,7 +341,8 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
         <h2>터치 문자 <span id="msgN">0</span>건</h2>
         <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
       </div>
-      <p class="hint">이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B와 부를 이름을 바꿀 수 있습니다.</p>
+      <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><span id="dueShow" class="hint"></span></div>
+      <p class="hint">명함 보내듯 ① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 탐스 광고로 지원서를 먼저 보낸 사람은 인사만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
       <div class="stack" id="msgs"></div>
     </section>
   </section>
@@ -409,15 +419,16 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
   </section>
 
   <details class="tpl" style="margin-top:40px">
-    <summary>터치 문구 고치기 (A안 · B안)</summary>
+    <summary>터치 문구 고치기 (A안 · B안 · 마감 안내)</summary>
     <div class="tpl-body">
       <div class="tokens mtokens"><span>넣을 항목</span>
-        <button type="button" data-m="{호칭}">부를 이름</button><button type="button" data-m="{과정}">과정 이름</button><button type="button" data-m="{기수}">기수</button><button type="button" data-m="{내이름}">내 이름</button><button type="button" data-m="{내번호}">내 번호</button>
+        <button type="button" data-m="{호칭}">부를 이름</button><button type="button" data-m="{과정}">과정 이름</button><button type="button" data-m="{기수}">기수</button><button type="button" data-m="{내이름}">내 이름</button><button type="button" data-m="{내번호}">내 번호</button><button type="button" data-m="{마감}">마감일</button>
         <button type="button" class="text" id="tplReset">기본 문구로</button>
       </div>
-      <div class="tpl-two">
+      <div class="tpl-two three">
         <label class="field" for="tplA"><span>A안 · 멘토로 배정받았을 때</span><textarea id="tplA" spellcheck="false"></textarea></label>
         <label class="field" for="tplB"><span>B안 · 캠리에서 내가 발표했을 때</span><textarea id="tplB" spellcheck="false"></textarea></label>
+        <label class="field" for="tplD"><span>마감 안내 · 지원서 파일 다음에</span><textarea id="tplD" spellcheck="false"></textarea></label>
       </div>
     </div>
   </details>
@@ -436,6 +447,7 @@ const MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent), IOS=/iPhone|
 // ---- 설정 ----
 const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"{이름} 탐스 ({기수}기)"};
 const TPL_A="안녕하세요 {호칭}님☺️\n\n미래에셋 [{과정}] 멘토로 배정받은 {내이름}({내번호})입니다!\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요!";
+const TPL_D="지원서는 {마감}까지 작성해서 보내주시면 됩니다!";
 const TPL_B="안녕하세요 {호칭}님 :) \n강의 시작 전 홍보 안내 드렸던 {내이름} 매니저({내번호})입니다.\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요~!";
 let cfg=Object.assign({},DEF,J("tams_cfg",{}));
 if(cfg.fmt==="TAMS{기수} {이름} ({연월})")cfg.fmt=DEF.fmt;
@@ -511,7 +523,7 @@ const ROUTES={qr:"QR",cr:"종이",ad:"광고"}, RLONG={qr:"캠리 QR",cr:"캠리
 const route=b=>b.src==="db"?"qr":(ROUTES[b.src]?b.src:"cr");
 const viaKakao=b=>route(b)!=="cr";
 book.forEach(b=>{if(b.src==="db")b.src="qr"});stage.in.forEach(b=>{if(b.src==="db")b.src="qr"});
-let pRoute=store.get("tams_proute")==="ad"?"ad":"qr";
+const pRoute="qr";
 function routeSel(b,onChange){
  const sel=document.createElement("select");sel.className="rsel "+route(b);sel.setAttribute("aria-label",b.name+" 들어온 경로");
  for(const [k,l] of Object.entries(ROUTES)){const o=document.createElement("option");o.value=k;o.textContent=l;sel.append(o)}
@@ -624,7 +636,8 @@ function crAdd(name,tel){
  if(!name||!phone)return false;
  if(stage.in.some(s=>s.phone===phone)){toast(phone+" 은 이미 목록에 있습니다");return true}
  const dup=!!inBook(phone);
- stage.in.push({src:"cr",name,phone,place:$("crPlace").value.trim(),crDate:$("crDate").value,plan:$("crPresent").checked?"B":"A",on:!dup,dup});
+ const ad=$("crAd").checked;
+ stage.in.push({src:ad?"ad":"cr",name,phone,place:ad?"":$("crPlace").value.trim(),crDate:ad?"":$("crDate").value,plan:!ad&&$("crPresent").checked?"B":"A",on:!dup,dup});
  return true;
 }
 $("crForm").addEventListener("submit",e=>{
@@ -634,6 +647,7 @@ $("crForm").addEventListener("submit",e=>{
  if(!fmtPhone(t)){toast("번호를 다시 확인해 주세요 (010으로 시작하는 휴대폰 번호)");$("crTel").focus();return}
  crAdd(n,t);saveStage();renderStage("in");$("crName").value="";$("crTel").value="";$("crName").focus();
 });
+$("crAd").checked=store.get("tams_crAd")==="1";$("crAd").addEventListener("change",()=>store.set("tams_crAd",$("crAd").checked?"1":""));
 $("crName").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("crTel").focus()}});
 $("crBulkAdd").addEventListener("click",()=>{
  let n=0,bad=0;
@@ -652,7 +666,10 @@ $("crBulkAdd").addEventListener("click",()=>{
 $("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPresent").checked?"1":"");stage.in.forEach(s=>s.plan=route(s)!=="ad"&&$("crPresent").checked?"B":"A");saveStage();renderStage("in")});
 
 // ---- 터치 문자 ----
-let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B};
+let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B,D:store.get("tams_tplD")||TPL_D};
+function dueText(){const v=store.get("tams_due")||"";if(!v)return "";const d=new Date(v+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일(${"일월화수목금토"[d.getDay()]})`}
+function dueFor(b){return tpl.D.replaceAll("{마감}",dueText()||"OO월 OO일").replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{기수}",b.gisu||gisu()).replaceAll("{과정}",course(b.gisu)).replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"")}
+const sentStep={};
 function msgFor(b){
  return (b.plan==="B"?tpl.B:tpl.A).replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{과정}",course(b.gisu)).replaceAll("{기수}",b.gisu||gisu())
   .replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"");
@@ -684,27 +701,43 @@ function renderMsgs(){
    s.addEventListener("click",()=>{b.plan=p;saveBook();renderMsgs()});seg.append(s)});
   call.append(lb,inp,seg);
   h.append(id,call);
+  const ad=route(b)==="ad", st=sentStep[b.id]||(sentStep[b.id]={});
   const body=document.createElement("div");body.className="msg-b";body.textContent=msgFor(b);
-  inp.addEventListener("input",()=>{b.call=inp.value.trim();saveBook();body.textContent=msgFor(b)});
+  const due=document.createElement("div");due.className="msg-b";due.textContent=dueFor(b);
+  inp.addEventListener("input",()=>{b.call=inp.value.trim();saveBook();body.textContent=msgFor(b);due.textContent=dueFor(b)});
   const f=document.createElement("div");f.className="msg-f";
-  const c=document.createElement("button");c.type="button";c.className="primary";c.textContent="문자 복사";
-  c.addEventListener("click",()=>copyText(msgFor(b),b.name+" 님 문자를 복사했습니다"));
-  f.append(c);
+  const steps=document.createElement("div");steps.className="steps3";
+  const mk=(k,label,fn)=>{const x=document.createElement("button");x.type="button";x.textContent=label;if(st[k])x.classList.add("done");
+   x.addEventListener("click",async()=>{await fn();st[k]=1;x.classList.add("done");paint()});steps.append(x);return x};
+  const order=ad?["hi"]:["hi","doc","due"], btn={};
+  const paint=()=>{const next=order.find(k=>!st[k]);order.forEach(k=>btn[k].classList.toggle("primary",k===next))};
+  btn.hi=mk("hi",ad?"인사 복사":"① 인사 복사",()=>copyText(msgFor(b),b.name+" 님 인사를 복사했습니다. 카톡에 붙여넣으세요"));
+  if(!ad){
+   btn.doc=mk("doc","② 지원서 파일",sendDoc);
+   btn.doc.draggable=true;btn.doc.title="카톡 대화창으로 끌어다 놓으면 파일이 그대로 첨부됩니다. 누르면 파일로 받아집니다.";
+   btn.doc.addEventListener("dragstart",e=>{if(!chipUrl)return;try{e.dataTransfer.setData("DownloadURL",`${DOCX}:${docName()}:${chipUrl}`)}catch(err){}e.dataTransfer.effectAllowed="copy";st.doc=1;btn.doc.classList.add("done");paint()});
+   btn.due=mk("due","③ 마감 안내 복사",()=>{if(!dueText())toast("위에서 지원서 마감 날짜를 먼저 넣어 주세요");copyText(dueFor(b),"마감 안내를 복사했습니다. 카톡에 붙여넣으세요")});
+  }
+  paint();
+  f.append(steps);
   if(MOBILE){const a=document.createElement("a");a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b));a.textContent="문자 앱으로";
    a.style.cssText="display:inline-flex;align-items:center;padding:7px 14px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink);font-size:14px;text-decoration:none;min-height:36px";
    a.addEventListener("click",()=>{a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b))});f.append(a)}
-  const d=document.createElement("button");d.type="button";d.textContent="지원서 파일";d.title="지원서 양식 파일을 받거나 보내기";d.addEventListener("click",sendDoc);f.append(d);
   const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
   s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
   f.append(s);
-  box.append(h,body,f);out.append(box);
+  if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="탐스 광고로 지원서를 먼저 보낸 분이라 인사만 보냅니다.";box.append(h,body,n,f)}
+  else{const dl=document.createElement("div");dl.className="msg-doc";dl.textContent="📎 "+docName();box.append(h,body,dl,due,f)}
+  out.append(box);
  }
 }
-["tplA","tplB"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs()})});
-let lastTpl=$("tplA");["tplA","tplB"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
+["tplA","tplB","tplD"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs()})});
+let lastTpl=$("tplA");["tplA","tplB","tplD"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
 document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
-$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").value=TPL_A;$("tplB").value=TPL_B;store.del("tams_tplA");store.del("tams_tplB");renderMsgs();toast("기본 문구로 되돌렸습니다")});
-$("hideSent").addEventListener("change",renderMsgs);$("msgQ").addEventListener("input",renderMsgs);
+$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B,D:TPL_D};$("tplA").value=TPL_A;$("tplB").value=TPL_B;$("tplD").value=TPL_D;store.del("tams_tplA");store.del("tams_tplB");store.del("tams_tplD");renderMsgs();toast("기본 문구로 되돌렸습니다")});
+$("hideSent").addEventListener("change",renderMsgs);
+$("dueDate").value=store.get("tams_due")||"";$("dueShow").textContent=dueText()?"→ "+dueText():"날짜를 넣으면 ③ 마감 안내에 들어갑니다";
+$("dueDate").addEventListener("change",()=>{store.set("tams_due",$("dueDate").value);$("dueShow").textContent=dueText()?"→ "+dueText():"날짜를 넣으면 ③ 마감 안내에 들어갑니다";renderMsgs()});$("msgQ").addEventListener("input",renderMsgs);
 
 // ---- 장부 ----
 const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭"],["sub","제출완료"]];
@@ -1078,16 +1111,6 @@ function showHow(h){
  document.querySelectorAll(".how [data-how]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.how===h)));
  $("howHand").hidden=h!=="hand";$("howPaste").hidden=h!=="paste";store.set("tams_how",h);
 }
-function showRoute(){
- document.querySelectorAll(".route [data-route]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.route===pRoute)));
- $("routeHint").textContent=pRoute==="ad"?"탐스 홍보 광고를 보고 지원서로 먼저 들어온 사람입니다. A안(멘토 배정 인사)으로 터치합니다.":"캠리 때 QR로 들어온 사람입니다. 위 캠리 정보가 같이 붙습니다.";
-}
-document.querySelectorAll(".route [data-route]").forEach(b=>b.addEventListener("click",()=>{
- pRoute=b.dataset.route;store.set("tams_proute",pRoute);showRoute();
- stage.in.filter(viaKakao).forEach(x=>{x.src=pRoute;if(pRoute==="ad"){x.plan="A";x.place="";x.crDate=""}else{x.plan=$("crPresent").checked?"B":"A";x.place=$("crPlace").value.trim();x.crDate=$("crDate").value}});
- saveStage();renderStage("in");
-}));
-showRoute();
 document.querySelectorAll(".how [data-how]").forEach(b=>b.addEventListener("click",()=>{showHow(b.dataset.how);(b.dataset.how==="hand"?$("crName"):$("dbSrc")).focus()}));
 
 // ---- 탭 ----
