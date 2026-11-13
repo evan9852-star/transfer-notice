@@ -128,6 +128,12 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .msg-doc{margin:0 16px;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2)}
 .msg-doc .chip{font-size:13px}
 .msg-only{margin:0 16px 12px;font-size:13px;color:var(--ink-2)}
+.msg-extra{margin:4px 16px 14px;padding:12px 14px;border:1px dashed var(--rule);border-radius:var(--r-m);background:transparent}
+.msg-extra-h{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--ink-2)}
+.msg-extra-h b{font-size:14px;color:var(--ink)}
+.msg-extra .msg-b{margin:10px 0;background:var(--rule-2);font-size:14px;color:var(--ink-2)}
+.msg-extra .row-btns{justify-content:flex-start}
+.msg-extra .done::after{content:" ✓"}
 .steps3{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-right:auto}
 .steps3 .done::after{content:" ✓"}
 .duebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
@@ -343,7 +349,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
         <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
       </div>
       <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><select id="dueHour" aria-label="마감 시간"></select><span id="dueShow" class="hint"></span></div>
-      <p class="hint">① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 광고로 들어와 지원서를 먼저 받은 사람은 인사와 첨삭 안내만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
+      <p class="hint">① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 광고로 들어와 지원서를 먼저 받은 사람은 인사만 보내고, 지원서 파일·마감 안내는 카드 아래 점선 칸에 따로 있습니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
       <div class="stack" id="msgs"></div>
     </section>
   </section>
@@ -716,16 +722,17 @@ function renderMsgs(){
   inp.addEventListener("input",()=>{b.call=inp.value.trim();saveBook();body.textContent=msgFor(b);due.textContent=dueFor(b)});
   const f=document.createElement("div");f.className="msg-f";
   const steps=document.createElement("div");steps.className="steps3";
-  const mk=(k,label,fn)=>{const x=document.createElement("button");x.type="button";x.textContent=label;if(st[k])x.classList.add("done");
-   x.addEventListener("click",async()=>{await fn();st[k]=1;x.classList.add("done");paint()});steps.append(x);return x};
+  const mk=(k,label,fn,to=steps)=>{const x=document.createElement("button");x.type="button";x.textContent=label;if(st[k])x.classList.add("done");
+   x.addEventListener("click",async()=>{await fn();st[k]=1;x.classList.add("done");paint()});to.append(x);return x};
   const order=ad?["hi"]:["hi","doc","due"], btn={};
   const paint=()=>{const next=order.find(k=>!st[k]);order.forEach(k=>btn[k].classList.toggle("primary",k===next))};
+  const ex=document.createElement("div");ex.className="msg-extra";const exB=document.createElement("div");exB.className="row-btns";
   btn.hi=mk("hi",ad?"인사 복사":"① 인사 복사",()=>copyText(msgFor(b),b.name+" 님 인사를 복사했습니다. 카톡에 붙여넣으세요"));
-  if(!ad){
-   btn.doc=mk("doc","② 지원서 파일",sendDoc);
+  {
+   btn.doc=mk("doc",ad?"지원서 파일":"② 지원서 파일",sendDoc,ad?exB:steps);
    btn.doc.draggable=true;btn.doc.title="카톡 대화창으로 끌어다 놓으면 파일이 그대로 첨부됩니다. 누르면 파일로 받아집니다.";
    btn.doc.addEventListener("dragstart",e=>{if(!chipUrl)return;try{e.dataTransfer.setData("DownloadURL",`${DOCX}:${docName()}:${chipUrl}`)}catch(err){}e.dataTransfer.effectAllowed="copy";st.doc=1;btn.doc.classList.add("done");paint()});
-   btn.due=mk("due","③ 마감 안내 복사",()=>{if(!dueText())toast("위에서 지원서 마감 날짜를 먼저 넣어 주세요");copyText(dueFor(b),"마감 안내를 복사했습니다. 카톡에 붙여넣으세요")});
+   btn.due=mk("due",ad?"마감 안내 복사":"③ 마감 안내 복사",()=>{if(!dueText())toast("위에서 지원서 마감 날짜를 먼저 넣어 주세요");copyText(dueFor(b),"마감 안내를 복사했습니다. 카톡에 붙여넣으세요")},ad?exB:steps);
   }
   paint();
   f.append(steps);
@@ -735,7 +742,12 @@ function renderMsgs(){
   const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
   s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
   f.append(s);
-  if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="광고로 들어와 지원서를 먼저 받은 분이라 지원서 파일과 마감 안내는 빼고 보냅니다.";box.append(h,body,n,f)}
+  if(ad){
+   const t=document.createElement("div");t.className="msg-extra-h";t.innerHTML="<b>지원서 다시 보낼 때만</b><span>지원서를 먼저 받은 분이라 평소엔 인사만 보내면 됩니다. 새 양식을 보내거나 마감을 알려야 할 때 쓰세요.</span>";
+   const pv=document.createElement("div");pv.className="msg-b";pv.textContent="📎 "+docName()+"\n"+dueFor(b);
+   inp.addEventListener("input",()=>{pv.textContent="📎 "+docName()+"\n"+dueFor(b)});
+   ex.append(t,pv,exB);box.append(h,body,f,ex);
+  }
   else{const dl=document.createElement("div");dl.className="msg-doc";dl.textContent="📎 "+docName();box.append(h,body,dl,due,f)}
   out.append(box);
  }
