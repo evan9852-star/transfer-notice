@@ -159,6 +159,9 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
 .tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
+.tabs .docTab{margin-left:auto;align-self:center;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 12px;margin-bottom:6px;border:1px solid var(--rule);border-radius:var(--r-s);font-size:14px;font-weight:500;white-space:nowrap}
+.tabs .docTab .ico{margin:0;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:3px;background:#2b579a;color:#fff;font-size:11px;font-weight:700}
+.tabs .docTab[aria-selected="true"]{border-color:var(--ink);border-bottom-color:var(--ink);background:var(--rule-2)}
 [hidden]{display:none!important}
 .golink{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border-radius:var(--r-s);background:var(--seal);color:var(--sheet);font-weight:600;text-decoration:none;white-space:nowrap}
 .golink:hover{filter:brightness(.94)}
@@ -281,9 +284,9 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
 
   <div class="tabs" role="tablist" aria-label="메뉴">
     <button type="button" role="tab" data-tab="in" id="t-in">캠리 터치<span id="nIn"></span></button>
-    <button type="button" role="tab" data-tab="doc" id="t-doc">지원서</button>
     <button type="button" role="tab" data-tab="ed" id="t-ed">첨삭</button>
     <button type="button" role="tab" data-tab="book" id="t-book">멘티 장부<span id="nBook"></span></button>
+    <button type="button" role="tab" data-tab="doc" id="t-doc" class="docTab"><span class="ico" aria-hidden="true">W</span>지원서 양식</button>
   </div>
 
   <!-- 캠리 터치 -->
