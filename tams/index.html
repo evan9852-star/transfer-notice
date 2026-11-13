@@ -151,6 +151,20 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
 .tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
 .pane[hidden]{display:none}
+.golink{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border-radius:var(--r-s);background:var(--seal);color:var(--sheet);font-weight:600;text-decoration:none;white-space:nowrap}
+.golink:hover{filter:brightness(.94)}
+.ed-top{display:flex;flex-wrap:wrap;gap:12px 16px;justify-content:space-between}
+.ed-top .field{min-width:220px}
+.ed-qs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1000px){.ed-qs{grid-template-columns:minmax(0,1fr)}}
+.edq{display:flex;flex-direction:column;gap:6px;min-width:0}
+.edq-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.edq-h b{font-size:14px}
+.edq textarea{min-height:260px;font-size:15px;line-height:1.75}
+.lc{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.lc b{font-size:15px;color:var(--ink)}
+.lc.over b{color:var(--seal)}
+.lc.ok b{color:var(--moss)}
 .how{align-self:flex-start}
 .how button{min-height:36px;padding:6px 16px;font-size:14px}
 .filecard{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:14px 16px}
@@ -249,6 +263,7 @@ tr.done td{color:var(--ink-2)}
   <div class="tabs" role="tablist" aria-label="메뉴">
     <button type="button" role="tab" data-tab="in" id="t-in">캠리 터치<span id="nIn"></span></button>
     <button type="button" role="tab" data-tab="doc" id="t-doc">지원서</button>
+    <button type="button" role="tab" data-tab="ed" id="t-ed">첨삭</button>
     <button type="button" role="tab" data-tab="book" id="t-book">멘티 장부<span id="nBook"></span></button>
   </div>
 
@@ -328,6 +343,32 @@ tr.done td{color:var(--ink-2)}
       <label class="drop" id="docDrop"><input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">새 기수 지원서(.docx)를 여기에 끌어 놓거나 눌러서 고르기. 파일 속 'O기'를 읽어 기수와 터치 문자가 같이 바뀝니다.</label>
       <p class="hint" id="docReset" hidden><button type="button" class="text" id="docResetBtn">기본(6기) 지원서로 되돌리기</button></p>
       <div class="paper" id="docView" aria-label="지원서 미리보기"></div>
+    </div>
+  </section>
+
+  <!-- 첨삭 -->
+  <section class="pane" id="p-ed" role="tabpanel" aria-labelledby="t-ed" hidden>
+    <div class="stack">
+      <div class="filecard">
+        <div style="flex:1;min-width:220px"><b>내용까지 첨삭받기</b><p class="hint" style="margin-top:2px">클로드 첨삭 페이지에서 지원서를 넣거나 붙여넣으면 문항별 첨삭본, 고친 이유, 멘티에게 보낼 피드백 문자가 나옵니다. 원하는 방향도 적을 수 있어요. (claude.ai 로그인 필요)</p></div>
+        <a class="golink" href="https://claude.ai/artifact/CacZc1CtAEufUjvXt4tjUw" target="_blank" rel="noopener">클로드 첨삭 페이지 열기 ↗</a>
+      </div>
+      <label class="drop" id="edDrop"><input type="file" id="edFile" accept=".docx">멘티가 보낸 지원서(.docx)를 끌어 놓거나 눌러서 고르기. ②③④ 답변을 아래 칸에 채웁니다. 파일이 없으면 칸에 바로 붙여넣으세요.</label>
+      <div class="ed-top">
+        <label class="field" for="edWho"><span>멘티</span><select id="edWho"></select></label>
+        <div class="row-btns" style="align-self:end">
+          <button type="button" id="edTidy">띄어쓰기 정리</button>
+          <button type="button" id="edSpell">맞춤법 검사기에 넣기</button>
+          <button type="button" class="primary" id="edAsk">클로드 검사 요청 복사</button>
+        </div>
+      </div>
+      <div id="edStatus" class="status idle" role="status">글자 수는 공백 포함으로 셉니다. 문항마다 400자 이내.</div>
+      <div class="ed-qs" id="edQs"></div>
+      <div class="row-btns">
+        <button type="button" id="edMark">장부에 첨삭 1회 적기</button>
+        <button type="button" class="text" id="edClear">칸 비우기</button>
+      </div>
+      <p class="hint"><b>띄어쓰기 정리</b>는 겹친 빈칸, 문장부호 앞 빈칸, 문단 사이 빈 줄처럼 확실한 것만 이 화면에서 바로 고칩니다. <b>맞춤법 검사기에 넣기</b>는 답변을 복사하고 부산대 맞춤법 검사기를 엽니다(붙여넣기 ⌘V). <b>클로드 검사 요청 복사</b>는 맞춤법·띄어쓰기만 고쳐 달라는 요청문을 복사하니 클로드 앱에 붙여넣으세요.</p>
     </div>
   </section>
 
@@ -867,6 +908,104 @@ const dz=$("docDrop");
 dz.addEventListener("drop",e=>takeDocFile(e.dataTransfer.files[0]));
 $("docResetBtn").addEventListener("click",async()=>{store.del("tams_doc");await loadDefaultDoc();if(doc.gisu&&doc.gisu!==gisu()){cfg.gisu=doc.gisu;saveCfg();syncCfg();renderAll()}toast("기본 지원서로 되돌렸습니다")});
 
+// ---- 첨삭 ----
+const EDQ={2:"② 내가 꿈꾸는 좋은 회사와 직업의 모습은? (400자 이내)",3:"③ 자유롭게 나에 대해 자랑하기(경험을 중심으로) (400자 이내)",4:"④ 양성과정을 통해서 이루고 싶은 목표와 본인의 Job의 목표는? (400자 이내)"};
+const ED_LIMIT=400;
+const clen=v=>[...String(v||"").replace(/\r/g,"").trim()].length;
+const clenNs=v=>[...String(v||"").replace(/\s/g,"")].length;
+(function buildEd(){
+ const box=$("edQs");
+ for(const n of [2,3,4]){
+  const q=document.createElement("div");q.className="edq";
+  const h=document.createElement("div");h.className="edq-h";
+  const t=document.createElement("b");t.textContent=EDQ[n].replace(/ \(400자 이내\)/,"");
+  const c=document.createElement("span");c.className="lc";c.id="edC"+n;
+  h.append(t,c);
+  const ta=document.createElement("textarea");ta.id="edA"+n;ta.setAttribute("aria-label",t.textContent);ta.placeholder="멘티 답변 붙여넣기";ta.spellcheck=true;
+  ta.value=store.get("tams_edA"+n)||"";
+  ta.addEventListener("input",()=>{store.set("tams_edA"+n,ta.value);edCount(n)});
+  q.append(h,ta);box.append(q);edCount(n);
+ }
+})();
+function edCount(n){
+ const v=$("edA"+n).value,c=$("edC"+n),l=clen(v);
+ if(!v.trim()){c.textContent="";c.className="lc";return}
+ c.innerHTML="";const b=document.createElement("b");b.textContent=l;c.append(b,` / ${ED_LIMIT}자 · 공백 빼고 ${clenNs(v)}자`+(l>ED_LIMIT?` · ${l-ED_LIMIT}자 넘음`:""));
+ c.className="lc "+(l>ED_LIMIT?"over":"ok");
+}
+function edAnswers(){return [2,3,4].filter(n=>$("edA"+n).value.trim()).map(n=>({n,v:$("edA"+n).value.trim()}))}
+function edWhoOptions(){
+ const cur=$("edWho").value||store.get("tams_edWho")||"";
+ const list=book.filter(b=>(b.gisu||gisu())===gisu());
+ $("edWho").replaceChildren(new Option("고르기 (장부에 적을 때)",""),...list.map(b=>new Option(`${b.name} · ${stat(b)}`,b.phone)));
+ $("edWho").value=list.some(b=>b.phone===cur)?cur:"";
+}
+$("edWho").addEventListener("change",()=>store.set("tams_edWho",$("edWho").value));
+// 확실한 띄어쓰기만: 겹친 빈칸, 문장부호 앞 빈칸, 줄 끝 빈칸, 빈 줄 여러 개, 쉼표·마침표 뒤 붙은 글자
+function tidy(v){
+ return String(v).replace(/\r/g,"").replace(/[ \t ]+/g," ").replace(/ +([,.!?)\]%])/g,"$1").replace(/([(\[]) +/g,"$1")
+  .replace(/([,!?])(?=[가-힣A-Za-z])/g,"$1 ").replace(/([가-힣]\.)(?=[가-힣])/g,"$1 ").replace(/ *\n */g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+$("edTidy").addEventListener("click",()=>{
+ let k=0;for(const n of [2,3,4]){const a=$("edA"+n),v=tidy(a.value);if(v!==a.value.trim()&&a.value.trim()){a.value=v;store.set("tams_edA"+n,v);k++}edCount(n)}
+ const st=$("edStatus");if(!edAnswers().length){toast("정리할 답변이 없습니다");return}
+ st.className="status ok";st.textContent=k?`${k}개 문항의 빈칸·문장부호 띄어쓰기를 정리했습니다. 맞춤법은 검사기나 클로드로 확인하세요.`:"정리할 띄어쓰기가 없습니다. 맞춤법은 검사기나 클로드로 확인하세요.";
+});
+$("edSpell").addEventListener("click",()=>{
+ const a=edAnswers();if(!a.length){toast("검사할 답변이 없습니다");return}
+ copyText(a.map(x=>x.v).join("\n\n"),"답변을 복사했습니다. 검사기 칸에 붙여넣으세요 (⌘V)");
+ window.open("https://nara-speller.co.kr/speller/","_blank","noopener");
+});
+$("edAsk").addEventListener("click",()=>{
+ const a=edAnswers();if(!a.length){toast("검사할 답변이 없습니다");return}
+ const b=inBook($("edWho").value);
+ const txt=`아래는 대학생이 쓴 지원서 답변입니다${b?` (지원자: ${b.name})`:""}. 맞춤법과 띄어쓰기만 고쳐 주세요.
+- 내용, 단어 선택, 문장 순서는 바꾸지 마세요. 틀린 맞춤법·띄어쓰기·문장부호만 고칩니다.
+- 문항마다 ① 고친 답변 전체 ② 고친 곳 목록 (원래 → 고침) ③ 고친 답변의 글자 수(공백 포함)를 보여 주세요.
+- 각 문항은 공백 포함 400자 이내여야 합니다. 넘으면 몇 자 넘는지만 알려 주세요.
+
+`+a.map(x=>`[${EDQ[x.n]}] (지금 ${clen(x.v)}자)\n${x.v}`).join("\n\n");
+ copyText(txt,"검사 요청문을 복사했습니다. 클로드 앱에 붙여넣으세요");
+});
+$("edMark").addEventListener("click",()=>{
+ const b=inBook($("edWho").value);if(!b){toast("위에서 멘티를 먼저 골라 주세요");$("edWho").focus();return}
+ const a=edits(b).concat(today());b.edits=a;b.edit=today();if(!b.got)b.got=today();if(!b.touch)b.touch=today();saveBook();renderAll();
+ toast(`${b.name} 님 ${a.length}차 첨삭을 장부에 적었습니다`);
+});
+$("edClear").addEventListener("click",()=>{
+ const x=$("edClear");if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 비움";setTimeout(()=>{x.dataset.sure="";x.textContent="칸 비우기"},3000);return}
+ [2,3,4].forEach(n=>{$("edA"+n).value="";store.set("tams_edA"+n,"");edCount(n)});x.dataset.sure="";x.textContent="칸 비우기";
+});
+// 멘티 지원서 파일에서 이름·답변 꺼내기 (지원서 탭과 같은 읽기 사용)
+function edFromBlocks(blocks){
+ let name="";
+ for(const bl of blocks){if(bl.t!=="tbl")continue;for(const r of bl.rows)for(let i=0;i<r.length-1;i++)if(r[i].s.replace(/\s/g,"")==="성명"&&!name)name=r[i+1].s.trim()}
+ const flat=[];for(const bl of blocks){if(bl.t==="p")flat.push(bl.s);else for(const r of bl.rows)for(const c of r)if(!c.cont)flat.push(c.s)}
+ const ans={};let cur=0;
+ for(const line of flat){
+  const t=line.trim(),m=t.match(/^([②③④⑤])/);
+  if(m){cur={"②":2,"③":3,"④":4}[m[1]]||0;if(cur)ans[cur]=[];continue}
+  if(/^개인\(신용\)정보/.test(t)){cur=0;continue}
+  if(cur)ans[cur].push(line);
+ }
+ for(const k in ans)ans[k]=ans[k].join("\n").replace(/\n{3,}/g,"\n\n").trim();
+ return {name,ans};
+}
+async function edTake(f){
+ if(!f)return;
+ if(!/\.docx$/i.test(f.name)){toast("워드 파일(.docx)만 읽을 수 있습니다. 답변을 칸에 붙여넣어 주세요");return}
+ try{
+  const r=edFromBlocks(readDocx(new Uint8Array(await f.arrayBuffer())).blocks);let got=0;
+  for(const n of [2,3,4]){if(r.ans[n]){$("edA"+n).value=r.ans[n];store.set("tams_edA"+n,r.ans[n]);got++}edCount(n)}
+  if(r.name){const nm=r.name.replace(/\s/g,"");const b=book.find(x=>x.name.replace(/\s/g,"")===nm);if(b){$("edWho").value=b.phone;store.set("tams_edWho",b.phone)}}
+  const st=$("edStatus");
+  if(got){st.className="status ok";st.textContent=`${r.name?r.name+" 님 ":""}지원서에서 ${got}개 문항을 읽었습니다.`}
+  else{st.className="status warn";st.textContent="파일에서 답변을 찾지 못했습니다. 답변을 칸에 직접 붙여넣어 주세요."}
+ }catch(e){toast("지원서 파일을 읽지 못했습니다. 답변을 칸에 붙여넣어 주세요")}
+}
+$("edFile").addEventListener("change",e=>{edTake(e.target.files[0]);e.target.value=""});
+{const z=$("edDrop");["dragenter","dragover"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.add("over")}));["dragleave","drop"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.remove("over")}));z.addEventListener("drop",e=>edTake(e.dataTransfer.files[0]))}
+
 // ---- 설정 연결 ----
 function syncCfg(){
  $("cGisu").value=gisu();$("cMe").value=cfg.me;$("cTel").value=cfg.tel;$("cCourse").value=cfg.course;$("cFmt").value=cfg.fmt;
@@ -899,7 +1038,7 @@ document.querySelectorAll(".tabs [data-tab]").forEach(b=>b.addEventListener("cli
 function renderAll(){
  const g=gisu(), cur=book.filter(b=>(b.gisu||g)===g);
  const ni=cur.filter(b=>!b.touch).length;$("nIn").textContent=ni?ni:"";$("nBook").textContent=cur.length?cur.length:"";
- renderStage("in");renderMsgs();renderBook();
+ renderStage("in");renderMsgs();renderBook();edWhoOptions();
 }
 
 // ---- 붙여넣기 칸 ----
@@ -912,7 +1051,7 @@ $("dbClear").addEventListener("click",()=>{$("dbSrc").value="";loadDb();$("dbSrc
  $("dbSrc").value=store.get("tams_dbsrc")||"";
  $("crDate").value=store.get("tams_crDate")||today();$("crPlace").value=store.get("tams_crPlace")||"";$("crPresent").checked=store.get("tams_crPresent")==="1";
  syncCfg();
- const t=store.get("tams_tab");showTab(["in","doc","book"].includes(t)?t:"in");
+ const t=store.get("tams_tab");showTab(["in","doc","ed","book"].includes(t)?t:"in");
  showHow(store.get("tams_how")||"hand");
  stage.in.forEach(s=>s.dup=!!inBook(s.phone));
  renderAll();
