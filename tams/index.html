@@ -390,7 +390,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
         <div class="row-btns" style="align-self:end">
           <button type="button" id="edTidy">띄어쓰기 정리</button>
           <button type="button" id="edSpell">맞춤법 검사기에 넣기</button>
-          <button type="button" class="primary" id="edAsk">클로드 검사 요청 복사</button>
+          <button type="button" class="primary" id="edAsk2">내용 첨삭 요청 복사</button><button type="button" id="edAsk">맞춤법 요청 복사</button>
         </div>
       </div>
       <div id="edStatus" class="status idle" role="status">글자 수는 공백 포함으로 셉니다. 질문과 글자 제한은 직접 고칠 수 있어요.</div>
@@ -399,7 +399,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
         <button type="button" id="edMark">장부에 첨삭 1회 적기</button>
         <button type="button" id="edAdd">+ 문항 추가</button><button type="button" class="text" id="edReset">기본 6기 질문으로</button><button type="button" class="text" id="edClear">답변 비우기</button>
       </div>
-      <p class="hint"><b>띄어쓰기 정리</b>는 겹친 빈칸, 문장부호 앞 빈칸, 문단 사이 빈 줄처럼 확실한 것만 이 화면에서 바로 고칩니다. <b>맞춤법 검사기에 넣기</b>는 답변을 복사하고 부산대 맞춤법 검사기를 엽니다(붙여넣기 ⌘V). <b>클로드 검사 요청 복사</b>는 맞춤법·띄어쓰기만 고쳐 달라는 요청문을 복사하니 클로드 앱에 붙여넣으세요.</p>
+      <p class="hint"><b>띄어쓰기 정리</b>는 겹친 빈칸, 문장부호 앞 빈칸, 문단 사이 빈 줄처럼 확실한 것만 이 화면에서 바로 고칩니다. <b>맞춤법 검사기에 넣기</b>는 답변을 복사하고 부산대 맞춤법 검사기를 엽니다(붙여넣기 <span class="kbdPaste">Ctrl+V</span>). <b>내용 첨삭 요청 복사</b>는 질문 의도에 맞춘 피드백·첨삭본·멘티에게 보낼 문자까지 받는 요청문을, <b>맞춤법 요청 복사</b>는 맞춤법·띄어쓰기만 고치는 요청문을 복사합니다. 클로드, ChatGPT, 제미나이 등 평소 쓰는 AI에 붙여넣으면 됩니다.</p>
     </div>
   </section>
 
@@ -454,6 +454,8 @@ function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");cle
 function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
 function digits(s){return String(s||"").replace(/\D/g,"")}
 const MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent), IOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+const MAC=/Mac/i.test(navigator.platform||navigator.userAgent)&&!MOBILE, PASTE=MAC?"⌘V":"Ctrl+V";
+document.querySelectorAll(".kbdPaste").forEach(e=>e.textContent=PASTE);
 
 // ---- 설정 ----
 const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"{이름} 탐스 ({기수}기)"};
@@ -980,7 +982,7 @@ function renderChip(){
  chipUrl=URL.createObjectURL(new Blob([b64ToBytes(doc.b64)],{type:DOCX}));
  const c=$("docChip");c.href=chipUrl;c.download=docName();$("docChipName").textContent=docName();
  $("docHow").textContent=MOBILE?"[카톡으로 보내기]를 누르고 카카오톡에서 멘티를 고르면 지원서 파일이 그대로 첨부됩니다."
-  :"왼쪽 파일을 카톡 대화창으로 끌어다 놓으면 지원서 파일이 그대로 첨부됩니다. 누르면 파일로 받아집니다.";
+  :"왼쪽 파일을 카톡 대화창으로 끌어다 놓으면 지원서 파일이 그대로 첨부됩니다 (크롬·엣지). 안 되면 눌러서 받은 뒤 "+(MAC?"Finder":"다운로드 폴더")+"에서 카톡 창으로 끌어 넣으세요.";
 }
 $("docChip").addEventListener("dragstart",e=>{
  if(!chipUrl)return;
@@ -1076,7 +1078,7 @@ $("edTidy").addEventListener("click",()=>{
 });
 $("edSpell").addEventListener("click",()=>{
  const a=edAnswers();if(!a.length){toast("검사할 답변이 없습니다");return}
- copyText(a.map(x=>x.a.trim()).join("\n\n"),"답변을 복사했습니다. 검사기 칸에 붙여넣으세요 (⌘V)");
+ copyText(a.map(x=>x.a.trim()).join("\n\n"),"답변을 복사했습니다. 검사기 칸에 붙여넣으세요 ("+PASTE+")");
  window.open("https://nara-speller.co.kr/speller/","_blank","noopener");
 });
 $("edAsk").addEventListener("click",()=>{
@@ -1088,7 +1090,34 @@ $("edAsk").addEventListener("click",()=>{
 - 글자 제한이 있는 문항은 넘으면 몇 자 넘는지만 알려 주세요.
 
 `+a.map((x,i)=>`[문항 ${i+1}] ${x.q||"(질문 없음)"}\n글자 제한: ${x.limit?x.limit+"자":"없음"} / 지금 ${clen(x.a)}자\n${x.a.trim()}`).join("\n\n");
- copyText(txt,"검사 요청문을 복사했습니다. 클로드 앱에 붙여넣으세요");
+ copyText(txt,"맞춤법 요청문을 복사했습니다. 쓰는 AI에 붙여넣으세요");
+});
+$("edAsk2").addEventListener("click",()=>{
+ const a=edAnswers();if(!a.length){toast("첨삭할 답변이 없습니다");return}
+ const b=inBook($("edWho").value), call=b?(b.call||callName(b.name)):"OO", n=b?edits(b).length+1:1;
+ const txt=`미래에셋 '${course()}' 지원서를 봐 주는 멘토(${cfg.me||"멘토"} 매니저)를 도와 대학생 멘티의 지원서 답변을 ${n}차 첨삭해 주세요. 질문은 기수마다 바뀌니 아래 적힌 질문을 그대로 읽고 판단하세요.
+
+문항마다 아래 순서로 써 주세요.
+1) 질문 의도: 선발하는 쪽이 이 질문으로 무엇을 보고 싶어 하는지 한 문장 (금융·영업 인재 양성과정이라는 점 고려)
+2) 지금 답변 평가: 의도에 맞는지, 빠진 것이나 질문과 어긋난 부분 1~2문장
+3) 첨삭본 전체와 글자 수(공백 포함)
+4) 고친 점 2~4개
+
+첨삭 원칙
+- 멘티 본인의 경험과 말투를 살리고, 없는 경험이나 숫자는 지어내지 마세요. 숫자가 있으면 좋을 곳은 [숫자 넣기]처럼 비워 두세요.
+- 글자 제한이 있으면 공백 포함 그 안으로, 가능하면 제한의 85~100%.
+- 질문에 바로 답하게 두괄식으로, 구체적 경험을 금융·고객과 연결.
+- 맞춤법·띄어쓰기·어색한 문장을 바로잡고 '~것 같습니다' 같은 흐린 표현은 줄이기.
+${n>1?"- 2차 이후 첨삭이므로 이미 좋아진 점은 살리고 남은 부분 위주로.\n":""}
+마지막에 멘티에게 카톡으로 보낼 피드백 문자를 써 주세요.
+- '${call}님'으로 시작, 해요체에 "~습니다"를 가끔 섞은 다정한 선배 말투, 짧은 줄 6~10줄
+- 이모지는 첫 줄 끝에 ☺️ 하나만
+- 잘한 점 하나를 구체적으로, 고칠 점은 "1번은 ~", "2번은 ~"처럼 바로 말하고 멘티가 할 일로 끝내기
+- "첨삭본 같이 보내드리니까 참고해서 다시 써서 보내주세요~!" 같은 부탁 뒤 마지막 줄은 정확히 "모르는 거 있으면 언제든 연락주세요."
+- 쓰지 말 것: "지원서 잘 읽었습니다", "고칠 점이 세 가지 있습니다", "첫째/둘째/셋째", "단순히 ~가 아니라", "핵심은 ~"
+
+`+a.map((x,i)=>`[문항 ${i+1}] ${x.q||"(질문 없음)"}\n글자 제한: ${x.limit?x.limit+"자 (공백 포함)":"없음"} / 지금 ${clen(x.a)}자\n---\n${x.a.trim()}\n---`).join("\n\n");
+ copyText(txt,"내용 첨삭 요청문을 복사했습니다. 쓰는 AI에 붙여넣으세요");
 });
 $("edMark").addEventListener("click",()=>{
  const b=inBook($("edWho").value);if(!b){toast("위에서 멘티를 먼저 골라 주세요");$("edWho").focus();return}
@@ -1174,7 +1203,7 @@ function renderAll(){
 
 // ---- 붙여넣기 칸 ----
 $("dbSrc").addEventListener("input",loadDb);
-$("dbPaste").addEventListener("click",async()=>{try{const t=await navigator.clipboard.readText();$("dbSrc").value=t;loadDb()}catch(e){$("dbSrc").focus();toast("붙여넣기 칸을 길게 누르거나 ⌘V로 넣어 주세요")}});
+$("dbPaste").addEventListener("click",async()=>{try{const t=await navigator.clipboard.readText();$("dbSrc").value=t;loadDb()}catch(e){$("dbSrc").focus();toast((MOBILE?"붙여넣기 칸을 길게 눌러 붙여넣어 주세요":"붙여넣기 칸을 누르고 "+PASTE+"로 넣어 주세요"))}});
 $("dbClear").addEventListener("click",()=>{$("dbSrc").value="";loadDb();$("dbSrc").focus()});
 
 // ---- 시작 ----
