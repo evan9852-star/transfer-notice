@@ -322,9 +322,9 @@ tr.done td{color:var(--ink-2)}
     <section class="msgs">
       <div class="book-h">
         <h2>터치 문자 <span id="msgN">0</span>건</h2>
-        <div class="row-btns"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
+        <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
       </div>
-      <p class="hint">'내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B와 부를 이름을 바꿀 수 있습니다.</p>
+      <p class="hint">이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B와 부를 이름을 바꿀 수 있습니다.</p>
       <div class="stack" id="msgs"></div>
     </section>
   </section>
@@ -640,12 +640,13 @@ function copyText(text,msg){
  try{if(!navigator.clipboard)throw 0;navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}
 }
 function renderMsgs(){
- const hide=$("hideSent").checked;
- const list=book.filter(b=>(b.gisu||gisu())===gisu()&&!(hide&&b.touch));
+ const q=$("msgQ").value.trim().replace(/\s+/g,"").toLowerCase(), qd=digits(q), hide=$("hideSent").checked&&!q;
+ const hit=b=>!q||[b.name,b.call].join("").replace(/\s+/g,"").toLowerCase().includes(q)||(qd.length>=3&&digits(b.phone).includes(qd));
+ const list=book.filter(b=>(b.gisu||gisu())===gisu()&&!(hide&&b.touch)&&hit(b));
  $("msgN").textContent=list.length;
  const out=$("msgs");out.replaceChildren();
  if(!list.length){const d=document.createElement("div");d.className="blank";
-  d.textContent=book.some(b=>(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
+  d.textContent=q?"'"+$("msgQ").value.trim()+"' 이름이나 번호로 찾은 사람이 없습니다.":book.some(b=>(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
  for(const b of list){
   const box=document.createElement("article");box.className="msg"+(b.touch?" sent":"");
   const h=document.createElement("div");h.className="msg-h";
@@ -681,7 +682,7 @@ function renderMsgs(){
 let lastTpl=$("tplA");["tplA","tplB"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
 document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
 $("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").value=TPL_A;$("tplB").value=TPL_B;store.del("tams_tplA");store.del("tams_tplB");renderMsgs();toast("기본 문구로 되돌렸습니다")});
-$("hideSent").addEventListener("change",renderMsgs);
+$("hideSent").addEventListener("change",renderMsgs);$("msgQ").addEventListener("input",renderMsgs);
 
 // ---- 장부 ----
 const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭"],["sub","제출완료"]];
