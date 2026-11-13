@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAMS 멘티 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="../xlsx.full.min.js"></script>
+<style>
+
+/* 이관고객 안내문자와 같은 장부 느낌. 강조색은 인주색 하나, 주 버튼은 '연락처 파일 받기' 하나. */
+:root{
+  --paper:#f3f4f1; --sheet:#ffffff; --ink:#1b2220; --ink-2:#56625d;
+  --rule:#d9ded7; --rule-2:#eceee9; --seal:#a8362a; --seal-soft:#f6e5e1;
+  --amber:#8a5a10; --amber-soft:#f6ecd8; --moss:#2f6a45; --moss-soft:#e3efe6; --pick:#fbf3f1;
+  --f:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;
+  --r-s:4px; --r-m:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#141816; --sheet:#1b201e; --ink:#e6ebe8; --ink-2:#a3aea8; --rule:#323a36; --rule-2:#262c29;
+  --seal:#e4806f; --seal-soft:#3a2420; --amber:#e2b268; --amber-soft:#382c17; --moss:#8cc9a0; --moss-soft:#1d2d23; --pick:#2a201e; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.apps{display:flex;gap:4px;margin-bottom:16px;font-size:14px;flex-wrap:wrap}
+.apps a{padding:6px 12px;border-radius:var(--r-s);color:var(--ink-2);text-decoration:none;border:1px solid var(--rule);background:var(--sheet);white-space:nowrap}
+.apps a:hover{color:var(--ink);border-color:var(--ink-2)}
+.apps a[aria-current]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-bottom:16px;margin-bottom:24px;border-bottom:2px solid var(--ink)}
+h1{font-size:26px;line-height:1.25;font-weight:700;margin:0;letter-spacing:-.02em}
+.lede{margin:4px 0 0;color:var(--ink-2);font-size:14px;max-width:44em}
+.nav{display:flex;gap:16px;font-size:14px;align-items:center;flex-wrap:wrap}
+.nav a{color:var(--ink-2)}
+.safe{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--moss)}
+.safe::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--moss);flex:none}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.steps{display:flex;flex-direction:column;gap:24px;min-width:0}
+.step{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-h{display:flex;align-items:center;gap:10px}
+.step-n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+h2{margin:0;font-size:16px;font-weight:700}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:13px;color:var(--ink-2);font-weight:500}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+input[type=text],input[type=date],textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-s);padding:8px 10px;width:100%;min-width:0;line-height:1.5}
+input:hover,textarea:hover{border-color:var(--ink-2)}
+input::placeholder,textarea::placeholder{color:var(--ink-2);opacity:.7}
+textarea{font-size:14px;line-height:1.7;resize:vertical;min-height:180px}
+:focus-visible{outline:2px solid var(--seal);outline-offset:1px}
+input[type=checkbox]{accent-color:var(--seal);width:16px;height:16px;margin:0;flex:none}
+button{font:inherit;cursor:pointer;border-radius:var(--r-s);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 14px;font-size:14px;font-weight:500;line-height:1.4;min-height:36px;white-space:nowrap}
+button:hover{border-color:var(--ink-2)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--seal);border-color:var(--seal);color:var(--sheet);font-weight:600}
+button.primary:hover{filter:brightness(.94)}
+button.text{border-color:transparent;background:transparent;color:var(--ink-2);padding-inline:8px}
+button.text:hover{color:var(--ink);text-decoration:underline}
+.row-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.status{font-size:13px;padding:8px 12px;border-radius:var(--r-s);line-height:1.5}
+.status.idle{background:var(--rule-2);color:var(--ink-2)}
+.status.ok{background:var(--moss-soft);color:var(--moss)}
+.status.warn{background:var(--amber-soft);color:var(--amber)}
+.hint{font-size:13px;color:var(--ink-2);margin:0}
+.tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.tokens button{font-size:13px;padding:2px 8px;min-height:28px;background:var(--rule-2)}
+.preview{font-size:14px;color:var(--ink-2)}
+.preview b{color:var(--ink);font-weight:600}
+/* 오른쪽 */
+.out{display:flex;flex-direction:column;gap:16px;min-width:0}
+.out-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.out-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.selN{font-size:15px;font-weight:600;color:var(--seal);font-variant-numeric:tabular-nums}
+.tally{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ledger{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m)}
+.lrow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule-2)}
+.lrow:last-child{border-bottom:0}
+.lrow.off{opacity:.55}
+.lrow .main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:4px 12px;align-items:center;min-width:0}
+@media (max-width:560px){.lrow .main{grid-template-columns:minmax(0,1fr)}}
+.lrow input.nm{font-weight:600;padding:5px 8px;font-size:15px}
+.lrow .meta{font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.lrow .meta .ph{color:var(--ink);font-weight:500;white-space:nowrap}
+.lrow .meta span{white-space:nowrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:12px;line-height:1.5;padding:1px 7px;border-radius:var(--r-s);white-space:nowrap;font-weight:500}
+.tag.chk{background:var(--amber-soft);color:var(--amber)}
+.tag.dup{background:var(--rule-2);color:var(--ink-2)}
+.tag.other{background:var(--rule-2);color:var(--ink-2)}
+.save-name{grid-column:2/-1;font-size:13px;color:var(--ink-2)}
+.save-name b{color:var(--ink);font-weight:600}
+.blank{color:var(--ink-2);padding:40px 20px;border:1px dashed var(--rule);border-radius:var(--r-m);text-align:center;font-size:14px}
+.guide{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:14px 16px;font-size:14px}
+.guide ol{margin:6px 0 0;padding-left:20px}
+.guide li{margin:2px 0}
+/* 장부 */
+.book{margin-top:40px;display:flex;flex-direction:column;gap:12px}
+.book-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
+.book-h h2{font-size:18px}
+.book-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.tbl-wrap{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);overflow:auto;max-height:520px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+th{position:sticky;top:0;background:var(--sheet);font-weight:600;color:var(--ink-2);font-size:13px;border-bottom:1px solid var(--rule)}
+td.del{text-align:right}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;white-space:nowrap}
+.pickbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+td.cb,th.cb{width:36px;padding-right:0}
+.msgs{margin-top:40px;display:flex;flex-direction:column;gap:12px}
+.msg-set{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.msg-set{grid-template-columns:minmax(0,1fr)}}
+details.tpl{border-top:1px solid var(--rule);padding-top:12px}
+details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
+.tpl-body{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.tpl-body textarea{min-height:320px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.msg{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);min-width:0}
+.msg.sent{opacity:.6}
+.msg-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding:12px 16px 0}
+.msg-h .nm{font-weight:700;font-size:16px}
+.msg-h .ph{font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.msg-b{margin:12px 16px;padding:12px 14px;background:var(--rule-2);border-radius:var(--r-m);white-space:pre-wrap;font-size:15px;line-height:1.75}
+.msg-f{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+.imgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.imgs{grid-template-columns:minmax(0,1fr)}}
+.slot{display:flex;align-items:center;gap:12px;background:var(--sheet);border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:10px 12px;min-width:0}
+.slot.has{border-style:solid;border-color:var(--rule)}
+.slot.over{border-color:var(--seal);background:var(--pick)}
+.slot .ph-box{flex:none;width:72px;height:72px;border-radius:var(--r-s);background:var(--rule-2);display:grid;place-items:center;overflow:hidden;color:var(--ink-2);font-size:12px}
+.slot .ph-box img{width:100%;height:100%;object-fit:contain;background:#fff}
+.slot .txt{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.slot .txt strong{font-size:15px}
+.slot .acts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.slot input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.msg-imgs{display:flex;gap:8px;margin:12px 16px 0;align-items:center;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
+.msg-imgs img{height:48px;max-width:80px;object-fit:contain;background:#fff;border:1px solid var(--rule);border-radius:var(--r-s)}
+.step-lb{font-size:12px;color:var(--ink-2);align-self:center;margin-right:auto}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:var(--r-m);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* TAMS 페이지 */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ink-2);padding:10px 16px;font-size:15px;font-weight:600;min-height:44px;margin-bottom:-1px}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
+.tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
+.pane[hidden]{display:none}
+@media (max-width:480px){.tabs button{padding:10px 9px;font-size:14px}}
+td.nm,th.nm{position:sticky;left:0;background:var(--sheet);z-index:1}
+th.nm{z-index:2}
+td.nm .src{margin-left:6px}
+details.cfg{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:10px 14px;margin-bottom:20px;font-size:14px}
+details.cfg summary{cursor:pointer;font-weight:600}
+details.cfg summary small{font-weight:400;color:var(--ink-2);margin-left:8px;white-space:nowrap}
+.cfg-body{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.cfg-body .wide{grid-column:span 2}
+@media (max-width:760px){.cfg-body{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:end}
+@media (max-width:420px){.add{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.add button{grid-column:1/-1}}
+input[type=tel],input[type=number],select{font:inherit;font-size:15px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-s);padding:8px 10px;width:100%;min-width:0;line-height:1.5}
+.lrow .main{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
+.lrow .nmtxt{font-weight:600;font-size:15px}
+.lrow .sub{font-size:13px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:0 10px}
+.msg-h .call{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
+.msg-h .call input{width:9em;padding:3px 8px;font-size:14px}
+.msg-h .call select{width:auto;padding:3px 6px;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r-s);overflow:hidden}
+.seg button{border:0;border-radius:0;min-height:30px;padding:3px 10px;font-size:13px;background:var(--sheet);color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.tpl-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.tpl-two{grid-template-columns:minmax(0,1fr)}}
+.tpl-two textarea{min-height:200px}
+.counts{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.counts b{color:var(--ink);font-size:18px;font-weight:700;margin-left:4px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input[type=text]{width:160px}
+.filters select{width:auto}
+td.ck,th.ck{text-align:center;width:72px}
+td.ck input{width:18px;height:18px}
+td.ck small{display:block;font-size:11px;color:var(--ink-2);line-height:1.2;margin-top:2px}
+td .memo{width:12em;padding:4px 8px;font-size:14px}
+td .nmi{width:8em;padding:4px 8px;font-size:14px;font-weight:600}
+td .phi{width:9.5em;padding:4px 8px;font-size:14px}
+tr.done td{color:var(--ink-2)}
+.src{font-size:12px;padding:1px 7px;border-radius:var(--r-s);background:var(--rule-2);color:var(--ink-2);font-weight:500}
+.src.cr{background:var(--moss-soft);color:var(--moss)}
+.doc-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:14px 16px}
+.doc-h b{font-size:16px}
+.doc-h .hint{margin-top:2px}
+.drop{border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:14px 16px;font-size:14px;color:var(--ink-2);text-align:center;cursor:pointer;background:var(--sheet)}
+.drop.over{border-color:var(--seal);background:var(--pick)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.paper{background:#fff;color:#1b2220;border:1px solid var(--rule);border-radius:var(--r-m);padding:28px 24px;font-size:14px;line-height:1.6;overflow-x:auto}
+.paper p{margin:0 0 6px;white-space:pre-wrap}
+.paper p.b{font-weight:700}
+.paper p.t{font-size:17px;font-weight:700;text-align:center;margin-bottom:14px}
+.paper table{border-collapse:collapse;width:100%;margin:6px 0 14px;font-size:13px}
+.paper td{border:1px solid #9aa3a0;padding:5px 8px;vertical-align:middle;white-space:pre-wrap;color:#1b2220}
+.paper td.h{background:#e8eef6;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="apps" aria-label="프로그램"><a href="../">이관고객 안내문자</a><a href="../db/">DB 고객 관리</a><a href="./" aria-current="page">TAMS 멘티</a></nav>
+  <header class="head">
+    <div>
+      <h1>TAMS 멘티 관리</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div class="nav"><span class="safe">멘티 정보는 이 기기 안에만 저장됩니다.</span></div>
+  </header>
+
+  <details class="cfg" id="cfgBox">
+    <summary>내 정보 · 기수 · 저장 이름 <small id="cfgSum"></small></summary>
+    <div class="cfg-body">
+      <label class="field" for="cGisu"><span>기수 <small style="font-weight:400">· 지원서 넣으면 자동</small></span><input type="number" id="cGisu" min="1" max="99" inputmode="numeric"></label>
+      <label class="field" for="cMe"><span>내 이름</span><input type="text" id="cMe" autocomplete="off"></label>
+      <label class="field" for="cTel"><span>내 번호</span><input type="tel" id="cTel" autocomplete="off"></label>
+      <label class="field" for="cCourse"><span>과정 이름 <small style="font-weight:400">· {기수} 자리에 숫자</small></span><input type="text" id="cCourse" autocomplete="off" spellcheck="false"></label>
+      <label class="field wide" for="cFmt"><span>연락처 저장 이름 <small style="font-weight:400">· {이름} {기수} {연월} {경로} {학교}</small></span><input type="text" id="cFmt" autocomplete="off" spellcheck="false"></label>
+      <p class="preview wide" id="fmtPrev" style="align-self:end;margin:0"></p>
+    </div>
+  </details>
+
+  <div class="tabs" role="tablist" aria-label="메뉴">
+    <button type="button" role="tab" data-tab="db" id="t-db">DB 터치<span id="nDb"></span></button>
+    <button type="button" role="tab" data-tab="cr" id="t-cr">캠리 터치<span id="nCr"></span></button>
+    <button type="button" role="tab" data-tab="book" id="t-book">멘티 장부<span id="nBook"></span></button>
+    <button type="button" role="tab" data-tab="doc" id="t-doc">지원서</button>
+  </div>
+
+  <!-- DB 터치 -->
+  <section class="pane" id="p-db" role="tabpanel" aria-labelledby="t-db">
+    <div class="grid">
+      <div class="steps">
+        <section class="step">
+          <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2>멘토님 카톡 붙여넣기</h2></div>
+          <textarea id="dbSrc" spellcheck="false" placeholder="멘토님이 보낸 DB 줄을 그대로 붙여넣기&#10;&#10;예) 2026. 11. 9 오후 1:09:26   홍길동   1000000000   hong@gmail.com   ○○대학교   네 동의합니다.   2   21   경영학과"></textarea>
+          <div class="row-btns"><button type="button" id="dbPaste">복사한 내용 붙여넣기</button><button type="button" class="text" id="dbClear">지우기</button></div>
+          <div id="dbStatus" class="status idle" role="status">붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다.</div>
+        </section>
+      </div>
+      <section class="out">
+        <div class="out-h">
+          <h2>새로 넣을 멘티 <span id="dbStN">0</span>명</h2>
+          <div class="row-btns">
+            <button type="button" class="share" data-st="db" hidden>휴대폰으로 보내기</button>
+            <button type="button" class="text only" data-st="db">장부에만 넣기</button><button type="button" class="primary vcf" data-st="db">연락처 파일 받기</button>
+          </div>
+        </div>
+        <div class="pickbar"><label class="check"><input type="checkbox" class="allPick" data-st="db">전체 선택</label><span class="tally" id="dbTally"></span></div>
+        <div class="ledger" id="dbList"></div>
+      </section>
+    </div>
+    <section class="msgs">
+      <div class="book-h">
+        <h2>DB 터치 문자 <span id="dbMsgN">0</span>건</h2>
+        <div class="row-btns"><label class="check"><input type="checkbox" class="hideSent" data-src="db" checked>보낸 사람 빼기</label></div>
+      </div>
+      <p class="hint">멘토님이 배정해 준 DB는 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B를 바꿀 수 있고, 부를 이름도 고칠 수 있습니다.</p>
+      <div class="stack" id="dbMsgs"></div>
+    </section>
+  </section>
+
+  <!-- 캠리 터치 -->
+  <section class="pane" id="p-cr" role="tabpanel" aria-labelledby="t-cr" hidden>
+    <div class="grid">
+      <div class="steps">
+        <section class="step">
+          <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2>캠리 정보</h2></div>
+          <div class="fields">
+            <label class="field" for="crDate"><span>캠리 날짜</span><input type="date" id="crDate"></label>
+            <label class="field" for="crPlace"><span>학교·장소</span><input type="text" id="crPlace" placeholder="예) 동서대" autocomplete="off"></label>
+          </div>
+          <label class="check" for="crPresent"><input type="checkbox" id="crPresent">이 캠리에서 내가 발표했어요 (B안으로 터치)</label>
+        </section>
+        <section class="step">
+          <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2>종이 보고 이름·번호 넣기</h2></div>
+          <form class="add" id="crForm" autocomplete="off">
+            <label class="field" for="crName"><span>이름</span><input type="text" id="crName" enterkeyhint="next"></label>
+            <label class="field" for="crTel"><span>전화</span><input type="tel" id="crTel" inputmode="tel" placeholder="01012345678" enterkeyhint="done"></label>
+            <button type="submit">추가</button>
+          </form>
+          <p class="hint">번호까지 쓰고 엔터를 누르면 추가되고 이름 칸으로 돌아갑니다.</p>
+          <details class="tpl">
+            <summary>여러 명 한 번에 쓰기</summary>
+            <div class="tpl-body">
+              <textarea id="crBulk" spellcheck="false" style="min-height:140px" placeholder="한 줄에 한 명: 이름 번호&#10;홍길동 01000000000&#10;김철수 010-0000-0000"></textarea>
+              <div class="row-btns"><button type="button" id="crBulkAdd">목록에 추가</button></div>
+            </div>
+          </details>
+        </section>
+      </div>
+      <section class="out">
+        <div class="out-h">
+          <h2>새로 넣을 멘티 <span id="crStN">0</span>명</h2>
+          <div class="row-btns">
+            <button type="button" class="share" data-st="cr" hidden>휴대폰으로 보내기</button>
+            <button type="button" class="text only" data-st="cr">장부에만 넣기</button><button type="button" class="primary vcf" data-st="cr">연락처 파일 받기</button>
+          </div>
+        </div>
+        <div class="pickbar"><label class="check"><input type="checkbox" class="allPick" data-st="cr">전체 선택</label><span class="tally" id="crTally"></span></div>
+        <div class="ledger" id="crList"></div>
+      </section>
+    </div>
+    <section class="msgs">
+      <div class="book-h">
+        <h2>캠리 터치 문자 <span id="crMsgN">0</span>건</h2>
+        <div class="row-btns"><label class="check"><input type="checkbox" class="hideSent" data-src="cr" checked>보낸 사람 빼기</label></div>
+      </div>
+      <p class="hint">'내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안으로 만듭니다.</p>
+      <div class="stack" id="crMsgs"></div>
+    </section>
+  </section>
+
+  <!-- 멘티 장부 -->
+  <section class="pane" id="p-book" role="tabpanel" aria-labelledby="t-book" hidden>
+    <div class="stack">
+      <div class="counts" id="counts"></div>
+      <div class="pickbar">
+        <div class="filters">
+          <select id="fGisu" aria-label="기수"></select>
+          <select id="fSrc" aria-label="경로"><option value="">DB+캠리</option><option value="db">DB만</option><option value="cr">캠리만</option></select>
+          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 전</option><option value="sub">제출 전</option><option value="done">제출 끝</option></select>
+          <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
+        </div>
+        <div class="row-btns">
+          <button type="button" id="bVcf">연락처 파일</button><button type="button" id="bXlsx">엑셀로 받기</button>
+          <button type="button" class="text" id="bBackup">백업 받기</button><button type="button" class="text" id="bRestore">백업 불러오기</button><input type="file" id="bRestoreFile" accept=".json,application/json" hidden>
+        </div>
+      </div>
+      <p class="hint">칸을 누르면 바로 저장되고 누른 날짜가 남습니다. 이 브라우저에만 저장되니 가끔 백업이나 엑셀로 받아 두세요.</p>
+      <div class="tbl-wrap" style="max-height:640px"><table>
+        <thead><tr><th class="nm">이름</th><th>전화</th><th>학교 · 학년 · 전공</th><th class="ck">터치</th><th class="ck">지원서 받음</th><th class="ck">첨삭함</th><th class="ck">실장님 제출</th><th>메모</th><th></th></tr></thead>
+        <tbody id="book"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 지원서 -->
+  <section class="pane" id="p-doc" role="tabpanel" aria-labelledby="t-doc" hidden>
+    <div class="stack">
+      <div class="doc-h">
+        <div><b id="docTitle">지원서</b><p class="hint" id="docSub"></p></div>
+        <div class="row-btns">
+          <button type="button" id="docShare" hidden>휴대폰으로 보내기</button>
+          <button type="button" id="docCopy">내용 복사</button>
+          <button type="button" class="primary" id="docDown">지원서 파일 받기</button>
+        </div>
+      </div>
+      <label class="drop" id="docDrop"><input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">새 기수 지원서(.docx)를 여기에 끌어 놓거나 눌러서 고르기. 파일 속 'O기'를 읽어 기수와 터치 문자가 같이 바뀝니다.</label>
+      <p class="hint" id="docReset" hidden><button type="button" class="text" id="docResetBtn">기본(6기) 지원서로 되돌리기</button></p>
+      <div class="paper" id="docView" aria-label="지원서 미리보기"></div>
+    </div>
+  </section>
+
+  <details class="tpl" style="margin-top:40px">
+    <summary>터치 문구 고치기 (A안 · B안)</summary>
+    <div class="tpl-body">
+      <div class="tokens mtokens"><span>넣을 항목</span>
+        <button type="button" data-m="{호칭}">부를 이름</button><button type="button" data-m="{과정}">과정 이름</button><button type="button" data-m="{기수}">기수</button><button type="button" data-m="{내이름}">내 이름</button><button type="button" data-m="{내번호}">내 번호</button>
+        <button type="button" class="text" id="tplReset">기본 문구로</button>
+      </div>
+      <div class="tpl-two">
+        <label class="field" for="tplA"><span>A안 · 멘토로 배정받았을 때</span><textarea id="tplA" spellcheck="false"></textarea></label>
+        <label class="field" for="tplB"><span>B안 · 캠리에서 내가 발표했을 때</span><textarea id="tplB" spellcheck="false"></textarea></label>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const J=(k,d)=>{try{const v=JSON.parse(store.get(k)||"null");return v==null?d:v}catch(e){return d}};
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),2400)}
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function digits(s){return String(s||"").replace(/\D/g,"")}
+const MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent), IOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// ---- 설정 ----
+const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"TAMS{기수} {이름} ({연월})"};
+const TPL_A="안녕하세요 {호칭}님☺️\n\n미래에셋 [{과정}] 멘토로 배정받은 {내이름}({내번호})입니다!\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요!";
+const TPL_B="안녕하세요 {호칭}님 :) \n강의 시작 전 홍보 안내 드렸던 {내이름} 매니저({내번호})입니다.\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요~!";
+let cfg=Object.assign({},DEF,J("tams_cfg",{}));
+function saveCfg(){store.set("tams_cfg",JSON.stringify(cfg))}
+const gisu=()=>Number(cfg.gisu)||DEF.gisu;
+const course=g=>(cfg.course||DEF.course).replaceAll("{기수}",g||gisu());
+
+// ---- 전화·이름 ----
+// 1079353128 → 010-7935-3128
+function fmtPhone(raw){
+ let d=digits(raw);
+ if(d.startsWith("82")&&d.length>=11)d="0"+d.slice(2);
+ if(/^1[016789]\d{7,8}$/.test(d))d="0"+d;
+ if(/^01\d{9}$/.test(d))return d.replace(/(\d{3})(\d{4})(\d{4})/,"$1-$2-$3");
+ if(/^01\d{8}$/.test(d))return d.replace(/(\d{3})(\d{3})(\d{4})/,"$1-$2-$3");
+ return "";
+}
+const COMPOUND=["남궁","제갈","선우","황보","독고","사공","서문","동방","을지","어금","망절","십"];
+// 한국 이름: 성 빼고 이름만(지영님). 두 글자 이름은 그대로. 외국 이름: 마지막 단어
+function callName(name){
+ const n=String(name||"").trim();if(!n)return "";
+ const k=n.replace(/\s+/g,"");
+ if(/^[가-힣]+$/.test(k)){
+  if(k.length<=2)return k;
+  if(k.length>=4&&COMPOUND.includes(k.slice(0,2)))return k.slice(2);
+  return k.slice(1);
+ }
+ const w=n.split(/\s+/);return w[w.length-1];
+}
+function normGrade(g){g=String(g||"").trim();return /^\d$/.test(g)?g+"학년":g}
+
+// ---- DB 붙여넣기 ----
+// "2026. 11. 9 오후 1:09:26  이름  1000000000  메일  학교  (빈칸)  네 동의합니다.  학년  나이  전공"
+const TS_RE=/^\s*\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?\s*(?:오전|오후|AM|PM)?\s*\d{1,2}:\d{2}(?::\d{2})?/i;
+const PH_RE=/^(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}$/;
+function parseDb(text){
+ const out=[];
+ for(let raw of String(text||"").split(/\r?\n/)){
+  let line=raw.replace(/\u00a0/g," ").replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/,"").trimEnd();
+  if(!line.trim())continue;
+  const tm=line.match(TS_RE);let ts="";
+  if(tm){ts=tm[0].trim();line=line.slice(tm[0].length)}
+  let f=line.split(/\t|\s{2,}/).map(x=>x.trim()).filter(Boolean);
+  let pi=f.findIndex(x=>PH_RE.test(x.replace(/\s/g,"")));
+  let rec=null;
+  if(pi>=1||(pi===0&&false)){
+   rec={name:f.slice(0,pi).join(" "),phone:fmtPhone(f[pi])};
+   const rest=f.slice(pi+1);
+   const ei=rest.findIndex(x=>x.includes("@"));if(ei>=0)rec.email=rest[ei];
+   const ci=rest.findIndex(x=>x.includes("동의"));
+   const after=ei>=0?ei+1:0;
+   rec.school=rest.slice(after,ci>=0?ci:after+1).join(" ");
+   if(ci>=0){rec.consent=rest[ci];const t=rest.slice(ci+1);rec.grade=normGrade(t[0]);rec.age=t[1]||"";rec.major=t.slice(2).join(" ")}
+  }else{
+   // 칸이 한 칸 띄어쓰기로 바뀐 경우
+   const m=line.match(/(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}(?!\d)/);if(!m)continue;
+   rec={name:line.slice(0,m.index).trim(),phone:fmtPhone(m[0])};
+   const w=line.slice(m.index+m[0].length).trim().split(/\s+/).filter(Boolean);
+   const ei=w.findIndex(x=>x.includes("@"));if(ei>=0)rec.email=w[ei];
+   let ci=w.findIndex(x=>x.includes("동의"));
+   if(ci>=0){let s=w.slice(ei+1,ci);if(s[s.length-1]==="네")s=s.slice(0,-1);rec.school=s.join(" ");rec.grade=normGrade(w[ci+1]);rec.age=w[ci+2]||"";rec.major=w.slice(ci+3).join(" ")}
+  }
+  if(!rec||!rec.phone||!rec.name)continue;
+  rec.ts=ts;out.push(rec);
+ }
+ return out;
+}
+
+// ---- 데이터 ----
+let book=J("tams_book",[]);
+let stage={db:J("tams_st_db",[]),cr:J("tams_st_cr",[])};
+function saveBook(){if(!store.set("tams_book",JSON.stringify(book)))toast("이 브라우저에 저장하지 못했습니다. 백업을 받아 두세요")}
+function saveStage(){store.set("tams_st_db",JSON.stringify(stage.db));store.set("tams_st_cr",JSON.stringify(stage.cr))}
+const inBook=p=>book.find(b=>b.phone===p);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+function ym(d){return d?d.slice(2,4)+"."+d.slice(5,7):""}
+function saveName(r){
+ return (cfg.fmt||DEF.fmt).replaceAll("{이름}",r.name||"").replaceAll("{기수}",r.gisu||gisu()).replaceAll("{연월}",ym(r.added||today()))
+  .replaceAll("{경로}",r.src==="cr"?"캠리":"DB").replaceAll("{학교}",r.school||r.place||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
+}
+
+// ---- 새로 넣을 멘티(DB/캠리) ----
+function loadDb(){
+ store.set("tams_dbsrc",$("dbSrc").value);
+ const prev=new Map(stage.db.map(s=>[s.phone,s]));
+ const seen=new Set();
+ stage.db=parseDb($("dbSrc").value).filter(r=>{if(seen.has(r.phone))return false;seen.add(r.phone);return true}).map(r=>{
+  const p=prev.get(r.phone);const dup=!!inBook(r.phone);
+  return Object.assign(r,{src:"db",plan:"A",on:p?p.on:!dup,dup});
+ });
+ saveStage();
+ const st=$("dbStatus");
+ if(!$("dbSrc").value.trim()){st.className="status idle";st.textContent="붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다."}
+ else if(!stage.db.length){st.className="status warn";st.textContent="전화번호가 있는 줄을 찾지 못했습니다. 멘토님 카톡의 DB 줄을 그대로 붙여넣어 주세요."}
+ else{const d=stage.db.filter(s=>s.dup).length;st.className="status ok";st.textContent=`${stage.db.length}명을 읽었습니다.`+(d?` 그중 ${d}명은 이미 장부에 있어서 빼 두었습니다.`:"")}
+ renderStage("db");
+}
+function renderStage(k){
+ const list=stage[k], box=$(k+"List");box.replaceChildren();
+ $(k+"StN").textContent=list.filter(s=>s.on).length;
+ $(k+"Tally").textContent=list.length?`읽은 ${list.length}명 중 ${list.filter(s=>s.on).length}명 고름`:"";
+ const all=document.querySelector(`.allPick[data-st="${k}"]`);all.checked=list.length&&list.every(s=>s.on);all.indeterminate=list.some(s=>s.on)&&!all.checked;
+ document.querySelectorAll(`[data-st="${k}"].vcf,[data-st="${k}"].only,[data-st="${k}"].share`).forEach(b=>b.disabled=!list.some(s=>s.on));
+ if(!list.length){const d=document.createElement("div");d.className="blank";d.textContent=k==="db"?"카톡 내용을 붙여넣으면 여기에 정리됩니다.":"이름과 번호를 넣으면 여기에 쌓입니다.";box.append(d);return}
+ list.forEach((s,i)=>{
+  const row=document.createElement("label");row.className="lrow"+(s.on?"":" off");
+  const cb=document.createElement("input");cb.type="checkbox";cb.checked=s.on;cb.addEventListener("change",()=>{s.on=cb.checked;saveStage();renderStage(k)});
+  const main=document.createElement("div");main.className="main";
+  const a=document.createElement("div");
+  const nm=document.createElement("div");nm.className="nmtxt";nm.textContent=s.name;
+  const ph=document.createElement("div");ph.className="sub";ph.innerHTML="";const pe=document.createElement("span");pe.textContent=s.phone;pe.style.color="var(--ink)";ph.append(pe);
+  a.append(nm,ph);
+  const b=document.createElement("div");b.className="sub";
+  [s.school||s.place,s.grade,s.age&&("나이 "+s.age),s.major,s.email].filter(Boolean).forEach(t=>{const e=document.createElement("span");e.textContent=t;b.append(e)});
+  const sn=document.createElement("span");sn.style.width="100%";sn.innerHTML="저장 이름 <b></b>";sn.querySelector("b").textContent=saveName(Object.assign({added:today()},s));b.append(sn);
+  main.append(a,b);
+  const tags=document.createElement("div");tags.className="tags";
+  if(s.dup){const t=document.createElement("span");t.className="tag dup";t.textContent="이미 장부에 있음";tags.append(t)}
+  if(k==="cr"){const t=document.createElement("span");t.className="tag other";t.textContent=s.plan==="B"?"B안":"A안";tags.append(t)
+   const x=document.createElement("button");x.type="button";x.className="text";x.textContent="빼기";x.addEventListener("click",e=>{e.preventDefault();stage.cr.splice(i,1);saveStage();renderStage("cr")});tags.append(x)}
+  row.append(cb,main,tags);box.append(row);
+ });
+}
+function takeStage(k){
+ const picked=stage[k].filter(s=>s.on);if(!picked.length)return [];
+ const now=today(), recs=[];
+ for(const s of picked){
+  let b=inBook(s.phone);
+  if(b){Object.keys(s).forEach(key=>{if(!["on","dup"].includes(key)&&s[key]&&!b[key])b[key]=s[key]});recs.push(b);continue}
+  b={id:uid(),gisu:gisu(),src:k,name:s.name,call:callName(s.name),phone:s.phone,email:s.email||"",school:s.school||"",grade:s.grade||"",age:s.age||"",major:s.major||"",
+     place:s.place||"",crDate:s.crDate||"",ts:s.ts||"",plan:s.plan||"A",added:now,touch:"",got:"",edit:"",sub:"",memo:""};
+  book.push(b);recs.push(b);
+ }
+ saveBook();
+ stage[k]=stage[k].filter(s=>!s.on);
+ if(k==="db"){stage.db.forEach(s=>s.dup=!!inBook(s.phone))}
+ saveStage();renderAll();
+ return recs;
+}
+
+// ---- 연락처 파일 ----
+function esc(v){return String(v||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/[,;]/g,m=>"\\"+m)}
+function vcard(list){
+ return list.map(c=>{const nm=saveName(c);return [
+  "BEGIN:VCARD","VERSION:3.0","N:;"+esc(nm)+";;;","FN:"+esc(nm),"UID:tams-"+digits(c.phone),"TEL;TYPE=CELL:"+c.phone,
+  c.email?"EMAIL:"+esc(c.email):"",
+  "NOTE:"+esc(["TAMS "+(c.gisu||gisu())+"기",c.src==="cr"?"캠리"+(c.place?" "+c.place:""):"DB",c.school,c.grade,c.major].filter(Boolean).join(" · ")),
+  "END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
+}
+function vcfFile(list,label){return new File([new Blob([vcard(list)],{type:"text/vcard;charset=utf-8"})],`TAMS${gisu()}_${label}.vcf`,{type:"text/vcard"})}
+function download(file){const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const canShare=f=>{try{return !!(navigator.canShare&&navigator.canShare({files:[f]}))}catch(e){return false}};
+if(canShare(new File(["x"],"t.vcf",{type:"text/vcard"})))document.querySelectorAll("button.share").forEach(b=>b.hidden=false);
+const stamp=()=>today().replaceAll("-","");
+document.querySelectorAll("button.vcf").forEach(btn=>btn.addEventListener("click",()=>{
+ const k=btn.dataset.st, recs=takeStage(k);if(!recs.length)return;
+ download(vcfFile(recs,stamp()+"_"+recs.length));toast(recs.length+"명 연락처 파일을 받았습니다. 파일을 열어 모두 추가하세요");
+}));
+document.querySelectorAll("button.only").forEach(btn=>btn.addEventListener("click",()=>{const recs=takeStage(btn.dataset.st);if(recs.length)toast(recs.length+"명을 장부에 넣었습니다")}));
+document.querySelectorAll("button.share").forEach(btn=>btn.addEventListener("click",async()=>{
+ const k=btn.dataset.st, pick=stage[k].filter(s=>s.on);if(!pick.length)return;
+ const f=vcfFile(pick.map(s=>Object.assign({gisu:gisu(),added:today()},s)),stamp()+"_"+pick.length);
+ try{await navigator.share({files:[f],title:f.name});takeStage(k);toast("보냈습니다. 휴대폰에서 파일을 열어 모두 추가하세요")}
+ catch(e){if(e&&e.name!=="AbortError")toast("보내지 못했습니다. '연락처 파일 받기'를 쓰세요")}
+}));
+document.querySelectorAll(".allPick").forEach(c=>c.addEventListener("change",()=>{stage[c.dataset.st].forEach(s=>s.on=c.checked);saveStage();renderStage(c.dataset.st)}));
+
+// ---- 캠리 입력 ----
+function crAdd(name,tel){
+ name=String(name||"").trim();const phone=fmtPhone(tel);
+ if(!name||!phone)return false;
+ if(stage.cr.some(s=>s.phone===phone)){toast(phone+" 은 이미 목록에 있습니다");return true}
+ const dup=!!inBook(phone);
+ stage.cr.push({src:"cr",name,phone,place:$("crPlace").value.trim(),crDate:$("crDate").value,plan:$("crPresent").checked?"B":"A",on:!dup,dup});
+ return true;
+}
+$("crForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const n=$("crName").value, t=$("crTel").value;
+ if(!n.trim()){$("crName").focus();return}
+ if(!fmtPhone(t)){toast("번호를 다시 확인해 주세요 (010으로 시작하는 휴대폰 번호)");$("crTel").focus();return}
+ crAdd(n,t);saveStage();renderStage("cr");$("crName").value="";$("crTel").value="";$("crName").focus();
+});
+$("crName").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("crTel").focus()}});
+$("crBulkAdd").addEventListener("click",()=>{
+ let n=0,bad=0;
+ for(const line of $("crBulk").value.split(/\r?\n/)){
+  if(!line.trim())continue;
+  const m=line.match(/(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/);
+  if(!m){bad++;continue}
+  const name=(line.slice(0,m.index)+" "+line.slice(m.index+m[0].length)).replace(/[,\t/]+/g," ").trim();
+  if(crAdd(name,m[0]))n++;else bad++;
+ }
+ saveStage();renderStage("cr");
+ if(n){$("crBulk").value=""}
+ toast(`${n}명 추가했습니다`+(bad?` · ${bad}줄은 이름이나 번호를 못 읽었습니다`:""));
+});
+["crPlace","crDate"].forEach(id=>$(id).addEventListener("change",()=>store.set("tams_"+id,$(id).value)));
+$("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPresent").checked?"1":"");stage.cr.forEach(s=>s.plan=$("crPresent").checked?"B":"A");saveStage();renderStage("cr")});
+
+// ---- 터치 문자 ----
+let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B};
+function msgFor(b){
+ return (b.plan==="B"?tpl.B:tpl.A).replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{과정}",course(b.gisu)).replaceAll("{기수}",b.gisu||gisu())
+  .replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"");
+}
+function copyText(text,msg){
+ const fb=()=>{const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.append(t);t.select();try{document.execCommand("copy");toast(msg)}catch(e){toast("복사하지 못했습니다")}t.remove()};
+ try{if(!navigator.clipboard)throw 0;navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}
+}
+const hide={db:true,cr:true};
+function renderMsgs(k){
+ const list=book.filter(b=>b.src===k&&(b.gisu||gisu())===gisu()&&!(hide[k]&&b.touch));
+ $(k+"MsgN").textContent=list.length;
+ const out=$(k+"Msgs");out.replaceChildren();
+ if(!list.length){const d=document.createElement("div");d.className="blank";
+  d.textContent=book.some(b=>b.src===k&&(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
+ for(const b of list){
+  const box=document.createElement("article");box.className="msg"+(b.touch?" sent":"");
+  const h=document.createElement("div");h.className="msg-h";
+  const id=document.createElement("div");
+  const nm=document.createElement("span");nm.className="nm";nm.textContent=b.name;
+  const ph=document.createElement("span");ph.className="ph";ph.textContent="  "+b.phone+(b.place?" · "+b.place:"");
+  id.append(nm,ph);
+  const call=document.createElement("div");call.className="call";
+  const lb=document.createElement("span");lb.textContent="부를 이름";
+  const inp=document.createElement("input");inp.type="text";inp.value=b.call||callName(b.name);inp.setAttribute("aria-label",b.name+" 부를 이름");
+  const seg=document.createElement("div");seg.className="seg";
+  ["A","B"].forEach(p=>{const s=document.createElement("button");s.type="button";s.textContent=p+"안";s.setAttribute("aria-pressed",String((b.plan||"A")===p));
+   s.addEventListener("click",()=>{b.plan=p;saveBook();renderMsgs(k)});seg.append(s)});
+  call.append(lb,inp,seg);
+  h.append(id,call);
+  const body=document.createElement("div");body.className="msg-b";body.textContent=msgFor(b);
+  inp.addEventListener("input",()=>{b.call=inp.value.trim();saveBook();body.textContent=msgFor(b)});
+  const f=document.createElement("div");f.className="msg-f";
+  const c=document.createElement("button");c.type="button";c.className="primary";c.textContent="문자 복사";
+  c.addEventListener("click",()=>copyText(msgFor(b),b.name+" 님 문자를 복사했습니다"));
+  f.append(c);
+  if(MOBILE){const a=document.createElement("a");a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b));a.textContent="문자 앱으로";
+   a.style.cssText="display:inline-flex;align-items:center;padding:7px 14px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink);font-size:14px;text-decoration:none;min-height:36px";
+   a.addEventListener("click",()=>{a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b))});f.append(a)}
+  const d=document.createElement("button");d.type="button";d.textContent="지원서 파일";d.title="지원서 양식 파일을 받거나 보내기";d.addEventListener("click",sendDoc);f.append(d);
+  const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
+  s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
+  f.append(s);
+  box.append(h,body,f);out.append(box);
+ }
+}
+["tplA","tplB"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs("db");renderMsgs("cr")})});
+let lastTpl=$("tplA");["tplA","tplB"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
+document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
+$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").value=TPL_A;$("tplB").value=TPL_B;store.del("tams_tplA");store.del("tams_tplB");renderMsgs("db");renderMsgs("cr");toast("기본 문구로 되돌렸습니다")});
+document.querySelectorAll(".hideSent").forEach(c=>c.addEventListener("change",()=>{hide[c.dataset.src]=c.checked;renderMsgs(c.dataset.src)}));
+
+// ---- 장부 ----
+const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭함"],["sub","실장님 제출"]];
+function md(d){return d?Number(d.slice(5,7))+"/"+Number(d.slice(8,10)):""}
+function bookList(){
+ const g=$("fGisu").value, s=$("fSrc").value, t=$("fTodo").value, q=$("fQ").value.trim(), qd=digits(q);
+ return book.filter(b=>(!g||String(b.gisu||gisu())===g)&&(!s||b.src===s)
+  &&(!t||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.edit)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
+  &&(!q||[b.name,b.school,b.place,b.major,b.memo].join(" ").includes(q)||(qd.length>=3&&digits(b.phone).includes(qd)))).map((b,i)=>[b,i]).sort((x,y)=>(y[0].added||"").localeCompare(x[0].added||"")||x[1]-y[1]).map(x=>x[0]);
+}
+function renderGisuFilter(){
+ const gs=[...new Set(book.map(b=>b.gisu||gisu()).concat([gisu()]))].sort((a,b)=>b-a);
+ const cur=$("fGisu").value||String(gisu());
+ $("fGisu").replaceChildren(...gs.map(g=>new Option(g+"기",String(g))),new Option("모든 기수",""));
+ $("fGisu").value=gs.map(String).includes(cur)||cur===""?cur:String(gisu());
+}
+function renderBook(){
+ renderGisuFilter();
+ const g=$("fGisu").value, base=book.filter(b=>!g||String(b.gisu||gisu())===g);
+ const c=$("counts");c.replaceChildren();
+ [["멘티",base.length],["DB",base.filter(b=>b.src==="db").length],["캠리",base.filter(b=>b.src==="cr").length],...STEPS.map(([k,l])=>[l,base.filter(b=>b[k]).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
+ const list=bookList(), tb=$("book");tb.replaceChildren();
+ if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=9;td.style.color="var(--ink-2)";td.textContent=book.length?"조건에 맞는 멘티가 없습니다.":"아직 넣은 멘티가 없습니다. DB 터치나 캠리 터치에서 넣어 주세요.";tr.append(td);tb.append(tr);return}
+ for(const b of list){
+  const tr=document.createElement("tr");if(b.sub)tr.className="done";
+  const td1=document.createElement("td");td1.className="nm";const sp=document.createElement("span");sp.className="src"+(b.src==="cr"?" cr":"");sp.textContent=b.src==="cr"?"캠리":"DB";const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");
+  ni.addEventListener("change",()=>{const v=ni.value.trim();if(!v){ni.value=b.name;return}if(b.call===callName(b.name))b.call=callName(v);b.name=v;saveBook();renderAll();toast("이름을 고쳤습니다")});td1.append(ni,sp);tr.append(td1);
+  const td2=document.createElement("td");const pi=document.createElement("input");pi.type="tel";pi.className="phi";pi.value=b.phone;pi.setAttribute("aria-label","전화");
+  pi.addEventListener("change",()=>{const v=fmtPhone(pi.value);if(!v){pi.value=b.phone;toast("번호를 다시 확인해 주세요");return}b.phone=v;pi.value=v;saveBook();renderAll()});td2.append(pi);tr.append(td2);
+  const td3=document.createElement("td");td3.textContent=[b.school||b.place,b.grade,b.major].filter(Boolean).join(" · ");if(b.age)td3.title="나이 "+b.age+(b.email?" · "+b.email:"");tr.append(td3);
+  for(const [k,l] of STEPS){
+   const td=document.createElement("td");td.className="ck";
+   const cb=document.createElement("input");cb.type="checkbox";cb.checked=!!b[k];cb.setAttribute("aria-label",b.name+" "+l);
+   cb.addEventListener("change",()=>{b[k]=cb.checked?today():"";saveBook();renderAll()});
+   td.append(cb);if(b[k]){const s=document.createElement("small");s.textContent=md(b[k]);td.append(s)}
+   tr.append(td);
+  }
+  const td8=document.createElement("td");const mi=document.createElement("input");mi.type="text";mi.className="memo";mi.value=b.memo||"";mi.setAttribute("aria-label","메모");
+  mi.addEventListener("change",()=>{b.memo=mi.value;saveBook()});td8.append(mi);tr.append(td8);
+  const td9=document.createElement("td");td9.className="del";const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
+  x.addEventListener("click",()=>{
+   if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 지움";setTimeout(()=>{x.dataset.sure="";x.textContent="지우기"},3000);return}
+   book=book.filter(o=>o!==b);saveBook();stage.db.forEach(s=>s.dup=!!inBook(s.phone));renderAll();toast(b.name+" 님을 지웠습니다")});
+  td9.append(x);tr.append(td9);
+  tb.append(tr);
+ }
+}
+["fGisu","fSrc","fTodo"].forEach(id=>$(id).addEventListener("change",renderBook));$("fQ").addEventListener("input",renderBook);
+$("bVcf").addEventListener("click",()=>{const l=bookList();if(!l.length){toast("받을 멘티가 없습니다");return}download(vcfFile(l,"all_"+l.length));toast(l.length+"명 연락처 파일을 받았습니다")});
+$("bXlsx").addEventListener("click",()=>{
+ const l=bookList();if(!l.length){toast("받을 멘티가 없습니다");return}
+ if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
+ const aoa=[["기수","경로","이름","전화","이메일","학교","학년","나이","전공","넣은 날","터치","지원서 받음","첨삭함","실장님 제출","메모"],
+  ...l.map(b=>[b.gisu||gisu(),b.src==="cr"?"캠리":"DB",b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,b.touch,b.got,b.edit,b.sub,b.memo])];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[4,6,12,15,24,16,7,7,16,11,11,11,11,11,20].map(w=>({wch:w}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"멘티");XLSX.writeFile(wb,`TAMS_mentee_${stamp()}.xlsx`);
+});
+$("bBackup").addEventListener("click",()=>{download(new File([JSON.stringify({v:1,saved:today(),book,cfg,tpl},null,1)],`TAMS_backup_${stamp()}.json`,{type:"application/json"}))});
+$("bRestore").addEventListener("click",()=>$("bRestoreFile").click());
+$("bRestoreFile").addEventListener("change",async e=>{
+ const f=e.target.files[0];e.target.value="";if(!f)return;
+ try{const d=JSON.parse(await f.text());if(!Array.isArray(d.book))throw 0;
+  let n=0;for(const r of d.book){if(!r.phone)continue;const b=inBook(r.phone);if(b)Object.assign(b,r);else{book.push(r);n++}}
+  saveBook();renderAll();toast(`백업을 불러왔습니다 (새로 ${n}명)`);
+ }catch(err){toast("백업 파일을 읽지 못했습니다")}
+});
+
+// ---- 지원서 ----
+let doc={name:"",b64:"",gisu:0,custom:false,blocks:[]};
+function b64ToBytes(s){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u}
+function bytesToB64(u){let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+// docx 안의 글자와 표를 순서대로 꺼냄 (글상자 제목 포함)
+function readDocx(bytes){
+ const cfb=XLSX.CFB.read(bytes,{type:"array"});
+ const i=cfb.FullPaths.findIndex(p=>/word\/document\.xml$/.test(p));if(i<0)throw new Error("not docx");
+ const xml=new TextDecoder("utf-8").decode(cfb.FileIndex[i].content);
+ const dom=new DOMParser().parseFromString(xml,"application/xml");
+ const blocks=[];
+ const runText=p=>{let s="",bold=false,any=false;
+  const walk=n=>{for(const c of n.childNodes){if(c.nodeType!==1)continue;const ln=c.localName;
+   if(ln==="txbxContent"||ln==="Fallback"||ln==="pPr")continue;
+   if(ln==="t"){s+=c.textContent;if(!any){any=true;const r=c.parentNode;const pr=r&&[...r.childNodes].find(x=>x.localName==="rPr");bold=!!(pr&&[...pr.childNodes].some(x=>x.localName==="b"&&x.getAttribute("w:val")!=="0"))}}
+   else if(ln==="tab")s+="\t";else if(ln==="br"||ln==="cr")s+="\n";else walk(c)}};
+  walk(p);return {s,bold}};
+ const boxes=p=>{const out=[];const walk=n=>{for(const c of n.childNodes){if(c.nodeType!==1)continue;if(c.localName==="Fallback")continue;if(c.localName==="txbxContent"){out.push(c);continue}walk(c)}};walk(p);return out};
+ const visit=(node,into)=>{
+  for(const c of node.childNodes){if(c.nodeType!==1)continue;
+   if(c.localName==="p"){
+    for(const bx of boxes(c)){const tmp=[];visit(bx,tmp);tmp.forEach(t=>{if(t.t==="p")t.title=true;into.push(t)})}
+    const {s,bold}=runText(c);into.push({t:"p",s,bold});
+   }else if(c.localName==="tbl"){
+    const rows=[];
+    for(const tr of [...c.childNodes].filter(x=>x.localName==="tr")){
+     const row=[];
+     for(const tc of [...tr.childNodes].filter(x=>x.localName==="tc")){
+      const pr=[...tc.childNodes].find(x=>x.localName==="tcPr");
+      const gs=pr&&[...pr.childNodes].find(x=>x.localName==="gridSpan");
+      const vm=pr&&[...pr.childNodes].find(x=>x.localName==="vMerge");
+      const shd=pr&&[...pr.childNodes].find(x=>x.localName==="shd");
+      const tmp=[];visit(tc,tmp);
+      row.push({s:tmp.filter(t=>t.t==="p").map(t=>t.s).join("\n").trim(),span:gs?Number(gs.getAttribute("w:val"))||1:1,cont:!!(vm&&vm.getAttribute("w:val")!=="restart"),head:!!(shd&&shd.getAttribute("w:fill")&&!/^(auto|FFFFFF)$/i.test(shd.getAttribute("w:fill")))});
+     }
+     rows.push(row);
+    }
+    into.push({t:"tbl",rows});
+   }else if(c.localName==="body"||c.localName==="sdt"||c.localName==="sdtContent")visit(c,into);
+  }
+ };
+ visit(dom.documentElement,blocks);
+ // 빈 줄 여러 개는 하나로
+ const out=[];for(const b of blocks){if(b.t==="p"&&!b.s.trim()&&out.length&&out[out.length-1].t==="p"&&!out[out.length-1].s.trim())continue;out.push(b)}
+ const text=out.map(b=>b.t==="p"?b.s:b.rows.map(r=>r.map(c=>c.s).join(" ")).join(" ")).join(" ");
+ const m=text.match(/in\s*busan\s*(\d{1,2})\s*기/i)||text.match(/(\d{1,2})\s*기\s*지원/)||text.match(/(\d{1,2})\s*기/);
+ return {blocks:out,gisu:m?Number(m[1]):0};
+}
+function docPlain(){
+ return doc.blocks.map(b=>b.t==="p"?b.s:b.rows.map(r=>r.filter(c=>!c.cont).map(c=>c.s.replace(/\n/g," ")).join(" | ")).join("\n")).join("\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+function docHtml(){
+ const e=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+ return doc.blocks.map(b=>{
+  if(b.t==="p")return `<p class="${b.title?"t":b.bold?"b":""}" style="${b.title?"font-size:17px;font-weight:700;text-align:center":b.bold?"font-weight:700":""}">${e(b.s)||"&nbsp;"}</p>`;
+  return `<table style="border-collapse:collapse;width:100%">`+b.rows.map(r=>"<tr>"+r.map(c=>`<td colspan="${c.span}" class="${c.head?"h":""}" style="border:1px solid #9aa3a0;padding:5px 8px;${c.head?"background:#e8eef6;font-weight:600":""}">${c.cont?"":e(c.s).replace(/\n/g,"<br>")}</td>`).join("")+"</tr>").join("")+"</table>";
+ }).join("");
+}
+function renderDoc(){
+ const g=doc.gisu||gisu();
+ $("docTitle").textContent=`${g}기 지원서`;
+ $("docSub").textContent=(doc.custom?"직접 넣은 파일 · ":"기본 파일 · ")+docName();
+ $("docReset").hidden=!doc.custom;
+ $("docView").innerHTML=doc.blocks.length?docHtml():"<p>지원서를 불러오는 중입니다…</p>";
+}
+function docName(){return `지원서_TAMS_${doc.gisu||gisu()}기.docx`}
+function docFile(){return new File([b64ToBytes(doc.b64)],docName(),{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"})}
+async function sendDoc(){
+ if(!doc.b64){toast("지원서를 아직 불러오지 못했습니다");return}
+ const f=docFile();
+ if(MOBILE&&canShare(f)){try{await navigator.share({files:[f],title:f.name});return}catch(e){if(e&&e.name==="AbortError")return}}
+ download(f);toast("지원서 파일을 받았습니다. 카톡 채팅방에 끌어 넣어 보내세요");
+}
+$("docDown").addEventListener("click",()=>{if(!doc.b64)return;download(docFile());toast("지원서 파일을 받았습니다")});
+$("docShare").addEventListener("click",sendDoc);
+$("docCopy").addEventListener("click",async()=>{
+ if(!doc.blocks.length)return;
+ const plain=docPlain(), html=`<div style="font-family:sans-serif;font-size:14px">${docHtml()}</div>`;
+ try{if(typeof ClipboardItem==="undefined")throw 0;await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})})]);toast("지원서 내용을 복사했습니다 (워드·한글에 붙이면 표 그대로)")}
+ catch(e){copyText(plain,"지원서 내용을 복사했습니다")}
+});
+async function useDocBytes(bytes,name,custom){
+ const r=readDocx(bytes);
+ doc={name,b64:bytesToB64(bytes),gisu:r.gisu,custom,blocks:r.blocks};
+ if(canShare(docFile()))$("docShare").hidden=false;
+ return r;
+}
+async function loadDefaultDoc(){
+ try{const res=await fetch("application.docx");if(!res.ok)throw 0;const u=new Uint8Array(await res.arrayBuffer());await useDocBytes(u,"application.docx",false)}
+ catch(e){$("docView").innerHTML="<p>기본 지원서를 불러오지 못했습니다. 새로고침하거나 파일을 직접 넣어 주세요.</p>"}
+ renderDoc();
+}
+async function takeDocFile(f){
+ if(!f)return;
+ if(!/\.docx$/i.test(f.name)){toast("워드 파일(.docx)만 읽을 수 있습니다");return}
+ try{
+  const u=new Uint8Array(await f.arrayBuffer());const r=await useDocBytes(u,f.name,true);
+  store.set("tams_doc",JSON.stringify({name:f.name,b64:doc.b64}))||toast("파일이 커서 이 브라우저에 저장은 못 했습니다. 새로고침하면 다시 넣어 주세요");
+  if(r.gisu&&r.gisu!==gisu()){const old=gisu();cfg.gisu=r.gisu;saveCfg();syncCfg();renderAll();toast(`${r.gisu}기 지원서로 바꿨습니다. 터치 문자도 ${r.gisu}기로 나갑니다 (${old}기 멘티는 장부에 그대로)`)}
+  else if(!r.gisu)toast("파일에서 기수를 찾지 못했습니다. 위 '기수' 칸에서 직접 바꿔 주세요");
+  else toast(`${r.gisu}기 지원서를 넣었습니다`);
+  renderDoc();
+ }catch(e){toast("지원서 파일을 읽지 못했습니다")}
+}
+$("docFile").addEventListener("change",e=>{takeDocFile(e.target.files[0]);e.target.value=""});
+const dz=$("docDrop");
+["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("over")}));
+["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over")}));
+dz.addEventListener("drop",e=>takeDocFile(e.dataTransfer.files[0]));
+$("docResetBtn").addEventListener("click",async()=>{store.del("tams_doc");await loadDefaultDoc();if(doc.gisu&&doc.gisu!==gisu()){cfg.gisu=doc.gisu;saveCfg();syncCfg();renderAll()}toast("기본 지원서로 되돌렸습니다")});
+
+// ---- 설정 연결 ----
+function syncCfg(){
+ $("cGisu").value=gisu();$("cMe").value=cfg.me;$("cTel").value=cfg.tel;$("cCourse").value=cfg.course;$("cFmt").value=cfg.fmt;
+ $("lede").textContent=`미래에셋 ${course()} · 멘티 연락처 저장, 터치 문자, 지원서 진행 관리`;
+ $("cfgSum").textContent=`${gisu()}기 · ${cfg.me} ${cfg.tel}`;
+ $("fmtPrev").innerHTML="저장 예시 <b></b>";$("fmtPrev").querySelector("b").textContent=saveName({name:"홍길동",src:"db",added:today(),school:"○○대학교"});
+}
+[["cGisu","gisu"],["cMe","me"],["cTel","tel"],["cCourse","course"],["cFmt","fmt"]].forEach(([id,k])=>$(id).addEventListener("input",()=>{
+ let v=$(id).value;if(k==="gisu")v=Number(v)||0;if(k!=="gisu"&&!v.trim())v=DEF[k];cfg[k]=v;if(k==="gisu"&&!v)return;saveCfg();
+ $("lede").textContent=`미래에셋 ${course()} · 멘티 연락처 저장, 터치 문자, 지원서 진행 관리`;$("cfgSum").textContent=`${gisu()}기 · ${cfg.me} ${cfg.tel}`;
+ $("fmtPrev").querySelector("b").textContent=saveName({name:"홍길동",src:"db",added:today(),school:"○○대학교"});
+ renderStage("db");renderStage("cr");renderMsgs("db");renderMsgs("cr");if(k==="gisu"){renderBook();renderDoc()}
+}));
+
+// ---- 탭 ----
+function showTab(t){
+ document.querySelectorAll(".tabs [data-tab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
+ document.querySelectorAll(".pane").forEach(p=>p.hidden=p.id!=="p-"+t);
+ store.set("tams_tab",t);
+}
+document.querySelectorAll(".tabs [data-tab]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+function renderAll(){
+ const g=gisu(), cur=book.filter(b=>(b.gisu||g)===g);
+ const nd=cur.filter(b=>b.src==="db"&&!b.touch).length, nc=cur.filter(b=>b.src==="cr"&&!b.touch).length;
+ $("nDb").textContent=nd?nd:"";$("nCr").textContent=nc?nc:"";$("nBook").textContent=cur.length?cur.length:"";
+ renderStage("db");renderStage("cr");renderMsgs("db");renderMsgs("cr");renderBook();
+}
+
+// ---- 붙여넣기 칸 ----
+$("dbSrc").addEventListener("input",loadDb);
+$("dbPaste").addEventListener("click",async()=>{try{const t=await navigator.clipboard.readText();$("dbSrc").value=t;loadDb()}catch(e){$("dbSrc").focus();toast("붙여넣기 칸을 길게 누르거나 ⌘V로 넣어 주세요")}});
+$("dbClear").addEventListener("click",()=>{$("dbSrc").value="";stage.db=[];loadDb();$("dbSrc").focus()});
+
+// ---- 시작 ----
+(function init(){
+ $("dbSrc").value=store.get("tams_dbsrc")||"";
+ $("crDate").value=store.get("tams_crDate")||today();$("crPlace").value=store.get("tams_crPlace")||"";$("crPresent").checked=store.get("tams_crPresent")==="1";
+ syncCfg();
+ const t=store.get("tams_tab");showTab(["db","cr","book","doc"].includes(t)?t:"db");
+ stage.db.forEach(s=>s.dup=!!inBook(s.phone));
+ renderAll();
+ const saved=J("tams_doc",null);
+ if(saved&&saved.b64){try{useDocBytes(b64ToBytes(saved.b64),saved.name,true).then(renderDoc)}catch(e){loadDefaultDoc()}}else loadDefaultDoc();
+})();
+</script>
+</body>
+</html>
