@@ -160,7 +160,10 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .edq{display:flex;flex-direction:column;gap:6px;min-width:0}
 .edq-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .edq-h b{font-size:14px}
-.edq textarea{min-height:260px;font-size:15px;line-height:1.75}
+.edq{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:12px}
+.edq textarea.edqt{min-height:0;font-weight:600;font-size:14px;line-height:1.5;resize:vertical}
+.edq textarea.edans{min-height:240px;font-size:15px;line-height:1.75}
+.edq .edlim{width:6em;padding:3px 8px;font-size:14px;margin-left:4px}
 .lc{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lc b{font-size:15px;color:var(--ink)}
 .lc.over b{color:var(--seal)}
@@ -353,7 +356,7 @@ tr.done td{color:var(--ink-2)}
         <div style="flex:1;min-width:220px"><b>내용까지 첨삭받기</b><p class="hint" style="margin-top:2px">클로드 첨삭 페이지에서 지원서를 넣거나 붙여넣으면 문항별 첨삭본, 고친 이유, 멘티에게 보낼 피드백 문자가 나옵니다. 원하는 방향도 적을 수 있어요. (claude.ai 로그인 필요)</p></div>
         <a class="golink" href="https://claude.ai/artifact/CacZc1CtAEufUjvXt4tjUw" target="_blank" rel="noopener">클로드 첨삭 페이지 열기 ↗</a>
       </div>
-      <label class="drop" id="edDrop"><input type="file" id="edFile" accept=".docx">멘티가 보낸 지원서(.docx)를 끌어 놓거나 눌러서 고르기. ②③④ 답변을 아래 칸에 채웁니다. 파일이 없으면 칸에 바로 붙여넣으세요.</label>
+      <label class="drop" id="edDrop"><input type="file" id="edFile" accept=".docx">멘티가 보낸 지원서(.docx)를 끌어 놓거나 눌러서 고르기. 질문, 글자 제한, 답변을 알아서 채웁니다. 파일이 없으면 칸에 바로 붙여넣으세요.</label>
       <div class="ed-top">
         <label class="field" for="edWho"><span>멘티</span><select id="edWho"></select></label>
         <div class="row-btns" style="align-self:end">
@@ -362,11 +365,11 @@ tr.done td{color:var(--ink-2)}
           <button type="button" class="primary" id="edAsk">클로드 검사 요청 복사</button>
         </div>
       </div>
-      <div id="edStatus" class="status idle" role="status">글자 수는 공백 포함으로 셉니다. 문항마다 400자 이내.</div>
+      <div id="edStatus" class="status idle" role="status">글자 수는 공백 포함으로 셉니다. 질문과 글자 제한은 직접 고칠 수 있어요.</div>
       <div class="ed-qs" id="edQs"></div>
       <div class="row-btns">
         <button type="button" id="edMark">장부에 첨삭 1회 적기</button>
-        <button type="button" class="text" id="edClear">칸 비우기</button>
+        <button type="button" id="edAdd">+ 문항 추가</button><button type="button" class="text" id="edReset">기본 6기 질문으로</button><button type="button" class="text" id="edClear">답변 비우기</button>
       </div>
       <p class="hint"><b>띄어쓰기 정리</b>는 겹친 빈칸, 문장부호 앞 빈칸, 문단 사이 빈 줄처럼 확실한 것만 이 화면에서 바로 고칩니다. <b>맞춤법 검사기에 넣기</b>는 답변을 복사하고 부산대 맞춤법 검사기를 엽니다(붙여넣기 ⌘V). <b>클로드 검사 요청 복사</b>는 맞춤법·띄어쓰기만 고쳐 달라는 요청문을 복사하니 클로드 앱에 붙여넣으세요.</p>
     </div>
@@ -909,31 +912,44 @@ dz.addEventListener("drop",e=>takeDocFile(e.dataTransfer.files[0]));
 $("docResetBtn").addEventListener("click",async()=>{store.del("tams_doc");await loadDefaultDoc();if(doc.gisu&&doc.gisu!==gisu()){cfg.gisu=doc.gisu;saveCfg();syncCfg();renderAll()}toast("기본 지원서로 되돌렸습니다")});
 
 // ---- 첨삭 ----
-const EDQ={2:"② 내가 꿈꾸는 좋은 회사와 직업의 모습은? (400자 이내)",3:"③ 자유롭게 나에 대해 자랑하기(경험을 중심으로) (400자 이내)",4:"④ 양성과정을 통해서 이루고 싶은 목표와 본인의 Job의 목표는? (400자 이내)"};
-const ED_LIMIT=400;
+// 질문은 기수마다 바뀔 수 있어 지원서에서 읽어 온 대로 문항을 만든다
+const ED_DEF=[
+ {q:"② 내가 꿈꾸는 좋은 회사와 직업의 모습은? (400자 이내)",limit:400,a:""},
+ {q:"③ 자유롭게 나에 대해 자랑하기(경험을 중심으로) (400자 이내)",limit:400,a:""},
+ {q:"④ 양성과정을 통해서 이루고 싶은 목표와 본인의 Job의 목표는? (400자 이내)",limit:400,a:""}];
 const clen=v=>[...String(v||"").replace(/\r/g,"").trim()].length;
 const clenNs=v=>[...String(v||"").replace(/\s/g,"")].length;
-(function buildEd(){
- const box=$("edQs");
- for(const n of [2,3,4]){
-  const q=document.createElement("div");q.className="edq";
-  const h=document.createElement("div");h.className="edq-h";
-  const t=document.createElement("b");t.textContent=EDQ[n].replace(/ \(400자 이내\)/,"");
-  const c=document.createElement("span");c.className="lc";c.id="edC"+n;
-  h.append(t,c);
-  const ta=document.createElement("textarea");ta.id="edA"+n;ta.setAttribute("aria-label",t.textContent);ta.placeholder="멘티 답변 붙여넣기";ta.spellcheck=true;
-  ta.value=store.get("tams_edA"+n)||"";
-  ta.addEventListener("input",()=>{store.set("tams_edA"+n,ta.value);edCount(n)});
-  q.append(h,ta);box.append(q);edCount(n);
- }
-})();
-function edCount(n){
- const v=$("edA"+n).value,c=$("edC"+n),l=clen(v);
- if(!v.trim()){c.textContent="";c.className="lc";return}
- c.innerHTML="";const b=document.createElement("b");b.textContent=l;c.append(b,` / ${ED_LIMIT}자 · 공백 빼고 ${clenNs(v)}자`+(l>ED_LIMIT?` · ${l-ED_LIMIT}자 넘음`:""));
- c.className="lc "+(l>ED_LIMIT?"over":"ok");
+const limitOf=q=>{const m=String(q||"").match(/(\d{2,4})\s*자/);return m?Number(m[1]):0};
+let edQs=J("tams_edQs",null);if(!Array.isArray(edQs)||!edQs.length)edQs=ED_DEF.map(x=>({...x}));
+const saveEdQs=()=>store.set("tams_edQs",JSON.stringify(edQs));
+function edCnt(x,c){
+ const l=clen(x.a);c.innerHTML="";
+ if(!x.a.trim()){c.textContent=x.limit?`0 / ${x.limit}자`:"";c.className="lc";return}
+ const b=document.createElement("b");b.textContent=l;c.append(b,(x.limit?` / ${x.limit}자`:"자")+` · 공백 빼고 ${clenNs(x.a)}자`+(x.limit&&l>x.limit?` · ${l-x.limit}자 넘음`:""));
+ c.className="lc "+(x.limit&&l>x.limit?"over":"ok");
 }
-function edAnswers(){return [2,3,4].filter(n=>$("edA"+n).value.trim()).map(n=>({n,v:$("edA"+n).value.trim()}))}
+function renderEd(){
+ const box=$("edQs");box.replaceChildren();
+ edQs.forEach((x,i)=>{
+  const q=document.createElement("div");q.className="edq";
+  const qt=document.createElement("textarea");qt.className="edqt";qt.rows=2;qt.value=x.q;qt.placeholder="질문";qt.setAttribute("aria-label",`질문 ${i+1}`);
+  const h=document.createElement("div");h.className="edq-h";
+  const lw=document.createElement("label");lw.className="lc";lw.append("글자 제한 ");const li=document.createElement("input");li.type="number";li.min="0";li.step="50";li.value=x.limit||"";li.placeholder="없음";li.className="edlim";li.setAttribute("aria-label",`질문 ${i+1} 글자 제한`);lw.append(li);
+  const del=document.createElement("button");del.type="button";del.className="text";del.textContent="빼기";
+  h.append(lw,del);
+  const ta=document.createElement("textarea");ta.className="edans";ta.value=x.a;ta.placeholder="멘티 답변 붙여넣기";ta.spellcheck=true;ta.setAttribute("aria-label",`질문 ${i+1} 답변`);
+  const c=document.createElement("span");c.className="lc";
+  qt.addEventListener("input",()=>{x.q=qt.value;const l=limitOf(qt.value);if(l){x.limit=l;li.value=l}saveEdQs();edCnt(x,c)});
+  li.addEventListener("input",()=>{x.limit=Number(li.value)||0;saveEdQs();edCnt(x,c)});
+  ta.addEventListener("input",()=>{x.a=ta.value;saveEdQs();edCnt(x,c)});
+  del.addEventListener("click",()=>{if(edQs.length<=1){x.q="";x.a="";x.limit=0}else edQs.splice(i,1);saveEdQs();renderEd()});
+  edCnt(x,c);q.append(qt,h,ta,c);box.append(q);
+ });
+}
+renderEd();
+$("edAdd").addEventListener("click",()=>{edQs.push({q:"",limit:0,a:""});saveEdQs();renderEd()});
+$("edReset").addEventListener("click",()=>{edQs=ED_DEF.map(x=>({...x}));saveEdQs();renderEd()});
+function edAnswers(){return edQs.filter(x=>x.a.trim())}
 function edWhoOptions(){
  const cur=$("edWho").value||store.get("tams_edWho")||"";
  const list=book.filter(b=>(b.gisu||gisu())===gisu());
@@ -947,13 +963,14 @@ function tidy(v){
   .replace(/([,!?])(?=[가-힣A-Za-z])/g,"$1 ").replace(/([가-힣]\.)(?=[가-힣])/g,"$1 ").replace(/ *\n */g,"\n").replace(/\n{3,}/g,"\n\n").trim();
 }
 $("edTidy").addEventListener("click",()=>{
- let k=0;for(const n of [2,3,4]){const a=$("edA"+n),v=tidy(a.value);if(v!==a.value.trim()&&a.value.trim()){a.value=v;store.set("tams_edA"+n,v);k++}edCount(n)}
- const st=$("edStatus");if(!edAnswers().length){toast("정리할 답변이 없습니다");return}
- st.className="status ok";st.textContent=k?`${k}개 문항의 빈칸·문장부호 띄어쓰기를 정리했습니다. 맞춤법은 검사기나 클로드로 확인하세요.`:"정리할 띄어쓰기가 없습니다. 맞춤법은 검사기나 클로드로 확인하세요.";
+ if(!edAnswers().length){toast("정리할 답변이 없습니다");return}
+ let k=0;for(const x of edQs){if(!x.a.trim())continue;const v=tidy(x.a);if(v!==x.a.trim()){x.a=v;k++}}
+ saveEdQs();renderEd();
+ const st=$("edStatus");st.className="status ok";st.textContent=k?`${k}개 문항의 빈칸·문장부호 띄어쓰기를 정리했습니다. 맞춤법은 검사기나 클로드로 확인하세요.`:"정리할 띄어쓰기가 없습니다. 맞춤법은 검사기나 클로드로 확인하세요.";
 });
 $("edSpell").addEventListener("click",()=>{
  const a=edAnswers();if(!a.length){toast("검사할 답변이 없습니다");return}
- copyText(a.map(x=>x.v).join("\n\n"),"답변을 복사했습니다. 검사기 칸에 붙여넣으세요 (⌘V)");
+ copyText(a.map(x=>x.a.trim()).join("\n\n"),"답변을 복사했습니다. 검사기 칸에 붙여넣으세요 (⌘V)");
  window.open("https://nara-speller.co.kr/speller/","_blank","noopener");
 });
 $("edAsk").addEventListener("click",()=>{
@@ -962,9 +979,9 @@ $("edAsk").addEventListener("click",()=>{
  const txt=`아래는 대학생이 쓴 지원서 답변입니다${b?` (지원자: ${b.name})`:""}. 맞춤법과 띄어쓰기만 고쳐 주세요.
 - 내용, 단어 선택, 문장 순서는 바꾸지 마세요. 틀린 맞춤법·띄어쓰기·문장부호만 고칩니다.
 - 문항마다 ① 고친 답변 전체 ② 고친 곳 목록 (원래 → 고침) ③ 고친 답변의 글자 수(공백 포함)를 보여 주세요.
-- 각 문항은 공백 포함 400자 이내여야 합니다. 넘으면 몇 자 넘는지만 알려 주세요.
+- 글자 제한이 있는 문항은 넘으면 몇 자 넘는지만 알려 주세요.
 
-`+a.map(x=>`[${EDQ[x.n]}] (지금 ${clen(x.v)}자)\n${x.v}`).join("\n\n");
+`+a.map((x,i)=>`[문항 ${i+1}] ${x.q||"(질문 없음)"}\n글자 제한: ${x.limit?x.limit+"자":"없음"} / 지금 ${clen(x.a)}자\n${x.a.trim()}`).join("\n\n");
  copyText(txt,"검사 요청문을 복사했습니다. 클로드 앱에 붙여넣으세요");
 });
 $("edMark").addEventListener("click",()=>{
@@ -973,34 +990,40 @@ $("edMark").addEventListener("click",()=>{
  toast(`${b.name} 님 ${a.length}차 첨삭을 장부에 적었습니다`);
 });
 $("edClear").addEventListener("click",()=>{
- const x=$("edClear");if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 비움";setTimeout(()=>{x.dataset.sure="";x.textContent="칸 비우기"},3000);return}
- [2,3,4].forEach(n=>{$("edA"+n).value="";store.set("tams_edA"+n,"");edCount(n)});x.dataset.sure="";x.textContent="칸 비우기";
+ const x=$("edClear");if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 비움";setTimeout(()=>{x.dataset.sure="";x.textContent="답변 비우기"},3000);return}
+ edQs.forEach(q=>q.a="");saveEdQs();renderEd();x.dataset.sure="";x.textContent="답변 비우기";
 });
-// 멘티 지원서 파일에서 이름·답변 꺼내기 (지원서 탭과 같은 읽기 사용)
+// 질문 줄: ②~⑳ 로 시작, 또는 'OOO자 이내' + 묻는 말, 또는 '1.' 'Q1.' 로 시작해 물음표로 끝남. ① 은 프로필 칸이라 뺌
+function isQuestion(t){
+ t=t.trim();if(!t||t.length>220)return false;
+ if(/^①/.test(t))return false;
+ if(/^[②-⑳]/.test(t))return true;
+ if(/\(\s*\d{2,4}\s*자[^)]*\)/.test(t)&&/[?？]|하시오|하세요|주세요|기술|서술|작성|소개|설명/.test(t))return true;
+ if(/^(Q\s*\d{1,2}|\d{1,2})\s*[.)]\s*\S.*[?？]\s*(\(.*\))?$/.test(t))return true;
+ return false;
+}
 function edFromBlocks(blocks){
  let name="";
  for(const bl of blocks){if(bl.t!=="tbl")continue;for(const r of bl.rows)for(let i=0;i<r.length-1;i++)if(r[i].s.replace(/\s/g,"")==="성명"&&!name)name=r[i+1].s.trim()}
- const flat=[];for(const bl of blocks){if(bl.t==="p")flat.push(bl.s);else for(const r of bl.rows)for(const c of r)if(!c.cont)flat.push(c.s)}
- const ans={};let cur=0;
+ const flat=[];for(const bl of blocks){if(bl.t==="p"){if(!bl.title)flat.push(bl.s)}else for(const r of bl.rows)for(const c of r)if(!c.cont)flat.push(c.s)}
+ const out=[];let cur=null;
  for(const line of flat){
-  const t=line.trim(),m=t.match(/^([②③④⑤])/);
-  if(m){cur={"②":2,"③":3,"④":4}[m[1]]||0;if(cur)ans[cur]=[];continue}
-  if(/^개인\(신용\)정보/.test(t)){cur=0;continue}
-  if(cur)ans[cur].push(line);
+  const t=line.trim();
+  if(isQuestion(t)){cur={q:t,limit:limitOf(t),a:[]};out.push(cur);continue}
+  if(/^(개인\s*\(신용\)\s*정보|본인은 위|위 기재|※)/.test(t)){cur=null;continue}
+  if(cur)cur.a.push(line);
  }
- for(const k in ans)ans[k]=ans[k].join("\n").replace(/\n{3,}/g,"\n\n").trim();
- return {name,ans};
+ return {name,qs:out.map(x=>({q:x.q,limit:x.limit,a:x.a.join("\n").replace(/\n{3,}/g,"\n\n").trim()}))};
 }
 async function edTake(f){
  if(!f)return;
  if(!/\.docx$/i.test(f.name)){toast("워드 파일(.docx)만 읽을 수 있습니다. 답변을 칸에 붙여넣어 주세요");return}
  try{
-  const r=edFromBlocks(readDocx(new Uint8Array(await f.arrayBuffer())).blocks);let got=0;
-  for(const n of [2,3,4]){if(r.ans[n]){$("edA"+n).value=r.ans[n];store.set("tams_edA"+n,r.ans[n]);got++}edCount(n)}
+  const r=edFromBlocks(readDocx(new Uint8Array(await f.arrayBuffer())).blocks);
   if(r.name){const nm=r.name.replace(/\s/g,"");const b=book.find(x=>x.name.replace(/\s/g,"")===nm);if(b){$("edWho").value=b.phone;store.set("tams_edWho",b.phone)}}
   const st=$("edStatus");
-  if(got){st.className="status ok";st.textContent=`${r.name?r.name+" 님 ":""}지원서에서 ${got}개 문항을 읽었습니다.`}
-  else{st.className="status warn";st.textContent="파일에서 답변을 찾지 못했습니다. 답변을 칸에 직접 붙여넣어 주세요."}
+  if(r.qs.length){edQs=r.qs;saveEdQs();renderEd();st.className="status ok";st.textContent=`${r.name?r.name+" 님 ":""}지원서에서 질문 ${r.qs.length}개, 답변 ${r.qs.filter(x=>x.a).length}개를 읽었습니다.`}
+  else{st.className="status warn";st.textContent="파일에서 질문을 찾지 못했습니다. 질문과 답변을 칸에 직접 넣어 주세요."}
  }catch(e){toast("지원서 파일을 읽지 못했습니다. 답변을 칸에 붙여넣어 주세요")}
 }
 $("edFile").addEventListener("change",e=>{edTake(e.target.files[0]);e.target.value=""});
