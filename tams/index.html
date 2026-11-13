@@ -235,6 +235,11 @@ td .memo{width:12em;padding:4px 8px;font-size:14px}
 td .nmi{width:8em;padding:4px 8px;font-size:14px;font-weight:600}
 td .phi{width:9.5em;padding:4px 8px;font-size:14px}
 tr.done td{color:var(--ink-2)}
+tr.no td{color:var(--ink-2)}tr.no td.st{color:var(--amber)}tr.no .nmi{text-decoration:line-through}
+.msg.no{opacity:.6}
+.counts .noBtn{border:0;background:transparent;padding:0;min-height:0;font:inherit;color:var(--ink-2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.counts .noBtn b{color:var(--amber);font-size:18px;font-weight:700;margin-left:4px}
+td.del{white-space:nowrap}
 .src{font-size:12px;padding:1px 7px;border-radius:var(--r-s);background:var(--rule-2);color:var(--ink-2);font-weight:500}
 .src.cr{background:var(--moss-soft);color:var(--moss)}
 select.rsel{-webkit-appearance:none;appearance:none;width:auto;min-width:0;height:26px;min-height:0;margin:0 0 0 6px;padding:0 20px 0 8px;font-size:12px;line-height:26px;font-weight:500;border:0;border-radius:var(--r-s);vertical-align:middle;color:var(--ink-2);background:var(--rule-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer}
@@ -273,7 +278,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
   <details class="cfg" id="cfgBox">
     <summary>내 정보 · 기수 · 저장 이름 <small id="cfgSum"></small></summary>
     <div class="cfg-body">
-      <label class="field" for="cGisu"><span>기수 <small style="font-weight:400">· 지원서 넣으면 자동</small></span><input type="number" id="cGisu" min="1" max="99" inputmode="numeric"></label>
+      <label class="field" for="cGisu"><span>기수 <small style="font-weight:400">· 지원서 넣으면 자동, 바뀌면 장부를 비우고 백업 파일을 받음</small></span><input type="number" id="cGisu" min="1" max="99" inputmode="numeric"></label>
       <label class="field" for="cMe"><span>내 이름</span><input type="text" id="cMe" autocomplete="off"></label>
       <label class="field" for="cTel"><span>내 번호</span><input type="tel" id="cTel" autocomplete="off"></label>
       <label class="field" for="cCourse"><span>과정 이름 <small style="font-weight:400">· {기수} 자리에 숫자</small></span><input type="text" id="cCourse" autocomplete="off" spellcheck="false"></label>
@@ -343,7 +348,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
     <section class="msgs">
       <div class="book-h">
         <h2>터치 문자 <span id="msgN">0</span>건</h2>
-        <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
+        <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸·거절한 사람 빼기</label></div>
       </div>
       <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><select id="dueHour" aria-label="마감 시간"></select><span id="dueShow" class="hint"></span></div>
       <p class="hint">① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 광고로 들어와 지원서를 먼저 받은 사람은 인사와 첨삭 안내만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
@@ -406,7 +411,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
         <div class="filters">
           <select id="fGisu" aria-label="기수"></select>
           <select id="fSrc" aria-label="들어온 경로"><option value="">모든 경로</option><option value="qr">캠리 QR</option><option value="cr">캠리 종이</option><option value="ad">탐스 광고</option></select>
-          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 중</option><option value="sub">제출 전</option><option value="done">첨삭 후 제출완료</option></select>
+          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 중</option><option value="sub">제출 전</option><option value="done">첨삭 후 제출완료</option><option value="no">거절한 사람</option></select>
           <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
         </div>
         <div class="row-btns">
@@ -535,6 +540,19 @@ function routeSel(b,onChange){
  for(const [k,l] of Object.entries(ROUTES)){const o=document.createElement("option");o.value=k;o.textContent=l;sel.append(o)}
  sel.value=route(b);sel.addEventListener("click",e=>e.stopPropagation());
  sel.addEventListener("change",()=>{b.src=sel.value;if(sel.value==="ad")b.plan="A";sel.className="rsel "+sel.value;onChange()});return sel;
+}
+function wipeForGisu(){
+ const was=Number(store.get("tams_bookGisu"))||0, now=gisu();
+ if(!was||was===now){store.set("tams_bookGisu",String(now));return false}
+ const old=book.filter(b=>(b.gisu||was)!==now);
+ if(old.length){
+  const f=new File([JSON.stringify({v:1,saved:today(),book,cfg,tpl},null,1)],`TAMS${was}_backup_${stamp()}.json`,{type:"application/json"});
+  try{download(f)}catch(e){}
+  store.set("tams_book_bak",JSON.stringify(book));
+  book=book.filter(b=>(b.gisu||was)===now);saveBook();stage.in=[];saveStage();
+ }
+ store.set("tams_bookGisu",String(now));
+ return old.length;
 }
 function saveBook(){if(!store.set("tams_book",JSON.stringify(book)))toast("이 브라우저에 저장하지 못했습니다. 백업을 받아 두세요")}
 function saveStage(){store.set("tams_st_in",JSON.stringify(stage.in))}
@@ -696,13 +714,13 @@ function copyText(text,msg){
 function renderMsgs(){
  const q=$("msgQ").value.trim().replace(/\s+/g,"").toLowerCase(), qd=digits(q), hide=$("hideSent").checked&&!q;
  const hit=b=>!q||[b.name,b.call].join("").replace(/\s+/g,"").toLowerCase().includes(q)||(qd.length>=3&&digits(b.phone).includes(qd));
- const list=book.filter(b=>(b.gisu||gisu())===gisu()&&!(hide&&b.touch)&&hit(b));
+ const list=book.filter(b=>(b.gisu||gisu())===gisu()&&!(hide&&(b.touch||b.no))&&hit(b));
  $("msgN").textContent=list.length;
  const out=$("msgs");out.replaceChildren();
  if(!list.length){const d=document.createElement("div");d.className="blank";
-  d.textContent=q?"'"+$("msgQ").value.trim()+"' 이름이나 번호로 찾은 사람이 없습니다.":book.some(b=>(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
+  d.textContent=q?"'"+$("msgQ").value.trim()+"' 이름이나 번호로 찾은 사람이 없습니다.":book.some(b=>(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸·거절한 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
  for(const b of list){
-  const box=document.createElement("article");box.className="msg"+(b.touch?" sent":"");
+  const box=document.createElement("article");box.className="msg"+(b.no?" no":b.touch?" sent":"");
   const h=document.createElement("div");h.className="msg-h";
   const id=document.createElement("div");
   const nm=document.createElement("span");nm.className="nm";nm.textContent=b.name;
@@ -740,7 +758,9 @@ function renderMsgs(){
    a.addEventListener("click",()=>{a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b))});f.append(a)}
   const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
   s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
-  f.append(s);
+  const nx=document.createElement("button");nx.type="button";nx.className="text";nx.textContent=b.no?"거절 취소":"거절";
+  nx.addEventListener("click",()=>{b.no=b.no?"":today();saveBook();renderAll();toast(b.no?b.name+" 님을 거절로 표시했습니다. 장부에서 따로 볼 수 있어요":b.name+" 님 거절 표시를 지웠습니다")});
+  f.append(nx,s);
   if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="광고로 들어와 지원서를 먼저 받은 분이라 지원서 파일과 마감 안내는 빼고 보냅니다.";box.append(h,body,n,f)}
   else{const dl=document.createElement("div");dl.className="msg-doc";dl.textContent="📎 "+docName();box.append(h,body,dl,due,f)}
   out.append(box);
@@ -762,12 +782,14 @@ const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭"],["s
 // 첨삭은 여러 번: 날짜 목록(edits)으로 쌓음. 예전 기록(edit 하나)은 1회로 봄
 const edits=b=>Array.isArray(b.edits)?b.edits:(b.edit?[b.edit]:[]);
 function stat(b){const n=edits(b).length;
+ if(b.no)return "거절 ("+md(b.no)+")";
  return b.sub?(n>1?n+"차 첨삭 후 제출완료":n?"첨삭 후 제출완료":"제출완료"):n?n+"차 첨삭 완료 · 제출 전":b.got?"지원서 첨삭 중":b.touch?"터치 완료 · 지원서 기다리는 중":"터치 전"}
 function md(d){return d?Number(d.slice(5,7))+"/"+Number(d.slice(8,10)):""}
 function bookList(){
  const g=$("fGisu").value, s=$("fSrc").value, t=$("fTodo").value, q=$("fQ").value.trim(), qd=digits(q);
  return book.filter(b=>(!g||String(b.gisu||gisu())===g)&&(!s||route(b)===s)
-  &&(!t||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.sub)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
+  &&(t==="no"?!!b.no:!b.no)
+  &&(!t||t==="no"||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.sub)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
   &&(!q||[b.name,b.school,b.place,b.major,b.memo].join(" ").includes(q)||(qd.length>=3&&digits(b.phone).includes(qd)))).map((b,i)=>[b,i]).sort((x,y)=>(y[0].added||"").localeCompare(x[0].added||"")||x[1]-y[1]).map(x=>x[0]);
 }
 function renderGisuFilter(){
@@ -780,13 +802,15 @@ function renderBook(){
  renderGisuFilter();
  const g=$("fGisu").value, base=book.filter(b=>!g||String(b.gisu||gisu())===g);
  const c=$("counts");c.replaceChildren();
- [["멘티",base.length],...STEPS.map(([k,l])=>[l,base.filter(b=>k==="edit"?edits(b).length:b[k]).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
+ [["멘티",base.filter(b=>!b.no).length],...STEPS.map(([k,l])=>[l,base.filter(b=>!b.no&&(k==="edit"?edits(b).length:b[k])).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
+ {const nb=document.createElement("button");nb.type="button";nb.className="noBtn";nb.append($("fTodo").value==="no"?"거절 (전체 보기로)":"거절");const bb=document.createElement("b");bb.textContent=base.filter(b=>b.no).length;nb.append(bb);
+  nb.title="거절한 사람만 따로 보기";nb.addEventListener("click",()=>{$("fTodo").value=$("fTodo").value==="no"?"":"no";renderBook()});c.append(nb)}
  const rn=$("routeN");rn.replaceChildren();
  for(const [k,l] of Object.entries(RLONG)){const sp=document.createElement("span");sp.append(l);const bb=document.createElement("b");bb.textContent=base.filter(b=>route(b)===k).length;sp.append(bb,"명");rn.append(sp," ")}
  const list=bookList(), tb=$("book");tb.replaceChildren();
  if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=10;td.style.color="var(--ink-2)";td.textContent=book.length?"조건에 맞는 멘티가 없습니다.":"아직 넣은 멘티가 없습니다. 캠리 터치에서 넣거나 '불러오기'로 연락처 파일을 넣어 주세요.";tr.append(td);tb.append(tr);return}
  for(const b of list){
-  const tr=document.createElement("tr");if(b.sub)tr.className="done";
+  const tr=document.createElement("tr");if(b.no)tr.className="no";else if(b.sub)tr.className="done";
   const td1=document.createElement("td");td1.className="nm";const sp=routeSel(b,()=>{saveBook();renderAll();toast(b.name+" 님을 "+RLONG[route(b)]+"(으)로 바꿨습니다")});const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");ni.style.width=Math.max(6,[...b.name].reduce((w,c)=>w+(/[가-힣]/.test(c)?1:.62),0)+1.4)+"em";
   ni.addEventListener("change",()=>{const v=ni.value.trim();if(!v){ni.value=b.name;return}if(b.call===callName(b.name))b.call=callName(v);b.name=v;saveBook();renderAll();toast("이름을 고쳤습니다")});td1.append(ni,sp);tr.append(td1);
   const td2=document.createElement("td");const pi=document.createElement("input");pi.type="tel";pi.className="phi";pi.value=b.phone;pi.setAttribute("aria-label","전화");
@@ -817,7 +841,9 @@ function renderBook(){
   x.addEventListener("click",()=>{
    if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 지움";setTimeout(()=>{x.dataset.sure="";x.textContent="지우기"},3000);return}
    book=book.filter(o=>o!==b);saveBook();stage.in.forEach(s=>s.dup=!!inBook(s.phone));renderAll();toast(b.name+" 님을 지웠습니다")});
-  td9.append(x);tr.append(td9);
+  const nx=document.createElement("button");nx.type="button";nx.className="text";nx.textContent=b.no?"거절 취소":"거절";
+  nx.addEventListener("click",()=>{b.no=b.no?"":today();saveBook();renderAll();toast(b.no?b.name+" 님을 거절로 표시했습니다. 위 '거절'을 누르면 따로 볼 수 있어요":b.name+" 님 거절 표시를 지웠습니다")});
+  td9.append(nx,x);tr.append(td9);
   tb.append(tr);
  }
 }
@@ -831,8 +857,8 @@ $("bVcf").addEventListener("click",()=>{const l=bookList();if(!l.length){toast("
 $("bXlsx").addEventListener("click",()=>{
  const l=bookList();if(!l.length){toast("받을 멘티가 없습니다");return}
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
- const aoa=[["기수","들어온 경로","이름","전화","이메일","학교","학년","나이","전공","넣은 날","진행","터치","지원서 받음","첨삭","제출완료","메모"],
-  ...l.map(b=>[b.gisu||gisu(),RLONG[route(b)],b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,stat(b),b.touch,b.got,edits(b).length?edits(b).length+"회 ("+edits(b).join(", ")+")":"",b.sub,b.memo])];
+ const aoa=[["기수","들어온 경로","이름","전화","이메일","학교","학년","나이","전공","넣은 날","진행","터치","지원서 받음","첨삭","제출완료","거절","메모"],
+  ...l.map(b=>[b.gisu||gisu(),RLONG[route(b)],b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,stat(b),b.touch,b.got,edits(b).length?edits(b).length+"회 ("+edits(b).join(", ")+")":"",b.sub,b.no||"",b.memo])];
  const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[4,6,12,15,24,16,7,7,16,11,18,11,11,11,11,20].map(w=>({wch:w}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"멘티");XLSX.writeFile(wb,`TAMS_mentee_${stamp()}.xlsx`);
 });
@@ -979,7 +1005,7 @@ async function takeDocFile(f){
  try{
   const u=new Uint8Array(await f.arrayBuffer());const r=await useDocBytes(u,f.name,true);
   store.set("tams_doc",JSON.stringify({name:f.name,b64:doc.b64}))||toast("파일이 커서 이 브라우저에 저장은 못 했습니다. 새로고침하면 다시 넣어 주세요");
-  if(r.gisu&&r.gisu!==gisu()){const old=gisu();cfg.gisu=r.gisu;saveCfg();syncCfg();renderAll();toast(`${r.gisu}기 지원서로 바꿨습니다. 터치 문자도 ${r.gisu}기로 나갑니다 (${old}기 멘티는 장부에 그대로)`)}
+  if(r.gisu&&r.gisu!==gisu()){const old=gisu();cfg.gisu=r.gisu;saveCfg();syncCfg();const n=wipeForGisu();renderAll();toast(`${r.gisu}기 지원서로 바꿨습니다. `+(n?`${old}기 멘티 ${n}명은 장부에서 비우고 백업 파일로 받았습니다`:`터치 문자도 ${r.gisu}기로 나갑니다`))}
   else if(!r.gisu)toast("파일에서 기수를 찾지 못했습니다. 위 '기수' 칸에서 직접 바꿔 주세요");
   else toast(`${r.gisu}기 지원서를 넣었습니다`);
   renderDoc();
@@ -990,7 +1016,7 @@ const dz=$("docDrop");
 ["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("over")}));
 ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over")}));
 dz.addEventListener("drop",e=>takeDocFile(e.dataTransfer.files[0]));
-$("docResetBtn").addEventListener("click",async()=>{store.del("tams_doc");await loadDefaultDoc();if(doc.gisu&&doc.gisu!==gisu()){cfg.gisu=doc.gisu;saveCfg();syncCfg();renderAll()}toast("기본 지원서로 되돌렸습니다")});
+$("docResetBtn").addEventListener("click",async()=>{store.del("tams_doc");await loadDefaultDoc();if(doc.gisu&&doc.gisu!==gisu()){cfg.gisu=doc.gisu;saveCfg();syncCfg();wipeForGisu();renderAll()}toast("기본 지원서로 되돌렸습니다")});
 
 // ---- 첨삭 ----
 // 질문은 기수마다 바뀔 수 있어 지원서에서 읽어 온 대로 문항을 만든다
@@ -1123,6 +1149,8 @@ function syncCfg(){
  $("fmtPrev").querySelector("b").textContent=saveName({name:"홍길동",src:"qr",added:today(),school:"○○대학교"});
  renderStage("in");renderMsgs();if(k==="gisu"){renderBook();renderDoc()}
 }));
+if(!store.get("tams_bookGisu"))store.set("tams_bookGisu",String(gisu()));
+$("cGisu").addEventListener("change",()=>{const was=store.get("tams_bookGisu");const n=wipeForGisu();if(n){renderAll();toast(`${was}기 멘티 ${n}명은 장부에서 비우고 백업 파일로 받았습니다`)}});
 
 // ---- 넣는 방법 ----
 function showHow(h){
