@@ -190,6 +190,8 @@ input[type=tel],input[type=number],select{font:inherit;font-size:15px;color:var(
 .filters select{width:auto}
 td.ck,th.ck{text-align:center;width:72px}
 td.ck input{width:18px;height:18px}
+td.st{font-weight:500}
+tr.done td.st{color:var(--moss)}
 td.ck small{display:block;font-size:11px;color:var(--ink-2);line-height:1.2;margin-top:2px}
 td .memo{width:12em;padding:4px 8px;font-size:14px}
 td .nmi{width:8em;padding:4px 8px;font-size:14px;font-weight:600}
@@ -328,17 +330,17 @@ tr.done td{color:var(--ink-2)}
         <div class="filters">
           <select id="fGisu" aria-label="기수"></select>
           <select id="fSrc" aria-label="넣은 방법"><option value="">직접+카톡</option><option value="cr">직접 쓴 사람</option><option value="db">카톡으로 받은 사람</option></select>
-          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 전</option><option value="sub">제출 전</option><option value="done">제출 끝</option></select>
+          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 중</option><option value="sub">제출 전</option><option value="done">첨삭 후 제출완료</option></select>
           <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
         </div>
         <div class="row-btns">
           <button type="button" id="bVcf">연락처 파일</button><button type="button" id="bXlsx">엑셀로 받기</button>
-          <button type="button" class="text" id="bBackup">백업 받기</button><button type="button" class="text" id="bRestore">백업 불러오기</button><input type="file" id="bRestoreFile" accept=".json,application/json" hidden>
+          <button type="button" class="text" id="bBackup">백업 받기</button><button type="button" class="text" id="bRestore" title="백업 파일(.json)이나 연락처 파일(.vcf)">불러오기</button><input type="file" id="bRestoreFile" accept=".json,.vcf,application/json,text/vcard" hidden>
         </div>
       </div>
       <p class="hint">칸을 누르면 바로 저장되고 누른 날짜가 남습니다. 이 브라우저에만 저장되니 가끔 백업이나 엑셀로 받아 두세요.</p>
       <div class="tbl-wrap" style="max-height:640px"><table>
-        <thead><tr><th class="nm">이름</th><th>전화</th><th>학교 · 학년 · 전공</th><th class="ck">터치</th><th class="ck">지원서 받음</th><th class="ck">첨삭함</th><th class="ck">실장님 제출</th><th>메모</th><th></th></tr></thead>
+        <thead><tr><th class="nm">이름</th><th>전화</th><th>진행</th><th class="ck">터치</th><th class="ck">지원서 받음</th><th class="ck">첨삭 완료</th><th class="ck">제출완료</th><th>학교 · 학년 · 전공</th><th>메모</th><th></th></tr></thead>
         <tbody id="book"></tbody>
       </table></div>
     </div>
@@ -629,12 +631,13 @@ $("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").valu
 $("hideSent").addEventListener("change",renderMsgs);
 
 // ---- 장부 ----
-const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭함"],["sub","실장님 제출"]];
+const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭 완료"],["sub","제출완료"]];
+function stat(b){return b.sub?(b.edit?"첨삭 후 제출완료":"제출완료"):b.edit?"첨삭 완료 · 제출 전":b.got?"지원서 첨삭 중":b.touch?"터치 완료 · 지원서 기다리는 중":"터치 전"}
 function md(d){return d?Number(d.slice(5,7))+"/"+Number(d.slice(8,10)):""}
 function bookList(){
  const g=$("fGisu").value, s=$("fSrc").value, t=$("fTodo").value, q=$("fQ").value.trim(), qd=digits(q);
  return book.filter(b=>(!g||String(b.gisu||gisu())===g)&&(!s||b.src===s)
-  &&(!t||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.edit)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
+  &&(!t||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.edit&&!b.sub)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
   &&(!q||[b.name,b.school,b.place,b.major,b.memo].join(" ").includes(q)||(qd.length>=3&&digits(b.phone).includes(qd)))).map((b,i)=>[b,i]).sort((x,y)=>(y[0].added||"").localeCompare(x[0].added||"")||x[1]-y[1]).map(x=>x[0]);
 }
 function renderGisuFilter(){
@@ -649,14 +652,14 @@ function renderBook(){
  const c=$("counts");c.replaceChildren();
  [["멘티",base.length],...STEPS.map(([k,l])=>[l,base.filter(b=>b[k]).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
  const list=bookList(), tb=$("book");tb.replaceChildren();
- if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=9;td.style.color="var(--ink-2)";td.textContent=book.length?"조건에 맞는 멘티가 없습니다.":"아직 넣은 멘티가 없습니다. DB 터치나 캠리 터치에서 넣어 주세요.";tr.append(td);tb.append(tr);return}
+ if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=10;td.style.color="var(--ink-2)";td.textContent=book.length?"조건에 맞는 멘티가 없습니다.":"아직 넣은 멘티가 없습니다. 캠리 터치에서 넣거나 '불러오기'로 연락처 파일을 넣어 주세요.";tr.append(td);tb.append(tr);return}
  for(const b of list){
   const tr=document.createElement("tr");if(b.sub)tr.className="done";
-  const td1=document.createElement("td");td1.className="nm";const sp=document.createElement("span");sp.className="src"+(b.src==="cr"?" cr":"");sp.textContent=b.src==="db"?"카톡":"직접";const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");
+  const td1=document.createElement("td");td1.className="nm";const sp=document.createElement("span");sp.className="src"+(b.src==="cr"?" cr":"");sp.textContent=b.src==="db"?"카톡":"직접";const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");ni.style.width=Math.max(6,[...b.name].reduce((w,c)=>w+(/[가-힣]/.test(c)?1:.62),0)+1.4)+"em";
   ni.addEventListener("change",()=>{const v=ni.value.trim();if(!v){ni.value=b.name;return}if(b.call===callName(b.name))b.call=callName(v);b.name=v;saveBook();renderAll();toast("이름을 고쳤습니다")});td1.append(ni,sp);tr.append(td1);
   const td2=document.createElement("td");const pi=document.createElement("input");pi.type="tel";pi.className="phi";pi.value=b.phone;pi.setAttribute("aria-label","전화");
   pi.addEventListener("change",()=>{const v=fmtPhone(pi.value);if(!v){pi.value=b.phone;toast("번호를 다시 확인해 주세요");return}b.phone=v;pi.value=v;saveBook();renderAll()});td2.append(pi);tr.append(td2);
-  const td3=document.createElement("td");td3.textContent=[b.school||b.place,b.grade,b.major].filter(Boolean).join(" · ");if(b.age)td3.title="나이 "+b.age+(b.email?" · "+b.email:"");tr.append(td3);
+  const tdS=document.createElement("td");tdS.className="st";tdS.textContent=stat(b);tr.append(tdS);
   for(const [k,l] of STEPS){
    const td=document.createElement("td");td.className="ck";
    const cb=document.createElement("input");cb.type="checkbox";cb.checked=!!b[k];cb.setAttribute("aria-label",b.name+" "+l);
@@ -664,6 +667,7 @@ function renderBook(){
    td.append(cb);if(b[k]){const s=document.createElement("small");s.textContent=md(b[k]);td.append(s)}
    tr.append(td);
   }
+  const td3=document.createElement("td");td3.textContent=[b.school||b.place,b.grade,b.major].filter(Boolean).join(" · ");if(b.age)td3.title="나이 "+b.age+(b.email?" · "+b.email:"");tr.append(td3);
   const td8=document.createElement("td");const mi=document.createElement("input");mi.type="text";mi.className="memo";mi.value=b.memo||"";mi.setAttribute("aria-label","메모");
   mi.addEventListener("change",()=>{b.memo=mi.value;saveBook()});td8.append(mi);tr.append(td8);
   const td9=document.createElement("td");td9.className="del";const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
@@ -679,20 +683,44 @@ $("bVcf").addEventListener("click",()=>{const l=bookList();if(!l.length){toast("
 $("bXlsx").addEventListener("click",()=>{
  const l=bookList();if(!l.length){toast("받을 멘티가 없습니다");return}
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
- const aoa=[["기수","넣은 방법","이름","전화","이메일","학교","학년","나이","전공","넣은 날","터치","지원서 받음","첨삭함","실장님 제출","메모"],
-  ...l.map(b=>[b.gisu||gisu(),b.src==="db"?"카톡":"직접",b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,b.touch,b.got,b.edit,b.sub,b.memo])];
- const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[4,6,12,15,24,16,7,7,16,11,11,11,11,11,20].map(w=>({wch:w}));
+ const aoa=[["기수","넣은 방법","이름","전화","이메일","학교","학년","나이","전공","넣은 날","진행","터치","지원서 받음","첨삭 완료","제출완료","메모"],
+  ...l.map(b=>[b.gisu||gisu(),b.src==="db"?"카톡":"직접",b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,stat(b),b.touch,b.got,b.edit,b.sub,b.memo])];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[4,6,12,15,24,16,7,7,16,11,18,11,11,11,11,20].map(w=>({wch:w}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"멘티");XLSX.writeFile(wb,`TAMS_mentee_${stamp()}.xlsx`);
 });
 $("bBackup").addEventListener("click",()=>{download(new File([JSON.stringify({v:1,saved:today(),book,cfg,tpl},null,1)],`TAMS_backup_${stamp()}.json`,{type:"application/json"}))});
 $("bRestore").addEventListener("click",()=>$("bRestoreFile").click());
 $("bRestoreFile").addEventListener("change",async e=>{
  const f=e.target.files[0];e.target.value="";if(!f)return;
- try{const d=JSON.parse(await f.text());if(!Array.isArray(d.book))throw 0;
+ const txt=await f.text();
+ if(/BEGIN:VCARD/i.test(txt)){
+  const recs=parseVcf(txt);let n=0,same=0;
+  for(const r of recs){if(inBook(r.phone)){same++;continue}book.push(Object.assign({id:uid(),src:"cr",call:callName(r.name),email:"",school:"",grade:"",age:"",major:"",place:"",crDate:"",ts:"",plan:"A",added:today(),touch:"",got:"",edit:"",sub:"",memo:""},r));n++}
+  saveBook();renderAll();toast(`연락처 파일에서 ${n}명을 넣었습니다`+(same?` (이미 있는 ${same}명 빼고)`:""));return;
+ }
+ try{const d=JSON.parse(txt);if(!Array.isArray(d.book))throw 0;
   let n=0;for(const r of d.book){if(!r.phone)continue;const b=inBook(r.phone);if(b)Object.assign(b,r);else{book.push(r);n++}}
   saveBook();renderAll();toast(`백업을 불러왔습니다 (새로 ${n}명)`);
  }catch(err){toast("백업 파일을 읽지 못했습니다")}
 });
+
+// 맥 연락처에서 내보낸 .vcf: "하;채원 탐스 6기" 처럼 성·이름이 나뉘어 있어도 붙여서 읽음
+function parseVcf(txt){
+ const out=[];
+ for(const card of txt.replace(/\r\n[ \t]/g,"").split(/BEGIN:VCARD/i).slice(1)){
+  const get=k=>{const m=card.match(new RegExp("^"+k+"(?:;[^:\\r\\n]*)?:(.*)$","im"));return m?m[1].trim():""};
+  const un=v=>v.replace(/\\([,;\\])/g,"$1").replace(/\\n/gi," ");
+  const n=get("N").split(";").map(un), fn=un(get("FN"));
+  let full=n.length>1&&(n[0]||n[1])?(n[0]+n[1]).trim():fn;
+  if(/^[A-Za-z]/.test(full)&&n[0]&&n[1])full=n[1]+" "+n[0];
+  const gm=full.match(/(\d{1,2})\s*기/);
+  const name=full.replace(/\s*(탐스|TAMS)\b.*$/i,"").replace(/\s*탐스.*$/,"").trim();
+  const phone=fmtPhone(get("TEL"));
+  if(!name||!phone)continue;
+  out.push({name,phone,gisu:gm?Number(gm[1]):gisu()});
+ }
+ return out;
+}
 
 // ---- 지원서 ----
 let doc={name:"",b64:"",gisu:0,custom:false,blocks:[]};
