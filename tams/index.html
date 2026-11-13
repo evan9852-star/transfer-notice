@@ -200,6 +200,7 @@ details.cfg summary small{font-weight:400;color:var(--ink-2);margin-left:8px;whi
 .add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:end}
 @media (max-width:420px){.add{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.add button{grid-column:1/-1}}
 input[type=tel],input[type=number],select{font:inherit;font-size:15px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-s);padding:8px 10px;width:100%;min-width:0;line-height:1.5}
+select:not(.rsel){-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer}
 .lrow .main{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
 .lrow .nmtxt{font-weight:600;font-size:15px}
 .lrow .sub{font-size:13px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:0 10px}
