@@ -131,7 +131,7 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .steps3{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-right:auto}
 .steps3 .done::after{content:" ✓"}
 .duebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
-.duebar input{width:auto}
+.duebar input,.duebar select{width:auto}
 .tpl-two.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:900px){.tpl-two.three{grid-template-columns:1fr}}
 .imgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -234,8 +234,9 @@ td .phi{width:9.5em;padding:4px 8px;font-size:14px}
 tr.done td{color:var(--ink-2)}
 .src{font-size:12px;padding:1px 7px;border-radius:var(--r-s);background:var(--rule-2);color:var(--ink-2);font-weight:500}
 .src.cr{background:var(--moss-soft);color:var(--moss)}
-select.rsel{width:auto;min-height:0;height:auto;font-size:12px;padding:1px 4px;border-radius:var(--r-s);background:var(--rule-2);color:var(--ink-2);font-weight:500;border:0}
-select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{background:var(--amber-soft);color:var(--amber)}
+select.rsel{-webkit-appearance:none;appearance:none;width:auto;min-width:0;height:26px;min-height:0;margin:0 0 0 6px;padding:0 20px 0 8px;font-size:12px;line-height:26px;font-weight:500;border:0;border-radius:var(--r-s);vertical-align:middle;color:var(--ink-2);background:var(--rule-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer}
+select.rsel.cr{background-color:var(--moss-soft);color:var(--moss)}select.rsel.ad{background-color:var(--amber-soft);color:var(--amber)}
+td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
 .routes{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .routes b{color:var(--ink);font-size:18px;font-weight:700;margin-left:4px}
 #routeN{display:flex;flex-wrap:wrap;gap:4px 16px}
@@ -301,13 +302,13 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
           <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2>연락처 넣기</h2></div>
           <div class="seg how" role="group" aria-label="넣는 방법"><button type="button" data-how="hand">직접 쓰기</button><button type="button" data-how="paste">카톡 붙여넣기</button></div>
           <div id="howHand">
-            <label class="check" for="crAd" style="margin-bottom:8px;white-space:normal;align-items:flex-start"><input type="checkbox" id="crAd">탐스 광고로 들어온 사람 (지원서를 먼저 받음 · 캠리 정보 없이 A안 · 인사만)</label>
+            <label class="check" for="crAd" style="margin-bottom:8px;white-space:normal;align-items:flex-start"><input type="checkbox" id="crAd">광고로 들어온 사람 (지원서 먼저 받음)</label>
             <form class="add" id="crForm" autocomplete="off">
               <label class="field" for="crName"><span>이름</span><input type="text" id="crName" enterkeyhint="next"></label>
               <label class="field" for="crTel"><span>전화</span><input type="tel" id="crTel" inputmode="tel" placeholder="01012345678" enterkeyhint="done"></label>
               <button type="submit">추가</button>
             </form>
-            <p class="hint" style="margin-top:8px">종이를 보고 이름, 번호를 쓰고 엔터. 추가되면 이름 칸으로 돌아갑니다. 체크를 켜면 탐스 광고, 끄면 캠리 종이로 들어갑니다.</p>
+            <p class="hint" style="margin-top:8px">종이를 보고 이름, 번호를 쓰고 엔터. 추가되면 이름 칸으로 돌아갑니다. 체크를 켜면 광고, 끄면 캠리 종이로 들어갑니다.</p>
             <details class="tpl" style="margin-top:8px">
               <summary>여러 명 한 번에 쓰기</summary>
               <div class="tpl-body">
@@ -341,8 +342,8 @@ select.rsel.cr{background:var(--moss-soft);color:var(--moss)}select.rsel.ad{back
         <h2>터치 문자 <span id="msgN">0</span>건</h2>
         <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
       </div>
-      <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><span id="dueShow" class="hint"></span></div>
-      <p class="hint">명함 보내듯 ① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 탐스 광고로 지원서를 먼저 보낸 사람은 인사만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
+      <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><select id="dueHour" aria-label="마감 시간"></select><span id="dueShow" class="hint"></span></div>
+      <p class="hint">① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 광고로 들어와 지원서를 먼저 받은 사람은 인사와 첨삭 안내만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
       <div class="stack" id="msgs"></div>
     </section>
   </section>
@@ -667,10 +668,18 @@ $("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPr
 
 // ---- 터치 문자 ----
 let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B,D:store.get("tams_tplD")||TPL_D};
-function dueText(){const v=store.get("tams_due")||"";if(!v)return "";const d=new Date(v+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일(${"일월화수목금토"[d.getDay()]})`}
+function hourText(h){h=+h;return h===0?"밤 12시":h===12?"낮 12시":h<12?"오전 "+h+"시":"오후 "+(h-12)+"시"}
+function dueText(){const v=store.get("tams_due")||"",h=store.get("tams_dueH")||"";if(!v)return "";const d=new Date(v+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일(${"일월화수목금토"[d.getDay()]})`+(h!==""?" "+hourText(h):"")}
 function dueFor(b){return tpl.D.replaceAll("{마감}",dueText()||"OO월 OO일").replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{기수}",b.gisu||gisu()).replaceAll("{과정}",course(b.gisu)).replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"")}
 const sentStep={};
+const AD_LINE="지원서 확인 후 첨삭해드리겠습니다";
 function msgFor(b){
+ const m=msgBase(b);if(route(b)!=="ad"||m.includes(AD_LINE))return m;
+ const L=m.split("\n"), k=L.findIndex(x=>/문의/.test(x));
+ if(k<0)return m+"\n"+AD_LINE;
+ L.splice(k,0,AD_LINE);return L.join("\n");
+}
+function msgBase(b){
  return (b.plan==="B"?tpl.B:tpl.A).replaceAll("{호칭}",b.call||callName(b.name)).replaceAll("{과정}",course(b.gisu)).replaceAll("{기수}",b.gisu||gisu())
   .replaceAll("{내이름}",cfg.me||"").replaceAll("{내번호}",cfg.tel||"");
 }
@@ -726,7 +735,7 @@ function renderMsgs(){
   const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
   s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
   f.append(s);
-  if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="탐스 광고로 지원서를 먼저 보낸 분이라 인사만 보냅니다.";box.append(h,body,n,f)}
+  if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="광고로 들어와 지원서를 먼저 받은 분이라 지원서 파일과 마감 안내는 빼고 보냅니다.";box.append(h,body,n,f)}
   else{const dl=document.createElement("div");dl.className="msg-doc";dl.textContent="📎 "+docName();box.append(h,body,dl,due,f)}
   out.append(box);
  }
@@ -736,6 +745,9 @@ let lastTpl=$("tplA");["tplA","tplB","tplD"].forEach(id=>$(id).addEventListener(
 document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
 $("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B,D:TPL_D};$("tplA").value=TPL_A;$("tplB").value=TPL_B;$("tplD").value=TPL_D;store.del("tams_tplA");store.del("tams_tplB");store.del("tams_tplD");renderMsgs();toast("기본 문구로 되돌렸습니다")});
 $("hideSent").addEventListener("change",renderMsgs);
+{const hs=$("dueHour"),o=document.createElement("option");o.value="";o.textContent="시간 없이";hs.append(o);
+ for(let h=0;h<24;h++){const x=document.createElement("option");x.value=String(h);x.textContent=hourText(h);hs.append(x)}
+ hs.value=store.get("tams_dueH")||"";hs.addEventListener("change",()=>{store.set("tams_dueH",hs.value);$("dueDate").dispatchEvent(new Event("change"))})}
 $("dueDate").value=store.get("tams_due")||"";$("dueShow").textContent=dueText()?"→ "+dueText():"날짜를 넣으면 ③ 마감 안내에 들어갑니다";
 $("dueDate").addEventListener("change",()=>{store.set("tams_due",$("dueDate").value);$("dueShow").textContent=dueText()?"→ "+dueText():"날짜를 넣으면 ③ 마감 안내에 들어갑니다";renderMsgs()});$("msgQ").addEventListener("input",renderMsgs);
 
