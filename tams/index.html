@@ -758,9 +758,7 @@ function renderMsgs(){
    a.addEventListener("click",()=>{a.href="sms:"+digits(b.phone)+(IOS?"&":"?")+"body="+encodeURIComponent(msgFor(b))});f.append(a)}
   const s=document.createElement("button");s.type="button";s.textContent=b.touch?"보냄 취소":"보냄 표시";
   s.addEventListener("click",()=>{b.touch=b.touch?"":today();saveBook();renderAll();toast(b.touch?b.name+" 님 터치 완료로 표시했습니다":"보냄 표시를 지웠습니다")});
-  const nx=document.createElement("button");nx.type="button";nx.className="text";nx.textContent=b.no?"거절 취소":"거절";
-  nx.addEventListener("click",()=>{b.no=b.no?"":today();saveBook();renderAll();toast(b.no?b.name+" 님을 거절로 표시했습니다. 장부에서 따로 볼 수 있어요":b.name+" 님 거절 표시를 지웠습니다")});
-  f.append(nx,s);
+  f.append(s);
   if(ad){const n=document.createElement("p");n.className="msg-only";n.textContent="광고로 들어와 지원서를 먼저 받은 분이라 지원서 파일과 마감 안내는 빼고 보냅니다.";box.append(h,body,n,f)}
   else{const dl=document.createElement("div");dl.className="msg-doc";dl.textContent="📎 "+docName();box.append(h,body,dl,due,f)}
   out.append(box);
