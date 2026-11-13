@@ -151,6 +151,13 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
 .tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
 .pane[hidden]{display:none}
+.how{align-self:flex-start}
+.how button{min-height:36px;padding:6px 16px;font-size:14px}
+.filecard{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:14px 16px}
+.filecard .hint{flex:1;min-width:200px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:600;cursor:grab;user-select:none}
+.chip:hover{border-color:var(--ink-2)}
+.chip .ico{width:28px;height:28px;border-radius:4px;background:#2b579a;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
 @media (max-width:480px){.tabs button{padding:10px 9px;font-size:14px}}
 td.nm,th.nm{position:sticky;left:0;background:var(--sheet);z-index:1}
 th.nm{z-index:2}
@@ -223,53 +230,19 @@ tr.done td{color:var(--ink-2)}
       <label class="field" for="cMe"><span>내 이름</span><input type="text" id="cMe" autocomplete="off"></label>
       <label class="field" for="cTel"><span>내 번호</span><input type="tel" id="cTel" autocomplete="off"></label>
       <label class="field" for="cCourse"><span>과정 이름 <small style="font-weight:400">· {기수} 자리에 숫자</small></span><input type="text" id="cCourse" autocomplete="off" spellcheck="false"></label>
-      <label class="field wide" for="cFmt"><span>연락처 저장 이름 <small style="font-weight:400">· {이름} {기수} {연월} {경로} {학교}</small></span><input type="text" id="cFmt" autocomplete="off" spellcheck="false"></label>
+      <label class="field wide" for="cFmt"><span>연락처 저장 이름 <small style="font-weight:400">· {이름} {기수} {연월} {학교}</small></span><input type="text" id="cFmt" autocomplete="off" spellcheck="false"></label>
       <p class="preview wide" id="fmtPrev" style="align-self:end;margin:0"></p>
     </div>
   </details>
 
   <div class="tabs" role="tablist" aria-label="메뉴">
-    <button type="button" role="tab" data-tab="db" id="t-db">DB 터치<span id="nDb"></span></button>
-    <button type="button" role="tab" data-tab="cr" id="t-cr">캠리 터치<span id="nCr"></span></button>
-    <button type="button" role="tab" data-tab="book" id="t-book">멘티 장부<span id="nBook"></span></button>
+    <button type="button" role="tab" data-tab="in" id="t-in">캠리 터치<span id="nIn"></span></button>
     <button type="button" role="tab" data-tab="doc" id="t-doc">지원서</button>
+    <button type="button" role="tab" data-tab="book" id="t-book">멘티 장부<span id="nBook"></span></button>
   </div>
 
-  <!-- DB 터치 -->
-  <section class="pane" id="p-db" role="tabpanel" aria-labelledby="t-db">
-    <div class="grid">
-      <div class="steps">
-        <section class="step">
-          <div class="step-h"><span class="step-n" aria-hidden="true">1</span><h2>멘토님 카톡 붙여넣기</h2></div>
-          <textarea id="dbSrc" spellcheck="false" placeholder="멘토님이 보낸 DB 줄을 그대로 붙여넣기&#10;&#10;예) 2026. 11. 9 오후 1:09:26   홍길동   1000000000   hong@gmail.com   ○○대학교   네 동의합니다.   2   21   경영학과"></textarea>
-          <div class="row-btns"><button type="button" id="dbPaste">복사한 내용 붙여넣기</button><button type="button" class="text" id="dbClear">지우기</button></div>
-          <div id="dbStatus" class="status idle" role="status">붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다.</div>
-        </section>
-      </div>
-      <section class="out">
-        <div class="out-h">
-          <h2>새로 넣을 멘티 <span id="dbStN">0</span>명</h2>
-          <div class="row-btns">
-            <button type="button" class="share" data-st="db" hidden>휴대폰으로 보내기</button>
-            <button type="button" class="text only" data-st="db">장부에만 넣기</button><button type="button" class="primary vcf" data-st="db">연락처 파일 받기</button>
-          </div>
-        </div>
-        <div class="pickbar"><label class="check"><input type="checkbox" class="allPick" data-st="db">전체 선택</label><span class="tally" id="dbTally"></span></div>
-        <div class="ledger" id="dbList"></div>
-      </section>
-    </div>
-    <section class="msgs">
-      <div class="book-h">
-        <h2>DB 터치 문자 <span id="dbMsgN">0</span>건</h2>
-        <div class="row-btns"><label class="check"><input type="checkbox" class="hideSent" data-src="db" checked>보낸 사람 빼기</label></div>
-      </div>
-      <p class="hint">멘토님이 배정해 준 DB는 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B를 바꿀 수 있고, 부를 이름도 고칠 수 있습니다.</p>
-      <div class="stack" id="dbMsgs"></div>
-    </section>
-  </section>
-
   <!-- 캠리 터치 -->
-  <section class="pane" id="p-cr" role="tabpanel" aria-labelledby="t-cr" hidden>
+  <section class="pane" id="p-in" role="tabpanel" aria-labelledby="t-in">
     <div class="grid">
       <div class="steps">
         <section class="step">
@@ -281,42 +254,70 @@ tr.done td{color:var(--ink-2)}
           <label class="check" for="crPresent"><input type="checkbox" id="crPresent">이 캠리에서 내가 발표했어요 (B안으로 터치)</label>
         </section>
         <section class="step">
-          <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2>종이 보고 이름·번호 넣기</h2></div>
-          <form class="add" id="crForm" autocomplete="off">
-            <label class="field" for="crName"><span>이름</span><input type="text" id="crName" enterkeyhint="next"></label>
-            <label class="field" for="crTel"><span>전화</span><input type="tel" id="crTel" inputmode="tel" placeholder="01012345678" enterkeyhint="done"></label>
-            <button type="submit">추가</button>
-          </form>
-          <p class="hint">번호까지 쓰고 엔터를 누르면 추가되고 이름 칸으로 돌아갑니다.</p>
-          <details class="tpl">
-            <summary>여러 명 한 번에 쓰기</summary>
-            <div class="tpl-body">
-              <textarea id="crBulk" spellcheck="false" style="min-height:140px" placeholder="한 줄에 한 명: 이름 번호&#10;홍길동 01000000000&#10;김철수 010-0000-0000"></textarea>
-              <div class="row-btns"><button type="button" id="crBulkAdd">목록에 추가</button></div>
-            </div>
-          </details>
+          <div class="step-h"><span class="step-n" aria-hidden="true">2</span><h2>연락처 넣기</h2></div>
+          <div class="seg how" role="group" aria-label="넣는 방법"><button type="button" data-how="hand">직접 쓰기</button><button type="button" data-how="paste">카톡 붙여넣기</button></div>
+          <div id="howHand">
+            <form class="add" id="crForm" autocomplete="off">
+              <label class="field" for="crName"><span>이름</span><input type="text" id="crName" enterkeyhint="next"></label>
+              <label class="field" for="crTel"><span>전화</span><input type="tel" id="crTel" inputmode="tel" placeholder="01012345678" enterkeyhint="done"></label>
+              <button type="submit">추가</button>
+            </form>
+            <p class="hint" style="margin-top:8px">종이를 보고 이름, 번호를 쓰고 엔터. 추가되면 이름 칸으로 돌아갑니다.</p>
+            <details class="tpl" style="margin-top:8px">
+              <summary>여러 명 한 번에 쓰기</summary>
+              <div class="tpl-body">
+                <textarea id="crBulk" spellcheck="false" style="min-height:140px" placeholder="한 줄에 한 명: 이름 번호&#10;홍길동 01000000000&#10;김철수 010-0000-0000"></textarea>
+                <div class="row-btns"><button type="button" id="crBulkAdd">목록에 추가</button></div>
+              </div>
+            </details>
+          </div>
+          <div id="howPaste" class="stack" hidden>
+            <textarea id="dbSrc" spellcheck="false" placeholder="카톡으로 받은 줄을 그대로 붙여넣기&#10;&#10;예) 2026. 11. 9 오후 1:09:26   홍길동   1000000000   hong@gmail.com   ○○대학교   네 동의합니다.   2   21   경영학과"></textarea>
+            <div class="row-btns"><button type="button" id="dbPaste">복사한 내용 붙여넣기</button><button type="button" class="text" id="dbClear">지우기</button></div>
+            <div id="dbStatus" class="status idle" role="status">붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다.</div>
+          </div>
         </section>
       </div>
       <section class="out">
         <div class="out-h">
-          <h2>새로 넣을 멘티 <span id="crStN">0</span>명</h2>
+          <h2>새로 넣을 멘티 <span id="inStN">0</span>명</h2>
           <div class="row-btns">
-            <button type="button" class="share" data-st="cr" hidden>휴대폰으로 보내기</button>
-            <button type="button" class="text only" data-st="cr">장부에만 넣기</button><button type="button" class="primary vcf" data-st="cr">연락처 파일 받기</button>
+            <button type="button" class="share" data-st="in" hidden>휴대폰으로 보내기</button>
+            <button type="button" class="text only" data-st="in">장부에만 넣기</button><button type="button" class="primary vcf" data-st="in">연락처 파일 받기</button>
           </div>
         </div>
-        <div class="pickbar"><label class="check"><input type="checkbox" class="allPick" data-st="cr">전체 선택</label><span class="tally" id="crTally"></span></div>
-        <div class="ledger" id="crList"></div>
+        <div class="pickbar"><label class="check"><input type="checkbox" class="allPick" data-st="in">전체 선택</label><span class="tally" id="inTally"></span></div>
+        <div class="ledger" id="inList"></div>
       </section>
     </div>
     <section class="msgs">
       <div class="book-h">
-        <h2>캠리 터치 문자 <span id="crMsgN">0</span>건</h2>
-        <div class="row-btns"><label class="check"><input type="checkbox" class="hideSent" data-src="cr" checked>보낸 사람 빼기</label></div>
+        <h2>터치 문자 <span id="msgN">0</span>건</h2>
+        <div class="row-btns"><label class="check"><input type="checkbox" id="hideSent" checked>보낸 사람 빼기</label></div>
       </div>
-      <p class="hint">'내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안으로 만듭니다.</p>
-      <div class="stack" id="crMsgs"></div>
+      <p class="hint">'내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안(멘토 배정 인사)으로 만듭니다. 사람마다 A·B와 부를 이름을 바꿀 수 있습니다.</p>
+      <div class="stack" id="msgs"></div>
     </section>
+  </section>
+
+  <!-- 지원서 -->
+  <section class="pane" id="p-doc" role="tabpanel" aria-labelledby="t-doc" hidden>
+    <div class="stack">
+      <div class="doc-h">
+        <div><b id="docTitle">지원서</b><p class="hint" id="docSub"></p></div>
+        <div class="row-btns">
+          <button type="button" id="docShare" hidden>카톡으로 보내기</button>
+          <button type="button" class="primary" id="docDown">지원서 파일 받기</button>
+        </div>
+      </div>
+      <div class="filecard">
+        <a id="docChip" class="chip" draggable="true" href="#" title="카톡 대화창으로 끌어다 놓기"><span class="ico" aria-hidden="true">W</span><span id="docChipName">지원서.docx</span></a>
+        <p class="hint" id="docHow"></p>
+      </div>
+      <label class="drop" id="docDrop"><input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">새 기수 지원서(.docx)를 여기에 끌어 놓거나 눌러서 고르기. 파일 속 'O기'를 읽어 기수와 터치 문자가 같이 바뀝니다.</label>
+      <p class="hint" id="docReset" hidden><button type="button" class="text" id="docResetBtn">기본(6기) 지원서로 되돌리기</button></p>
+      <div class="paper" id="docView" aria-label="지원서 미리보기"></div>
+    </div>
   </section>
 
   <!-- 멘티 장부 -->
@@ -326,7 +327,7 @@ tr.done td{color:var(--ink-2)}
       <div class="pickbar">
         <div class="filters">
           <select id="fGisu" aria-label="기수"></select>
-          <select id="fSrc" aria-label="경로"><option value="">DB+캠리</option><option value="db">DB만</option><option value="cr">캠리만</option></select>
+          <select id="fSrc" aria-label="넣은 방법"><option value="">직접+카톡</option><option value="cr">직접 쓴 사람</option><option value="db">카톡으로 받은 사람</option></select>
           <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 전</option><option value="sub">제출 전</option><option value="done">제출 끝</option></select>
           <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
         </div>
@@ -340,23 +341,6 @@ tr.done td{color:var(--ink-2)}
         <thead><tr><th class="nm">이름</th><th>전화</th><th>학교 · 학년 · 전공</th><th class="ck">터치</th><th class="ck">지원서 받음</th><th class="ck">첨삭함</th><th class="ck">실장님 제출</th><th>메모</th><th></th></tr></thead>
         <tbody id="book"></tbody>
       </table></div>
-    </div>
-  </section>
-
-  <!-- 지원서 -->
-  <section class="pane" id="p-doc" role="tabpanel" aria-labelledby="t-doc" hidden>
-    <div class="stack">
-      <div class="doc-h">
-        <div><b id="docTitle">지원서</b><p class="hint" id="docSub"></p></div>
-        <div class="row-btns">
-          <button type="button" id="docShare" hidden>휴대폰으로 보내기</button>
-          <button type="button" id="docCopy">내용 복사</button>
-          <button type="button" class="primary" id="docDown">지원서 파일 받기</button>
-        </div>
-      </div>
-      <label class="drop" id="docDrop"><input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">새 기수 지원서(.docx)를 여기에 끌어 놓거나 눌러서 고르기. 파일 속 'O기'를 읽어 기수와 터치 문자가 같이 바뀝니다.</label>
-      <p class="hint" id="docReset" hidden><button type="button" class="text" id="docResetBtn">기본(6기) 지원서로 되돌리기</button></p>
-      <div class="paper" id="docView" aria-label="지원서 미리보기"></div>
     </div>
   </section>
 
@@ -386,10 +370,11 @@ function digits(s){return String(s||"").replace(/\D/g,"")}
 const MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent), IOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 // ---- 설정 ----
-const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"TAMS{기수} {이름} ({연월})"};
+const DEF={gisu:6,me:"정재운",tel:"010-8433-4135",course:"TAMS 글로벌 금융인 양성과정 IN BUSAN {기수}기",fmt:"{이름} 탐스 ({기수}기)"};
 const TPL_A="안녕하세요 {호칭}님☺️\n\n미래에셋 [{과정}] 멘토로 배정받은 {내이름}({내번호})입니다!\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요!";
 const TPL_B="안녕하세요 {호칭}님 :) \n강의 시작 전 홍보 안내 드렸던 {내이름} 매니저({내번호})입니다.\n\n서류 지원부터 과정 끝날 때까지 최선을 다해 도와드리도록 하겠습니다\n문의사항 있으시면 언제든 연락주세요~!";
 let cfg=Object.assign({},DEF,J("tams_cfg",{}));
+if(cfg.fmt==="TAMS{기수} {이름} ({연월})")cfg.fmt=DEF.fmt;
 function saveCfg(){store.set("tams_cfg",JSON.stringify(cfg))}
 const gisu=()=>Number(cfg.gisu)||DEF.gisu;
 const course=g=>(cfg.course||DEF.course).replaceAll("{기수}",g||gisu());
@@ -457,33 +442,34 @@ function parseDb(text){
 
 // ---- 데이터 ----
 let book=J("tams_book",[]);
-let stage={db:J("tams_st_db",[]),cr:J("tams_st_cr",[])};
+let stage={in:J("tams_st_in",null)||[...J("tams_st_db",[]),...J("tams_st_cr",[])]};
 function saveBook(){if(!store.set("tams_book",JSON.stringify(book)))toast("이 브라우저에 저장하지 못했습니다. 백업을 받아 두세요")}
-function saveStage(){store.set("tams_st_db",JSON.stringify(stage.db));store.set("tams_st_cr",JSON.stringify(stage.cr))}
+function saveStage(){store.set("tams_st_in",JSON.stringify(stage.in))}
 const inBook=p=>book.find(b=>b.phone===p);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 function ym(d){return d?d.slice(2,4)+"."+d.slice(5,7):""}
 function saveName(r){
  return (cfg.fmt||DEF.fmt).replaceAll("{이름}",r.name||"").replaceAll("{기수}",r.gisu||gisu()).replaceAll("{연월}",ym(r.added||today()))
-  .replaceAll("{경로}",r.src==="cr"?"캠리":"DB").replaceAll("{학교}",r.school||r.place||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
+  .replaceAll("{경로}",r.src==="cr"?"캠리":"카톡").replaceAll("{학교}",r.school||r.place||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
 }
 
 // ---- 새로 넣을 멘티(DB/캠리) ----
 function loadDb(){
  store.set("tams_dbsrc",$("dbSrc").value);
- const prev=new Map(stage.db.map(s=>[s.phone,s]));
- const seen=new Set();
- stage.db=parseDb($("dbSrc").value).filter(r=>{if(seen.has(r.phone))return false;seen.add(r.phone);return true}).map(r=>{
+ const prev=new Map(stage.in.filter(s=>s.src==="db").map(s=>[s.phone,s]));
+ const hand=stage.in.filter(s=>s.src!=="db"), seen=new Set(hand.map(s=>s.phone));
+ const got=parseDb($("dbSrc").value).filter(r=>{if(seen.has(r.phone))return false;seen.add(r.phone);return true}).map(r=>{
   const p=prev.get(r.phone);const dup=!!inBook(r.phone);
-  return Object.assign(r,{src:"db",plan:"A",on:p?p.on:!dup,dup});
+  return Object.assign(r,{src:"db",plan:p?p.plan:($("crPresent").checked?"B":"A"),place:$("crPlace").value.trim(),crDate:$("crDate").value,on:p?p.on:!dup,dup});
  });
+ stage.in=hand.concat(got);
  saveStage();
  const st=$("dbStatus");
  if(!$("dbSrc").value.trim()){st.className="status idle";st.textContent="붙여넣으면 바로 정리됩니다. 번호 앞 0이 빠져 있어도 010으로 고칩니다."}
- else if(!stage.db.length){st.className="status warn";st.textContent="전화번호가 있는 줄을 찾지 못했습니다. 멘토님 카톡의 DB 줄을 그대로 붙여넣어 주세요."}
- else{const d=stage.db.filter(s=>s.dup).length;st.className="status ok";st.textContent=`${stage.db.length}명을 읽었습니다.`+(d?` 그중 ${d}명은 이미 장부에 있어서 빼 두었습니다.`:"")}
- renderStage("db");
+ else if(!got.length){st.className="status warn";st.textContent="전화번호가 있는 줄을 찾지 못했습니다. 멘토님 카톡의 DB 줄을 그대로 붙여넣어 주세요."}
+ else{const d=got.filter(s=>s.dup).length;st.className="status ok";st.textContent=`${got.length}명을 읽었습니다.`+(d?` 그중 ${d}명은 이미 장부에 있어서 빼 두었습니다.`:"")}
+ renderStage("in");
 }
 function renderStage(k){
  const list=stage[k], box=$(k+"List");box.replaceChildren();
@@ -491,7 +477,7 @@ function renderStage(k){
  $(k+"Tally").textContent=list.length?`읽은 ${list.length}명 중 ${list.filter(s=>s.on).length}명 고름`:"";
  const all=document.querySelector(`.allPick[data-st="${k}"]`);all.checked=list.length&&list.every(s=>s.on);all.indeterminate=list.some(s=>s.on)&&!all.checked;
  document.querySelectorAll(`[data-st="${k}"].vcf,[data-st="${k}"].only,[data-st="${k}"].share`).forEach(b=>b.disabled=!list.some(s=>s.on));
- if(!list.length){const d=document.createElement("div");d.className="blank";d.textContent=k==="db"?"카톡 내용을 붙여넣으면 여기에 정리됩니다.":"이름과 번호를 넣으면 여기에 쌓입니다.";box.append(d);return}
+ if(!list.length){const d=document.createElement("div");d.className="blank";d.textContent="직접 쓰거나 카톡을 붙여넣으면 여기에 쌓입니다.";box.append(d);return}
  list.forEach((s,i)=>{
   const row=document.createElement("label");row.className="lrow"+(s.on?"":" off");
   const cb=document.createElement("input");cb.type="checkbox";cb.checked=s.on;cb.addEventListener("change",()=>{s.on=cb.checked;saveStage();renderStage(k)});
@@ -506,8 +492,8 @@ function renderStage(k){
   main.append(a,b);
   const tags=document.createElement("div");tags.className="tags";
   if(s.dup){const t=document.createElement("span");t.className="tag dup";t.textContent="이미 장부에 있음";tags.append(t)}
-  if(k==="cr"){const t=document.createElement("span");t.className="tag other";t.textContent=s.plan==="B"?"B안":"A안";tags.append(t)
-   const x=document.createElement("button");x.type="button";x.className="text";x.textContent="빼기";x.addEventListener("click",e=>{e.preventDefault();stage.cr.splice(i,1);saveStage();renderStage("cr")});tags.append(x)}
+  {const t=document.createElement("span");t.className="tag other";t.textContent=(s.src==="db"?"카톡 · ":"")+(s.plan==="B"?"B안":"A안");tags.append(t)}
+  if(s.src!=="db"){const x=document.createElement("button");x.type="button";x.className="text";x.textContent="빼기";x.addEventListener("click",e=>{e.preventDefault();stage.in.splice(i,1);saveStage();renderStage("in")});tags.append(x)}
   row.append(cb,main,tags);box.append(row);
  });
 }
@@ -517,13 +503,13 @@ function takeStage(k){
  for(const s of picked){
   let b=inBook(s.phone);
   if(b){Object.keys(s).forEach(key=>{if(!["on","dup"].includes(key)&&s[key]&&!b[key])b[key]=s[key]});recs.push(b);continue}
-  b={id:uid(),gisu:gisu(),src:k,name:s.name,call:callName(s.name),phone:s.phone,email:s.email||"",school:s.school||"",grade:s.grade||"",age:s.age||"",major:s.major||"",
+  b={id:uid(),gisu:gisu(),src:s.src||"cr",name:s.name,call:callName(s.name),phone:s.phone,email:s.email||"",school:s.school||"",grade:s.grade||"",age:s.age||"",major:s.major||"",
      place:s.place||"",crDate:s.crDate||"",ts:s.ts||"",plan:s.plan||"A",added:now,touch:"",got:"",edit:"",sub:"",memo:""};
   book.push(b);recs.push(b);
  }
  saveBook();
  stage[k]=stage[k].filter(s=>!s.on);
- if(k==="db"){stage.db.forEach(s=>s.dup=!!inBook(s.phone))}
+ stage.in.forEach(s=>s.dup=!!inBook(s.phone));
  saveStage();renderAll();
  return recs;
 }
@@ -534,7 +520,7 @@ function vcard(list){
  return list.map(c=>{const nm=saveName(c);return [
   "BEGIN:VCARD","VERSION:3.0","N:;"+esc(nm)+";;;","FN:"+esc(nm),"UID:tams-"+digits(c.phone),"TEL;TYPE=CELL:"+c.phone,
   c.email?"EMAIL:"+esc(c.email):"",
-  "NOTE:"+esc(["TAMS "+(c.gisu||gisu())+"기",c.src==="cr"?"캠리"+(c.place?" "+c.place:""):"DB",c.school,c.grade,c.major].filter(Boolean).join(" · ")),
+  "NOTE:"+esc(["TAMS "+(c.gisu||gisu())+"기","캠리"+(c.place?" "+c.place:"")+(c.src==="db"?" (카톡)":""),c.school,c.grade,c.major].filter(Boolean).join(" · ")),
   "END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
 }
 function vcfFile(list,label){return new File([new Blob([vcard(list)],{type:"text/vcard;charset=utf-8"})],`TAMS${gisu()}_${label}.vcf`,{type:"text/vcard"})}
@@ -559,9 +545,9 @@ document.querySelectorAll(".allPick").forEach(c=>c.addEventListener("change",()=
 function crAdd(name,tel){
  name=String(name||"").trim();const phone=fmtPhone(tel);
  if(!name||!phone)return false;
- if(stage.cr.some(s=>s.phone===phone)){toast(phone+" 은 이미 목록에 있습니다");return true}
+ if(stage.in.some(s=>s.phone===phone)){toast(phone+" 은 이미 목록에 있습니다");return true}
  const dup=!!inBook(phone);
- stage.cr.push({src:"cr",name,phone,place:$("crPlace").value.trim(),crDate:$("crDate").value,plan:$("crPresent").checked?"B":"A",on:!dup,dup});
+ stage.in.push({src:"cr",name,phone,place:$("crPlace").value.trim(),crDate:$("crDate").value,plan:$("crPresent").checked?"B":"A",on:!dup,dup});
  return true;
 }
 $("crForm").addEventListener("submit",e=>{
@@ -569,7 +555,7 @@ $("crForm").addEventListener("submit",e=>{
  const n=$("crName").value, t=$("crTel").value;
  if(!n.trim()){$("crName").focus();return}
  if(!fmtPhone(t)){toast("번호를 다시 확인해 주세요 (010으로 시작하는 휴대폰 번호)");$("crTel").focus();return}
- crAdd(n,t);saveStage();renderStage("cr");$("crName").value="";$("crTel").value="";$("crName").focus();
+ crAdd(n,t);saveStage();renderStage("in");$("crName").value="";$("crTel").value="";$("crName").focus();
 });
 $("crName").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("crTel").focus()}});
 $("crBulkAdd").addEventListener("click",()=>{
@@ -581,12 +567,12 @@ $("crBulkAdd").addEventListener("click",()=>{
   const name=(line.slice(0,m.index)+" "+line.slice(m.index+m[0].length)).replace(/[,\t/]+/g," ").trim();
   if(crAdd(name,m[0]))n++;else bad++;
  }
- saveStage();renderStage("cr");
+ saveStage();renderStage("in");
  if(n){$("crBulk").value=""}
  toast(`${n}명 추가했습니다`+(bad?` · ${bad}줄은 이름이나 번호를 못 읽었습니다`:""));
 });
 ["crPlace","crDate"].forEach(id=>$(id).addEventListener("change",()=>store.set("tams_"+id,$(id).value)));
-$("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPresent").checked?"1":"");stage.cr.forEach(s=>s.plan=$("crPresent").checked?"B":"A");saveStage();renderStage("cr")});
+$("crPresent").addEventListener("change",()=>{store.set("tams_crPresent",$("crPresent").checked?"1":"");stage.in.forEach(s=>s.plan=$("crPresent").checked?"B":"A");saveStage();renderStage("in")});
 
 // ---- 터치 문자 ----
 let tpl={A:store.get("tams_tplA")||TPL_A,B:store.get("tams_tplB")||TPL_B};
@@ -598,13 +584,13 @@ function copyText(text,msg){
  const fb=()=>{const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.append(t);t.select();try{document.execCommand("copy");toast(msg)}catch(e){toast("복사하지 못했습니다")}t.remove()};
  try{if(!navigator.clipboard)throw 0;navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}
 }
-const hide={db:true,cr:true};
-function renderMsgs(k){
- const list=book.filter(b=>b.src===k&&(b.gisu||gisu())===gisu()&&!(hide[k]&&b.touch));
- $(k+"MsgN").textContent=list.length;
- const out=$(k+"Msgs");out.replaceChildren();
+function renderMsgs(){
+ const hide=$("hideSent").checked;
+ const list=book.filter(b=>(b.gisu||gisu())===gisu()&&!(hide&&b.touch));
+ $("msgN").textContent=list.length;
+ const out=$("msgs");out.replaceChildren();
  if(!list.length){const d=document.createElement("div");d.className="blank";
-  d.textContent=book.some(b=>b.src===k&&(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
+  d.textContent=book.some(b=>(b.gisu||gisu())===gisu())?"모두 터치했습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위에서 장부에 넣으면 여기에 사람마다 터치 문자가 만들어집니다.";out.append(d);return}
  for(const b of list){
   const box=document.createElement("article");box.className="msg"+(b.touch?" sent":"");
   const h=document.createElement("div");h.className="msg-h";
@@ -617,7 +603,7 @@ function renderMsgs(k){
   const inp=document.createElement("input");inp.type="text";inp.value=b.call||callName(b.name);inp.setAttribute("aria-label",b.name+" 부를 이름");
   const seg=document.createElement("div");seg.className="seg";
   ["A","B"].forEach(p=>{const s=document.createElement("button");s.type="button";s.textContent=p+"안";s.setAttribute("aria-pressed",String((b.plan||"A")===p));
-   s.addEventListener("click",()=>{b.plan=p;saveBook();renderMsgs(k)});seg.append(s)});
+   s.addEventListener("click",()=>{b.plan=p;saveBook();renderMsgs()});seg.append(s)});
   call.append(lb,inp,seg);
   h.append(id,call);
   const body=document.createElement("div");body.className="msg-b";body.textContent=msgFor(b);
@@ -636,11 +622,11 @@ function renderMsgs(k){
   box.append(h,body,f);out.append(box);
  }
 }
-["tplA","tplB"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs("db");renderMsgs("cr")})});
+["tplA","tplB"].forEach(id=>{const k=id.slice(-1);$(id).value=tpl[k];$(id).addEventListener("input",()=>{tpl[k]=$(id).value;store.set("tams_"+id,tpl[k]);renderMsgs()})});
 let lastTpl=$("tplA");["tplA","tplB"].forEach(id=>$(id).addEventListener("focus",()=>lastTpl=$(id)));
 document.querySelectorAll(".mtokens [data-m]").forEach(b=>b.addEventListener("click",()=>{const t=lastTpl,v=b.dataset.m,s=t.selectionStart??t.value.length;t.setRangeText(v,s,t.selectionEnd??s,"end");t.focus();t.dispatchEvent(new Event("input"))}));
-$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").value=TPL_A;$("tplB").value=TPL_B;store.del("tams_tplA");store.del("tams_tplB");renderMsgs("db");renderMsgs("cr");toast("기본 문구로 되돌렸습니다")});
-document.querySelectorAll(".hideSent").forEach(c=>c.addEventListener("change",()=>{hide[c.dataset.src]=c.checked;renderMsgs(c.dataset.src)}));
+$("tplReset").addEventListener("click",()=>{tpl={A:TPL_A,B:TPL_B};$("tplA").value=TPL_A;$("tplB").value=TPL_B;store.del("tams_tplA");store.del("tams_tplB");renderMsgs();toast("기본 문구로 되돌렸습니다")});
+$("hideSent").addEventListener("change",renderMsgs);
 
 // ---- 장부 ----
 const STEPS=[["touch","터치"],["got","지원서 받음"],["edit","첨삭함"],["sub","실장님 제출"]];
@@ -661,12 +647,12 @@ function renderBook(){
  renderGisuFilter();
  const g=$("fGisu").value, base=book.filter(b=>!g||String(b.gisu||gisu())===g);
  const c=$("counts");c.replaceChildren();
- [["멘티",base.length],["DB",base.filter(b=>b.src==="db").length],["캠리",base.filter(b=>b.src==="cr").length],...STEPS.map(([k,l])=>[l,base.filter(b=>b[k]).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
+ [["멘티",base.length],...STEPS.map(([k,l])=>[l,base.filter(b=>b[k]).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
  const list=bookList(), tb=$("book");tb.replaceChildren();
  if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=9;td.style.color="var(--ink-2)";td.textContent=book.length?"조건에 맞는 멘티가 없습니다.":"아직 넣은 멘티가 없습니다. DB 터치나 캠리 터치에서 넣어 주세요.";tr.append(td);tb.append(tr);return}
  for(const b of list){
   const tr=document.createElement("tr");if(b.sub)tr.className="done";
-  const td1=document.createElement("td");td1.className="nm";const sp=document.createElement("span");sp.className="src"+(b.src==="cr"?" cr":"");sp.textContent=b.src==="cr"?"캠리":"DB";const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");
+  const td1=document.createElement("td");td1.className="nm";const sp=document.createElement("span");sp.className="src"+(b.src==="cr"?" cr":"");sp.textContent=b.src==="db"?"카톡":"직접";const ni=document.createElement("input");ni.type="text";ni.className="nmi";ni.value=b.name;ni.setAttribute("aria-label","이름");
   ni.addEventListener("change",()=>{const v=ni.value.trim();if(!v){ni.value=b.name;return}if(b.call===callName(b.name))b.call=callName(v);b.name=v;saveBook();renderAll();toast("이름을 고쳤습니다")});td1.append(ni,sp);tr.append(td1);
   const td2=document.createElement("td");const pi=document.createElement("input");pi.type="tel";pi.className="phi";pi.value=b.phone;pi.setAttribute("aria-label","전화");
   pi.addEventListener("change",()=>{const v=fmtPhone(pi.value);if(!v){pi.value=b.phone;toast("번호를 다시 확인해 주세요");return}b.phone=v;pi.value=v;saveBook();renderAll()});td2.append(pi);tr.append(td2);
@@ -683,7 +669,7 @@ function renderBook(){
   const td9=document.createElement("td");td9.className="del";const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
   x.addEventListener("click",()=>{
    if(x.dataset.sure!=="1"){x.dataset.sure="1";x.textContent="한 번 더 누르면 지움";setTimeout(()=>{x.dataset.sure="";x.textContent="지우기"},3000);return}
-   book=book.filter(o=>o!==b);saveBook();stage.db.forEach(s=>s.dup=!!inBook(s.phone));renderAll();toast(b.name+" 님을 지웠습니다")});
+   book=book.filter(o=>o!==b);saveBook();stage.in.forEach(s=>s.dup=!!inBook(s.phone));renderAll();toast(b.name+" 님을 지웠습니다")});
   td9.append(x);tr.append(td9);
   tb.append(tr);
  }
@@ -693,8 +679,8 @@ $("bVcf").addEventListener("click",()=>{const l=bookList();if(!l.length){toast("
 $("bXlsx").addEventListener("click",()=>{
  const l=bookList();if(!l.length){toast("받을 멘티가 없습니다");return}
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
- const aoa=[["기수","경로","이름","전화","이메일","학교","학년","나이","전공","넣은 날","터치","지원서 받음","첨삭함","실장님 제출","메모"],
-  ...l.map(b=>[b.gisu||gisu(),b.src==="cr"?"캠리":"DB",b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,b.touch,b.got,b.edit,b.sub,b.memo])];
+ const aoa=[["기수","넣은 방법","이름","전화","이메일","학교","학년","나이","전공","넣은 날","터치","지원서 받음","첨삭함","실장님 제출","메모"],
+  ...l.map(b=>[b.gisu||gisu(),b.src==="db"?"카톡":"직접",b.name,b.phone,b.email,b.school||b.place,b.grade,b.age,b.major,b.added,b.touch,b.got,b.edit,b.sub,b.memo])];
  const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[4,6,12,15,24,16,7,7,16,11,11,11,11,11,20].map(w=>({wch:w}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"멘티");XLSX.writeFile(wb,`TAMS_mentee_${stamp()}.xlsx`);
 });
@@ -772,6 +758,7 @@ function renderDoc(){
  $("docSub").textContent=(doc.custom?"직접 넣은 파일 · ":"기본 파일 · ")+docName();
  $("docReset").hidden=!doc.custom;
  $("docView").innerHTML=doc.blocks.length?docHtml():"<p>지원서를 불러오는 중입니다…</p>";
+ renderChip();
 }
 function docName(){return `지원서_TAMS_${doc.gisu||gisu()}기.docx`}
 function docFile(){return new File([b64ToBytes(doc.b64)],docName(),{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"})}
@@ -783,11 +770,21 @@ async function sendDoc(){
 }
 $("docDown").addEventListener("click",()=>{if(!doc.b64)return;download(docFile());toast("지원서 파일을 받았습니다")});
 $("docShare").addEventListener("click",sendDoc);
-$("docCopy").addEventListener("click",async()=>{
- if(!doc.blocks.length)return;
- const plain=docPlain(), html=`<div style="font-family:sans-serif;font-size:14px">${docHtml()}</div>`;
- try{if(typeof ClipboardItem==="undefined")throw 0;await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})})]);toast("지원서 내용을 복사했습니다 (워드·한글에 붙이면 표 그대로)")}
- catch(e){copyText(plain,"지원서 내용을 복사했습니다")}
+// 파일 그대로 카톡 창에 끌어다 놓기 (크롬은 끌면 파일로 넘어감)
+const DOCX="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+let chipUrl="";
+function renderChip(){
+ if(chipUrl)URL.revokeObjectURL(chipUrl);
+ if(!doc.b64)return;
+ chipUrl=URL.createObjectURL(new Blob([b64ToBytes(doc.b64)],{type:DOCX}));
+ const c=$("docChip");c.href=chipUrl;c.download=docName();$("docChipName").textContent=docName();
+ $("docHow").textContent=MOBILE?"[카톡으로 보내기]를 누르고 카카오톡에서 멘티를 고르면 지원서 파일이 그대로 첨부됩니다."
+  :"왼쪽 파일을 카톡 대화창으로 끌어다 놓으면 지원서 파일이 그대로 첨부됩니다. 누르면 파일로 받아집니다.";
+}
+$("docChip").addEventListener("dragstart",e=>{
+ if(!chipUrl)return;
+ try{e.dataTransfer.setData("DownloadURL",`${DOCX}:${docName()}:${chipUrl}`)}catch(err){}
+ e.dataTransfer.effectAllowed="copy";
 });
 async function useDocBytes(bytes,name,custom){
  const r=readDocx(bytes);
@@ -830,8 +827,15 @@ function syncCfg(){
  let v=$(id).value;if(k==="gisu")v=Number(v)||0;if(k!=="gisu"&&!v.trim())v=DEF[k];cfg[k]=v;if(k==="gisu"&&!v)return;saveCfg();
  $("lede").textContent=`미래에셋 ${course()} · 멘티 연락처 저장, 터치 문자, 지원서 진행 관리`;$("cfgSum").textContent=`${gisu()}기 · ${cfg.me} ${cfg.tel}`;
  $("fmtPrev").querySelector("b").textContent=saveName({name:"홍길동",src:"db",added:today(),school:"○○대학교"});
- renderStage("db");renderStage("cr");renderMsgs("db");renderMsgs("cr");if(k==="gisu"){renderBook();renderDoc()}
+ renderStage("in");renderMsgs();if(k==="gisu"){renderBook();renderDoc()}
 }));
+
+// ---- 넣는 방법 ----
+function showHow(h){
+ document.querySelectorAll(".how [data-how]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.how===h)));
+ $("howHand").hidden=h!=="hand";$("howPaste").hidden=h!=="paste";store.set("tams_how",h);
+}
+document.querySelectorAll(".how [data-how]").forEach(b=>b.addEventListener("click",()=>{showHow(b.dataset.how);(b.dataset.how==="hand"?$("crName"):$("dbSrc")).focus()}));
 
 // ---- 탭 ----
 function showTab(t){
@@ -843,23 +847,23 @@ document.querySelectorAll(".tabs [data-tab]").forEach(b=>b.addEventListener("cli
 
 function renderAll(){
  const g=gisu(), cur=book.filter(b=>(b.gisu||g)===g);
- const nd=cur.filter(b=>b.src==="db"&&!b.touch).length, nc=cur.filter(b=>b.src==="cr"&&!b.touch).length;
- $("nDb").textContent=nd?nd:"";$("nCr").textContent=nc?nc:"";$("nBook").textContent=cur.length?cur.length:"";
- renderStage("db");renderStage("cr");renderMsgs("db");renderMsgs("cr");renderBook();
+ const ni=cur.filter(b=>!b.touch).length;$("nIn").textContent=ni?ni:"";$("nBook").textContent=cur.length?cur.length:"";
+ renderStage("in");renderMsgs();renderBook();
 }
 
 // ---- 붙여넣기 칸 ----
 $("dbSrc").addEventListener("input",loadDb);
 $("dbPaste").addEventListener("click",async()=>{try{const t=await navigator.clipboard.readText();$("dbSrc").value=t;loadDb()}catch(e){$("dbSrc").focus();toast("붙여넣기 칸을 길게 누르거나 ⌘V로 넣어 주세요")}});
-$("dbClear").addEventListener("click",()=>{$("dbSrc").value="";stage.db=[];loadDb();$("dbSrc").focus()});
+$("dbClear").addEventListener("click",()=>{$("dbSrc").value="";loadDb();$("dbSrc").focus()});
 
 // ---- 시작 ----
 (function init(){
  $("dbSrc").value=store.get("tams_dbsrc")||"";
  $("crDate").value=store.get("tams_crDate")||today();$("crPlace").value=store.get("tams_crPlace")||"";$("crPresent").checked=store.get("tams_crPresent")==="1";
  syncCfg();
- const t=store.get("tams_tab");showTab(["db","cr","book","doc"].includes(t)?t:"db");
- stage.db.forEach(s=>s.dup=!!inBook(s.phone));
+ const t=store.get("tams_tab");showTab(["in","doc","book"].includes(t)?t:"in");
+ showHow(store.get("tams_how")||"hand");
+ stage.in.forEach(s=>s.dup=!!inBook(s.phone));
  renderAll();
  const saved=J("tams_doc",null);
  if(saved&&saved.b64){try{useDocBytes(b64ToBytes(saved.b64),saved.name,true).then(renderDoc)}catch(e){loadDefaultDoc()}}else loadDefaultDoc();
