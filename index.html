@@ -138,10 +138,29 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .tag.touch{background:var(--amber-soft);color:var(--amber)}
 .tag.miss{background:var(--seal-soft);color:var(--seal)}
 .tag.call{background:var(--moss-soft);color:var(--moss)}
-.seg{display:flex;gap:4px;flex-wrap:wrap}
-.seg button{font-size:13px;padding:5px 10px}
+.fbox{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--sheet)}
+.fbox-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:14px}
+.fbox-h span{font-size:12px;color:var(--ink-2)}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.seg button{display:flex;align-items:center;gap:8px;font-size:14px;padding:7px 10px;text-align:left;background:var(--paper);white-space:nowrap}
+.seg button b{margin-left:auto;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.seg button.zero{color:var(--ink-2)}
+.seg button.zero b{font-weight:500}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
-.seg button b{font-weight:600;margin-left:3px}
+.seg button[aria-pressed="true"] b::after{content:"✕";font-size:11px;font-weight:600;margin-left:8px;opacity:.7}
+.seg.sub{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:8px;border-top:1px solid var(--rule-2)}
+.seg.sub button{font-size:13px;padding:4px 10px;min-height:32px}
+.seg.sub button b{font-size:13px;margin-left:4px}
+.seg.sub button.text{margin-left:auto;background:transparent}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--rule)}
+.d-none{background:var(--ink-2);opacity:.45}.d-touch{background:var(--amber)}.d-miss{background:var(--seal)}.d-call{background:var(--moss);opacity:.6}.d-meet{background:var(--moss)}.d-reject{background:var(--plum)}
+.seg button[aria-pressed="true"] .dot{box-shadow:0 0 0 2px var(--sheet)}
+.fnote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:8px 12px;border-radius:var(--r-s);background:var(--seal-soft);color:var(--ink);font-size:14px}
+.fnote b{font-variant-numeric:tabular-nums}
+.fnote button{font-size:13px;padding:4px 12px;min-height:32px;font-weight:600}
+.check.off{opacity:.45;cursor:default}
+.lrow.nav{grid-template-columns:64px minmax(0,1fr) auto}
+.msg.flash{outline:2px solid var(--seal);outline-offset:2px}
 .track{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 16px 0;padding:8px 10px;border-radius:var(--r-s);background:var(--rule-2);font-size:13px}
 .track .st{margin-right:auto;color:var(--ink-2)}
 .track .st b{color:var(--ink);font-weight:600}
@@ -165,6 +184,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .out-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule);position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);z-index:2;padding-top:4px}
 .out-h h2{margin:0;font-size:16px;font-weight:700}
 .out-h h2 span{color:var(--seal);font-variant-numeric:tabular-nums}
+.out-h h2 em{font-style:normal}
 .stack{display:flex;flex-direction:column;gap:12px}
 .msg{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);min-width:0}
 .msg-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:12px 16px 0}
@@ -225,7 +245,6 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
 .msg.hid{opacity:.75}
 .tag.hid{background:var(--rule-2);color:var(--ink-2)}
 .who .memo{font-size:12px;color:var(--ink-2);overflow-wrap:anywhere}
-.hidebar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:13px;color:var(--ink-2)}
 #foldToggle[aria-pressed="false"]{color:var(--ink-2)}
 #csToggle[aria-pressed="false"]{color:var(--ink-2)}
 .card{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--ink-2);border-radius:var(--r-m);padding:12px 14px;background:var(--sheet);cursor:pointer;transition:border-color .15s,background-color .15s}
@@ -353,19 +372,24 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
           <label class="field" for="noTo"><span>연번 끝</span><input type="text" inputmode="numeric" id="noTo" placeholder="끝까지" autocomplete="off"></label>
           <label class="field wide" for="q"><span>이름·번호 찾기</span><input type="text" id="q" placeholder="이름 또는 번호" autocomplete="off"></label>
         </div>
-        <label class="check" for="onlyNew"><input type="checkbox" id="onlyNew" checked>접촉방식이 비어 있는 고객만</label>
-        <div class="seg" id="seg" role="group" aria-label="연락 진행 상황으로 보기">
-          <button type="button" data-f="all" aria-pressed="true">전체<b id="fAll"></b></button>
-          <button type="button" data-f="none" aria-pressed="false">미연락<b id="fNone"></b></button>
-          <button type="button" data-f="touch" aria-pressed="false">터치만<b id="fTouch"></b></button>
-          <button type="button" data-f="miss" aria-pressed="false">부재<b id="fMiss"></b></button>
-          <button type="button" data-f="call" aria-pressed="false">통화됨 · 결과 전<b id="fCall"></b></button>
-          <button type="button" data-f="meet" aria-pressed="false">미팅 잡힘<b id="fMeet"></b></button>
-          <button type="button" data-f="reject" aria-pressed="false">미팅 거절<b id="fReject"></b></button>
-          <button type="button" data-f="re" id="fReBtn" aria-pressed="false" title="전에도 이관받아 이미 연락한 고객. 터치·콜 대상에서 빠집니다">재이관<b id="fRe"></b></button>
-          <button type="button" data-f="hidden" aria-pressed="false">숨김<b id="fHide"></b></button>
+<label class="check" for="onlyNew" id="onlyNewLb"><input type="checkbox" id="onlyNew" checked>접촉방식이 비어 있는 고객만</label>
+        <div class="fbox">
+          <div class="fbox-h"><b>진행 상황으로 보기</b><span>누르면 그 고객만 보이고, 한 번 더 누르면 풀립니다</span></div>
+          <div class="seg" id="seg" role="group" aria-label="연락 진행 상황으로 보기">
+            <button type="button" data-f="none" aria-pressed="false"><i class="dot d-none"></i>미연락<b id="fNone"></b></button>
+            <button type="button" data-f="touch" aria-pressed="false"><i class="dot d-touch"></i>터치만<b id="fTouch"></b></button>
+            <button type="button" data-f="miss" aria-pressed="false"><i class="dot d-miss"></i>부재<b id="fMiss"></b></button>
+            <button type="button" data-f="call" aria-pressed="false"><i class="dot d-call"></i>통화됨 · 결과 전<b id="fCall"></b></button>
+            <button type="button" data-f="meet" aria-pressed="false"><i class="dot d-meet"></i>미팅 잡힘<b id="fMeet"></b></button>
+            <button type="button" data-f="reject" aria-pressed="false"><i class="dot d-reject"></i>미팅 거절<b id="fReject"></b></button>
+          </div>
+          <div class="seg sub">
+            <button type="button" data-f="re" id="fReBtn" aria-pressed="false" title="전에도 이관받아 이미 연락한 고객. 터치·콜 대상에서 빠집니다">재이관<b id="fRe"></b></button>
+            <button type="button" data-f="hidden" aria-pressed="false" title="숨긴 고객">숨김<b id="fHide"></b></button>
+            <button type="button" class="text" id="hideDone" title="미팅이 잡혔거나 거절한 고객을 목록에서 한 번에 숨깁니다. 숨긴 고객은 '숨김'에서 다시 꺼낼 수 있습니다">끝난 고객 한 번에 숨기기</button>
+          </div>
         </div>
-        <div class="hidebar"><button type="button" class="text" id="hideDone" title="미팅이 잡혔거나 거절한 고객을 목록에서 한 번에 숨깁니다">끝난 고객 한 번에 숨기기</button><span>숨긴 고객은 '숨김'에서 다시 꺼낼 수 있습니다.</span></div>
+        <div class="fnote" id="fnote" hidden><span id="fnoteTx"></span><button type="button" id="fOff">필터 풀기</button></div>
         <div class="pickbar">
           <div class="left">
             <button type="button" id="pickTop">앞에서 <span id="topNLabel">6</span>명 선택</button>
@@ -381,7 +405,7 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
 
     <section class="out" aria-labelledby="outTitle">
       <div class="out-h">
-        <h2 id="outTitle">보낼 문자 <span id="outN">0</span>건</h2>
+        <h2 id="outTitle"><em id="outLb">보낼 문자 </em><span id="outN">0</span><em id="outUnit">건</em></h2>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="foldToggle" aria-pressed="true" title="이미 터치했거나 전화한 고객은 문자를 접어 두고 콜 기록만 보여 줍니다">터치한 문자 접기</button><button type="button" id="csToggle" aria-pressed="true" title="고객별 콜 스크립트를 보이거나 숨깁니다">콜 스크립트 숨기기</button><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
       </div>
       <div class="osearch">
@@ -428,7 +452,9 @@ let rows=SAMPLE, customers=[], selected=new Set(), topN=6, loadedName="";
 let card=store.get("tcn_card")||"";   // 명함 사진 (이 브라우저에만 저장)
 // ---- 터치(문자·카톡) → 콜 진행 기록 (이 브라우저에만 저장) ----
 let track={};try{track=JSON.parse(store.get("tcn_track")||"{}")||{}}catch(e){track={}}
-let fMode=store.get("tcn_fmode")||"all";
+let fKeep=new Set();   // 필터 중에 기록을 눌러 상태가 바뀌어도 카드가 바로 사라지지 않게
+let fMode="";   // "" = 필터 없음(전체). 칩을 다시 누르면 풀림
+const FNAME={none:"미연락",touch:"터치만",miss:"부재",call:"통화됨 · 결과 전",meet:"미팅 잡힘",reject:"미팅 거절",re:"재이관",hidden:"숨김"};
 const tkey=c=>c.name+"|"+normPhone(c.phone);
 const T=c=>track[tkey(c)]||{};
 function saveTrack(){store.set("tcn_track",JSON.stringify(track))}
@@ -619,9 +645,9 @@ function visible(){
   if(Number.isFinite(f)&&Number.isFinite(hi)&&hi<f)return false;
   if(Number.isFinite(t)&&Number.isFinite(lo)&&lo>t)return false;
   if(fMode==="hidden"){if(!hid(c))return false}else if(fMode==="re"){if(hid(c)||!isRe(c))return false}else if(off(c))return false;
-  if($("onlyNew").checked&&c.contacted&&fMode==="all")return false;
+  if($("onlyNew").checked&&c.contacted&&!fMode)return false;
   if(q&&!(c.name.includes(q)||(qd&&normPhone(c.phone).includes(qd))))return false;
-  if(fMode!=="all"&&fMode!=="hidden"&&fMode!=="re"&&stage(c)!==fMode)return false;
+  if(fMode&&fMode!=="hidden"&&fMode!=="re"&&stage(c)!==fMode&&!fKeep.has(c.key))return false;
   return true;
  });
 }
@@ -630,14 +656,19 @@ function renderCounts(){
  const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0};let hn=0,rn=0;customers.forEach(c=>{if(hid(c))hn++;else if(isRe(c))rn++;else n[stage(c)]++});
  $("fRe").textContent=rn;$("fReBtn").hidden=!rn&&fMode!=="re";
  $("fHide").textContent=hn;$("hideDone").disabled=!(n.meet+n.reject);
- $("fAll").textContent=customers.length-hn-rn;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
- document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===fMode)));
+ $("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
+ document.querySelectorAll(".fbox button[data-f]").forEach(b=>{b.setAttribute("aria-pressed",String(b.dataset.f===fMode));b.classList.toggle("zero",(b.querySelector("b").textContent||"0")==="0")});
+ $("onlyNew").disabled=!!fMode;$("onlyNewLb").classList.toggle("off",!!fMode);$("onlyNewLb").title=fMode?"필터를 걸면 이 조건은 쓰지 않습니다":"";
+ const sn=customers.filter(c=>selected.has(c.key)&&!off(c)).length;
+ $("fnote").hidden=!fMode;
+ if(fMode){const tx=$("fnoteTx");tx.replaceChildren();const b1=document.createElement("b");b1.textContent=FNAME[fMode]+" "+visible().length+"명";tx.append(b1,document.createTextNode("만 보는 중 · 골라 둔 "+sn+"명은 필터를 풀면 그대로 나옵니다"))}
+ document.querySelectorAll(".pickbar .left").forEach(e=>e.hidden=!!fMode);
 }
 function renderRoster(){
  renderCounts();
  const v=visible();$("shownN").textContent=v.length;
  const el=$("roster");el.replaceChildren();
- if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="hidden"?"숨긴 고객이 없습니다.":fMode==="re"?"재이관 고객이 없습니다.":fMode!=="all"?"'"+STAGE_TXT[fMode]+"'인 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
+ if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="hidden"?"숨긴 고객이 없습니다.":fMode==="re"?"재이관 고객이 없습니다.":fMode?"'"+STAGE_TXT[fMode]+"'인 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
  v.forEach((c,idx)=>{
   const on=selected.has(c.key);
   const d=document.createElement("div");d.className="lrow"+(on?" on":"");d.setAttribute("role","listitem");
@@ -662,15 +693,24 @@ function renderRoster(){
   else if(sg==="call")tg.append(tag("call","통화됨 "+md(t.call)));
   else if(sg==="miss")tg.append(tag("miss","부재 "+t.miss));
   else if(sg==="touch")tg.append(tag("touch","터치 "+md(t.touch)));
+  if(fMode){
+   // 필터 중: 고른 것은 건드리지 않고, 누르면 오른쪽 문자로 이동
+   d.className="lrow nav";d.title="오른쪽에서 이 고객 문자로 이동";d.append(no,who,tg);
+   d.addEventListener("click",()=>{const m=document.querySelector('.msg[data-k="'+CSS.escape(c.key)+'"]');if(m){m.scrollIntoView({block:"start",behavior:"smooth"});m.classList.add("flash");setTimeout(()=>m.classList.remove("flash"),1200)}});
+   el.append(d);return;
+  }
   d.append(cb,no,who,tg);
   const toggle=()=>{on?selected.delete(c.key):selected.add(c.key);render()};
   d.addEventListener("click",e=>{if(e.target!==cb)toggle()});cb.addEventListener("change",toggle);
   el.append(d);
  });
 }
+// 오른쪽에 보일 고객: 필터가 없으면 고른 고객, 필터가 있으면 그 상태 고객 전부 (고른 것은 그대로 보관)
+function outList(){return fMode?visible():customers.filter(c=>selected.has(c.key)&&!off(c))}
 function renderOut(){
- const sel=customers.filter(c=>selected.has(c.key)&&(fMode==="hidden"?hid(c):fMode==="re"?isRe(c)&&!hid(c):!off(c)));
- $("selN").textContent=sel.length;$("outN").textContent=sel.length;
+ const sel=outList();
+ $("selN").textContent=customers.filter(c=>selected.has(c.key)&&!off(c)).length;$("outN").textContent=sel.length;
+ $("outLb").textContent=fMode?FNAME[fMode]+" 고객 ":"보낼 문자 ";$("outUnit").textContent=fMode?"명":"건";
  // 오른쪽 검색: 고르지 않은 고객도 이름·번호(뒷자리)로 바로 찾아 보여줌
  const oq=$("oq").value.trim(),oqd=normPhone(oq);
  let list=sel;
@@ -678,10 +718,10 @@ function renderOut(){
  else $("oqInfo").textContent="";
  if(oq&&!list.length){const out=$("out");out.replaceChildren();const b=document.createElement("div");b.className="blank";b.textContent="'"+oq+"'에 맞는 고객이 없습니다.";out.append(b);return}
  const out=$("out");out.replaceChildren();
- if(!list.length){const b=document.createElement("div");b.className="blank";b.textContent="왼쪽 목록에서 고객을 고르면 여기에 문자가 만들어집니다.";out.append(b);return}
+ if(!list.length){const b=document.createElement("div");b.className="blank";b.textContent=fMode?"'"+FNAME[fMode]+"'인 고객이 없습니다.":"왼쪽 목록에서 고객을 고르면 여기에 문자가 만들어집니다.";out.append(b);return}
  for(const c of list){
   const body=message(c);
-  const box=document.createElement("article");box.className="msg";
+  const box=document.createElement("article");box.className="msg";box.dataset.k=c.key;
   const h=document.createElement("div");h.className="msg-h";
   const id=document.createElement("div");id.className="id";
   const no=document.createElement("span");no.className="no";no.textContent=noLabel(c.nos);
@@ -1015,7 +1055,10 @@ for(const k of ["tpl","tplMulti","tplLapse","mgr","when"]){const v=store.get("tc
 for(const k of ["tpl","tplMulti","tplLapse","mgr","when"])$(k).addEventListener("input",()=>{store.set("tcn_"+k,$(k).value);renderOut()});
 for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster);
 $("onlyNew").addEventListener("change",renderRoster);
-document.querySelectorAll("#seg button").forEach(b=>b.addEventListener("click",()=>{fMode=b.dataset.f;store.set("tcn_fmode",fMode);renderRoster();renderOut()}));
+function setF(f){fMode=fMode===f?"":f;fKeep=new Set();renderRoster();renderOut();if(fMode)visible().forEach(c=>fKeep.add(c.key))}
+document.querySelectorAll(".fbox button[data-f]").forEach(b=>b.addEventListener("click",()=>setF(b.dataset.f)));
+$("fOff").addEventListener("click",()=>setF(fMode));
+try{localStorage.removeItem("tcn_fmode")}catch(e){}
 let lastFocus=$("tpl");["tpl","tplMulti","tplLapse"].forEach(k=>$(k).addEventListener("focus",()=>lastFocus=$(k)));
 document.querySelectorAll(".tokens button").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=lastFocus,s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
 $("resetTpl").addEventListener("click",()=>{for(const k of ["tpl","tplMulti","tplLapse"]){$(k).value=DEF[k];store.set("tcn_"+k,DEF[k])}renderOut();toast("기본 문구로 되돌렸습니다")});
@@ -1037,7 +1080,7 @@ $("resXlsx").addEventListener("click",()=>{
  XLSX.writeFile(wb,`transfer_result_${ymd}.xlsx`);
  const done=customers.filter(c=>stage(c)!=="none").length;toast(`${customers.length}명 중 연락한 ${done}명의 진행 결과를 받았습니다`);
 });
-$("copyAll").addEventListener("click",()=>{const list=customers.filter(c=>selected.has(c.key));if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
+$("copyAll").addEventListener("click",()=>{const list=outList();if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
 const drop=$("drop");
 async function useHandle(h){if(!h||h.kind!=="file")return false;fileHandle=h;try{await loadFile(await h.getFile())}catch(e){fileHandle=null;return false}return true}
 async function recheck(force){
@@ -1203,7 +1246,7 @@ async function kSendText(token,text){
 let sending=false;
 $("ksend").addEventListener("click",async()=>{
  if(sending)return;
- const list=customers.filter(c=>selected.has(c.key));
+ const list=outList();
  if(!list.length){toast("먼저 고객을 고르세요");return}
  const token=tokenStore.get();
  if(!token){toast("오른쪽 위 '카카오 로그인'을 먼저 누르세요. 로그인해도 넣은 엑셀은 그대로 남습니다");return}
