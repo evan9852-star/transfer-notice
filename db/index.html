@@ -551,7 +551,8 @@ function renderBookTable(){
     const s=document.createElement("span");s.className="tag "+STAGE_CLS[stage(b)];s.textContent=stageShort(b);s.style.marginRight="6px";
     const o=document.createElement("button");o.type="button";o.className="text";o.style.cssText="font-size:13px;padding:3px 8px;min-height:28px";o.textContent=showTrk?"기록 접기":"콜 기록";o.setAttribute("aria-expanded",String(showTrk));
     if($("trkAll").checked)o.hidden=true;
-    o.addEventListener("click",()=>{openTrk.has(b.phone)?openTrk.delete(b.phone):openTrk.add(b.phone);renderBookTable()});
+    o.addEventListener("click",()=>{const was=openTrk.has(b.phone);was?openTrk.delete(b.phone):openTrk.add(b.phone);renderBookTable();
+     if(!was){const t=document.querySelector('#book tr.trk[data-p="'+digits(b.phone)+'"]');if(t){const sm=matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth";t.previousElementSibling.scrollIntoView({block:"nearest",behavior:"auto"});t.scrollIntoView({block:"nearest",behavior:sm});const m=t.querySelector("textarea");if(m)m.focus({preventScroll:true})}}});
     td.append(s,o);
     if(b.memo&&!showTrk){const m=document.createElement("span");m.style.cssText="margin-left:6px;color:var(--ink-2);font-size:13px";m.textContent="메모 있음";td.append(m)}
    }else td.textContent=v||"";
@@ -561,7 +562,7 @@ function renderBookTable(){
   const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
   x.addEventListener("click",()=>{book=book.filter(o=>o!==b);store.set("db_book",JSON.stringify(book));renderBook();load()});
   td.append(x);tr.append(td);tb.append(tr);
-  if(showTrk){tr.className="has-trk";const t2=document.createElement("tr");t2.className="trk";const c2=document.createElement("td");c2.colSpan=9;c2.append(trackRow(b));t2.append(c2);tb.append(t2)}
+  if(showTrk){tr.className="has-trk";const t2=document.createElement("tr");t2.className="trk";t2.dataset.p=digits(b.phone);const c2=document.createElement("td");c2.colSpan=9;c2.append(trackRow(b));t2.append(c2);tb.append(t2)}
  }
 }
 $("bq").addEventListener("input",renderBook);
