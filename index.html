@@ -437,18 +437,24 @@ const hid=c=>!!T(c).hide;
 let seen={};try{seen=JSON.parse(store.get("tcn_seen")||"{}")||{}}catch(e){seen={}}
 const tsYM=ts=>{const d=new Date(ts);return String(d.getFullYear()).slice(2)+"."+String(d.getMonth()+1).padStart(2,"0")};
 function curYM(c){return c.moves&&c.moves.length?c.moves.slice().sort().pop():""}
-// 이번 이관 연.월보다 앞선 이관·연락 기록이 있으면 그 연.월을 돌려줌 (엑셀에 이관일이 있을 때만 자동 판단)
-function reYM(c){
- const cur=curYM(c);if(!cur)return"";
- const t=T(c),prev=[...c.moves,...Object.keys(seen[tkey(c)]||{})];
- [t.touch,t.call,t.lastMiss,t.saved].filter(Boolean).forEach(ts=>prev.push(tsYM(ts)));
- const older=prev.filter(y=>y<cur).sort();return older.length?older.pop():"";
+const sigs=c=>[...new Set(c.products)];
+// 같은 이름·번호가 엑셀에 또 들어왔는지: ① 전에 불러왔을 때 없던 줄이 새로 생김 ② 이관일이 서로 다른 달 ③ 이번 이관 달보다 앞서 연락한 기록
+function reHit(c){
+ const sn=seen[tkey(c)],cur=curYM(c),t=T(c);
+ const prev=[...(c.moves||[])];if(sn&&sn.ym)prev.push(...sn.ym);
+ if(cur)[t.touch,t.call,t.lastMiss,t.saved].filter(Boolean).forEach(ts=>prev.push(tsYM(ts)));
+ const older=cur?prev.filter(y=>y<cur).sort():[];
+ if(older.length)return older.pop();
+ if(sn&&sn.base&&sigs(c).some(x=>!sn.base.includes(x)))return sn.ym&&sn.ym.length?sn.ym.slice().sort()[0]:"전";
+ return"";
 }
-function isRe(c){const r=T(c).re;return r===1?true:r===0?false:!!reYM(c)}
+function isRe(c){return T(c).re===0?false:!!reHit(c)}
 const off=c=>hid(c)||isRe(c);
-function reLabel(c){const y=reYM(c);return y?"재이관 · "+(+y.slice(3))+"월에도 이관":"재이관 · 연락 안 함"}
-function noteSeen(){let ch=false;customers.forEach(c=>{const y=curYM(c);if(!y)return;const k=tkey(c);if(!seen[k])seen[k]={};c.moves.forEach(m=>{if(!seen[k][m]){seen[k][m]=1;ch=true}})});if(ch)store.set("tcn_seen",JSON.stringify(seen))}
-function setRe(c,on){const k=tkey(c),t=track[k]||(track[k]={});t.re=on?1:0;if(!on&&!reYM(c))delete t.re;if(!Object.keys(t).length)delete track[k];saveTrack();toast(on?c.name+" 고객님을 재이관(연락 안 함)으로 뺐습니다":c.name+" 고객님을 이번에도 연락할 고객으로 돌렸습니다");render()}
+function reLabel(c){const y=reHit(c);return /^\d\d\.\d\d$/.test(y)?"재이관 · "+(+y.slice(3))+"월에도 이관":"재이관 · 전에도 이관"}
+function noteSeen(){let ch=false;customers.forEach(c=>{const k=tkey(c);let sn=seen[k];
+  if(!sn||!sn.base){sn=seen[k]={base:sigs(c),ym:[...(c.moves||[])]};ch=true}
+ });if(ch)store.set("tcn_seen",JSON.stringify(seen))}
+function setRe(c,on){const k=tkey(c),t=track[k]||(track[k]={});if(on)delete t.re;else t.re=0;if(!Object.keys(t).length)delete track[k];saveTrack();toast(on?c.name+" 고객님을 다시 재이관으로 뺐습니다":c.name+" 고객님을 이번에도 연락할 고객으로 돌렸습니다");render()}
 const openMsg=new Set();
 const foldOn=()=>store.get("tcn_fold")!=="0";
 function setT(c,key,val){const k=tkey(c),t=track[k]||(track[k]={});if(val)t[key]=val;else delete t[key];if(!Object.keys(t).length)delete track[k];saveTrack()}
@@ -692,9 +698,9 @@ function renderOut(){
   const acts=document.createElement("div");acts.className="acts";
   const bH=document.createElement("button");bH.type="button";bH.className="text";bH.textContent=isHid?"다시 보이기":"숨기기";bH.title=isHid?"목록에 다시 나오게 합니다":"이 고객을 목록과 문자에서 뺍니다. 기록은 그대로 남습니다";
   bH.addEventListener("click",()=>setHide(c,!isHid));
-  const bRe=document.createElement("button");bRe.type="button";bRe.className="text";bRe.textContent=re?"이번에도 연락하기":"재이관 · 연락 안 함";bRe.title=re?"터치·콜 대상으로 다시 넣습니다":"전에도 이관받아 이미 연락한 고객이면 누르세요. 터치·콜 대상에서 빠집니다";
-  bRe.addEventListener("click",()=>setRe(c,!re));
-  acts.append(tg,bRe,bH);
+  acts.append(tg);
+  if(re){const bRe=document.createElement("button");bRe.type="button";bRe.className="text";bRe.textContent="이번에도 연락하기";bRe.title="터치·콜 대상으로 다시 넣습니다";bRe.addEventListener("click",()=>setRe(c,false));acts.append(bRe)}
+  acts.append(bH);
   h.append(id,acts);
   const b=document.createElement("div");b.className="msg-b";b.textContent=body;
   const f=document.createElement("div");f.className="msg-f";
