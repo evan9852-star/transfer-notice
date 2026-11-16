@@ -253,7 +253,7 @@ tr.has-trk td{border-bottom:0}
     <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 <b>백업 받기</b>로 파일을 받아 두세요. 다른 컴퓨터나 브라우저에서는 <b>불러오기</b>로 그 파일을 넣으면 보냄 표시와 콜 기록까지 그대로 돌아옵니다. 왼쪽 칸을 고르면 <b>안내문자</b> 탭에 문자가 만들어집니다.</p>
     <div class="callbar">
       <div class="seg" id="bseg" role="group" aria-label="콜 진행으로 보기">
-        <button type="button" data-f="all">전체<b id="cAll"></b></button><button type="button" data-f="none">미연락<b id="cNone"></b></button><button type="button" data-f="touch">터치만<b id="cTouch"></b></button><button type="button" data-f="retouch">재터치 · 전화 전<b id="cRetouch"></b></button><button type="button" data-f="miss">부재<b id="cMiss"></b></button><button type="button" data-f="call">통화됨 · 결과 전<b id="cCall"></b></button><button type="button" data-f="meet">미팅 잡힘<b id="cMeet"></b></button><button type="button" data-f="reject">미팅 거절<b id="cReject"></b></button>
+        <button type="button" data-f="all">전체<b id="cAll"></b></button><button type="button" data-f="none">미연락<b id="cNone"></b></button><button type="button" data-f="touch">터치만<b id="cTouch"></b></button><button type="button" data-f="retouch">재터치 · 전화 전<b id="cRetouch"></b></button><button type="button" data-f="reply">답장 옴<b id="cReply"></b></button><button type="button" data-f="miss">부재<b id="cMiss"></b></button><button type="button" data-f="call">통화됨 · 결과 전<b id="cCall"></b></button><button type="button" data-f="meet">미팅 잡힘<b id="cMeet"></b></button><button type="button" data-f="reject">미팅 거절<b id="cReject"></b></button>
       </div>
       <div class="row-btns"><label class="check" for="trkAll"><input type="checkbox" id="trkAll">콜 기록 칸 모두 펼치기</label><button type="button" class="primary" id="goMsg" hidden></button></div>
     </div>
@@ -472,10 +472,10 @@ function bookSaveName(b){
   .replaceAll("{지역}",b.region||"").replaceAll("{캠페인}",b.camp||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
 }
 // 콜 진행: 미연락 → 문자만 → 부재 → 통화됨(결과 전) → 미팅 잡힘 / 미팅 거절
-function stage(b){if(b.call)return b.result==="meet"?"meet":b.result==="reject"?"reject":"call";if(b.miss)return"miss";if(b.resent)return"retouch";if(b.sent)return"touch";return"none"}
-const STAGE_TXT={none:"미연락",touch:"터치함 · 재터치 전",retouch:"재터치함 · 전화 전",miss:"부재 · 콜 안 닿음",call:"통화됨 · 미팅 결과 전",meet:"미팅 잡힘",reject:"미팅 거절"};
-const STAGE_CLS={none:"none",touch:"touch",retouch:"touch",miss:"miss",call:"call",meet:"call",reject:"miss"};
-function stageShort(b){const g=stage(b);return g==="none"?"미연락":g==="touch"?"터치함":g==="retouch"?"재터치함":g==="miss"?"부재 "+b.miss+"회":g==="call"?"통화됨":STAGE_TXT[g]}
+function stage(b){if(b.result==="meet"||b.result==="reject")return b.result;if(b.call)return"call";if(b.reply)return"reply";if(b.miss)return"miss";if(b.resent)return"retouch";if(b.sent)return"touch";return"none"}
+const STAGE_TXT={none:"미연락",touch:"터치함 · 재터치 전",retouch:"재터치함 · 전화 전",reply:"답장 옴 · 일정 조율 중",miss:"부재 · 콜 안 닿음",call:"통화됨 · 미팅 결과 전",meet:"미팅 잡힘",reject:"미팅 거절"};
+const STAGE_CLS={none:"none",touch:"touch",retouch:"touch",reply:"call",miss:"miss",call:"call",meet:"call",reject:"miss"};
+function stageShort(b){const g=stage(b);return g==="none"?"미연락":g==="touch"?"터치함":g==="retouch"?"재터치함":g==="reply"?"답장 옴":g==="miss"?"부재 "+b.miss+"회":g==="call"?"통화됨":STAGE_TXT[g]}
 function hm(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 let bMode=store.get("db_bmode")||"all";
 const openTrk=new Set();
@@ -484,8 +484,8 @@ function markCall(b,what){
  const now=Date.now(),nm=b.name||"";
  if(what==="miss"){b.miss=(b.miss||0)+1;b.lastMiss=now;toast(nm+" 부재 "+b.miss+"회")}
  else if(what==="miss-"){b.miss=Math.max(0,(b.miss||0)-1);if(!b.miss){delete b.miss;delete b.lastMiss}toast(nm+" 부재 "+(b.miss||0)+"회")}
- else if(what==="call"){if(b.call){delete b.call;delete b.result;delete b.meetNote}else{b.call=now;toast(nm+" 통화됨")}}
- else if(what==="meet"||what==="reject"){if(b.result===what)delete b.result;else{b.result=what;if(!b.call)b.call=now;toast(nm+" "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
+ else if(what==="call"){if(b.call){delete b.call;if(!b.reply){delete b.result;delete b.meetNote}}else{b.call=now;toast(nm+" 통화됨")}}
+ else if(what==="meet"||what==="reject"){if(b.result===what)delete b.result;else{b.result=what;if(!b.call&&!b.reply)b.call=now;toast(nm+" "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
  else if(what==="reset"){["miss","lastMiss","call","result","meetNote"].forEach(k=>delete b[k])}
  openTrk.add(b.phone);saveBook();renderBook();
 }
@@ -493,7 +493,7 @@ function trackRow(b){
  const tr=document.createElement("div");tr.className="track";
  const mk=(txt,cls,fn,title)=>{const x=document.createElement("button");x.type="button";if(cls)x.className=cls;x.textContent=txt;if(title)x.title=title;x.addEventListener("click",fn);return x};
  const st=document.createElement("span");st.className="st";const sb=document.createElement("b");sb.textContent=STAGE_TXT[stage(b)];
- const parts=[];const dm=d=>(+d.slice(5,7))+"/"+(+d.slice(8,10));if(b.sent)parts.push("터치 "+dm(b.sent));if(b.resent)parts.push("재터치 "+dm(b.resent));if(b.miss)parts.push("부재 "+b.miss+"회"+(b.lastMiss?" (최근 "+hm(b.lastMiss)+")":""));if(b.call)parts.push("통화 "+hm(b.call));
+ const parts=[];const dm=d=>(+d.slice(5,7))+"/"+(+d.slice(8,10));if(b.sent)parts.push("터치 "+dm(b.sent));if(b.resent)parts.push("재터치 "+dm(b.resent));if(b.reply)parts.push("답장 "+dm(b.reply));if(b.miss)parts.push("부재 "+b.miss+"회"+(b.lastMiss?" (최근 "+hm(b.lastMiss)+")":""));if(b.call)parts.push("통화 "+hm(b.call));
  st.append(sb,parts.length?" · "+parts.join(" · "):"");
  let bM;
  if(!b.miss)bM=mk("부재","text",()=>markCall(b,"miss"),"전화했는데 안 받았을 때");
@@ -502,9 +502,10 @@ function trackRow(b){
   const n=document.createElement("span");n.className="n";n.textContent="부재 "+b.miss+"회";
   const plus=mk("+","",()=>markCall(b,"miss"));plus.setAttribute("aria-label","부재 1회 더하기");bM.append(minus,n,plus)}
  tr.append(st,mk(b.sent?"터치 ✓":"터치함",b.sent?"text on":"text",()=>{if(b.sent){b.sent=undefined;b.resent=undefined}else b.sent=today();openTrk.add(b.phone);saveBook();renderBook()},"안내문자를 보냈으면 누르세요 (다시 누르면 취소)"),
-  mk(b.resent?"재터치 ✓":"재터치함",b.resent?"text on":"text",()=>{if(b.resent)b.resent=undefined;else{b.resent=today();if(!b.sent)b.sent=today()}openTrk.add(b.phone);saveBook();renderBook()},"전화 전에 한 번 더 연락했으면 누르세요 (다시 누르면 취소)"),bM,
+  mk(b.resent?"재터치 ✓":"재터치함",b.resent?"text on":"text",()=>{if(b.resent)b.resent=undefined;else{b.resent=today();if(!b.sent)b.sent=today()}openTrk.add(b.phone);saveBook();renderBook()},"전화 전에 한 번 더 연락했으면 누르세요 (다시 누르면 취소)"),
+  mk(b.reply?"답장 옴 ✓":"답장 옴",b.reply?"on":"",()=>{if(b.reply){b.reply=undefined;if(!b.call)b.result=undefined}else{b.reply=today();if(!b.sent)b.sent=today()}openTrk.add(b.phone);saveBook();renderBook();if(b.reply)toast((b.name||"")+" 답장 옴")},"터치 문자에 고객이 먼저 답장했으면 누르세요 (다시 누르면 취소)"),bM,
   mk(b.call?"통화됨 ✓":"통화 연결",b.call?"on":"",()=>markCall(b,"call"),"통화가 됐으면 누르세요 (다시 누르면 취소)"));
- if(b.call){
+ if(b.call||b.reply){
   tr.append(mk(b.result==="meet"?"미팅 잡힘 ✓":"미팅 잡힘",b.result==="meet"?"on":"",()=>markCall(b,"meet")),mk(b.result==="reject"?"미팅 거절 ✓":"미팅 거절","text"+(b.result==="reject"?" rej":""),()=>markCall(b,"reject")));
  }
  tr.append(mk("전화 걸기","text",()=>{location.href="tel:"+digits(b.phone)},"휴대폰에서는 바로 전화가 걸립니다"),mk("번호 복사","text",()=>copyText(b.phone,"번호 복사됨")));
@@ -524,8 +525,8 @@ function renderBook(){
 function renderBookTable(){
  const nf=book.filter(b=>b.fixed).length;$("fixVcf").disabled=!nf;$("fixVcf").textContent=nf?`고친 사람만 연락처 파일 (${nf}명)`:"고친 사람만 연락처 파일";
  const q=$("bq").value.trim(),qd=digits(q);
- const cn={none:0,touch:0,retouch:0,miss:0,call:0,meet:0,reject:0};book.forEach(b=>cn[stage(b)]++);
- $("cAll").textContent=book.length;for(const [k,id] of Object.entries({none:"cNone",touch:"cTouch",retouch:"cRetouch",miss:"cMiss",call:"cCall",meet:"cMeet",reject:"cReject"}))$(id).textContent=cn[k];
+ const cn={none:0,touch:0,retouch:0,reply:0,miss:0,call:0,meet:0,reject:0};book.forEach(b=>cn[stage(b)]++);
+ $("cAll").textContent=book.length;for(const [k,id] of Object.entries({none:"cNone",touch:"cTouch",retouch:"cRetouch",reply:"cReply",miss:"cMiss",call:"cCall",meet:"cMeet",reject:"cReject"}))$(id).textContent=cn[k];
  document.querySelectorAll("#bseg button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.f===bMode)));
  const list=book.slice().reverse().filter(b=>(bMode==="all"||stage(b)===bMode)&&(!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd))));
  $("bookN").textContent=book.length;
@@ -594,8 +595,8 @@ $("bookVcf").addEventListener("click",()=>{if(!book.length){toast("장부가 비
 $("bookXlsx").addEventListener("click",()=>{
  if(!book.length){toast("장부가 비어 있습니다");return}
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
- const aoa=[["받은 날","저장 이름","이름","전화","지역","캠페인","진행","터치","재터치","부재 횟수","통화","미팅","미팅 메모","콜 메모"],...book.map(b=>[b.got,b.saveName,b.name,b.phone,b.region,b.camp,STAGE_TXT[stage(b)],b.sent||"",b.resent||"",b.miss||"",b.call?hm(b.call):"",b.result==="meet"?"잡힘":b.result==="reject"?"거절":"",b.meetNote||"",b.memo||""])];
- const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:22},{wch:12},{wch:15},{wch:14},{wch:18},{wch:20},{wch:12},{wch:12},{wch:9},{wch:12},{wch:8},{wch:24},{wch:36}];
+ const aoa=[["받은 날","저장 이름","이름","전화","지역","캠페인","진행","터치","재터치","답장","부재 횟수","통화","미팅","미팅 메모","콜 메모"],...book.map(b=>[b.got,b.saveName,b.name,b.phone,b.region,b.camp,STAGE_TXT[stage(b)],b.sent||"",b.resent||"",b.reply||"",b.miss||"",b.call?hm(b.call):"",b.result==="meet"?"잡힘":b.result==="reject"?"거절":"",b.meetNote||"",b.memo||""])];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:22},{wch:12},{wch:15},{wch:14},{wch:18},{wch:22},{wch:12},{wch:12},{wch:12},{wch:9},{wch:12},{wch:8},{wch:24},{wch:36}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"DB");
  XLSX.writeFile(wb,"DB_list_"+today().replaceAll("-","")+".xlsx");
 });
