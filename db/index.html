@@ -208,9 +208,10 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
         <input type="text" id="bq" placeholder="이름·번호 찾기" autocomplete="off" style="width:160px">
         <button type="button" id="fixVcf">고친 사람만 연락처 파일</button><button type="button" id="bookVcf">장부 전체 연락처 파일</button>
         <button type="button" id="bookXlsx">엑셀로 받기</button>
+        <button type="button" class="text" id="bookBackup" title="장부를 그대로 파일로 받아 둡니다">백업 받기</button><button type="button" class="text" id="bookRestore" title="받아 둔 백업 파일(.json)을 다시 넣습니다">불러오기</button><input type="file" id="bookRestoreFile" accept=".json,application/json" hidden>
       </div>
     </div>
-    <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 엑셀로 받아 두세요. 왼쪽 칸을 고르면 아래에 안내문자가 만들어집니다.</p>
+    <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 <b>백업 받기</b>로 파일을 받아 두세요. 다른 컴퓨터나 브라우저에서는 <b>불러오기</b>로 그 파일을 넣으면 보냄 표시까지 그대로 돌아옵니다. 왼쪽 칸을 고르면 아래에 안내문자가 만들어집니다.</p>
     <div class="tbl-wrap"><table>
       <thead><tr><th class="cb"><input type="checkbox" id="bookAll" aria-label="장부 전체 선택"></th><th>받은 날</th><th>저장 이름</th><th>이름</th><th>전화</th><th>지역</th><th>캠페인</th><th></th></tr></thead>
       <tbody id="book"></tbody>
@@ -461,6 +462,22 @@ function renderBookTable(){
  }
 }
 $("bq").addEventListener("input",renderBook);
+$("bookBackup").addEventListener("click",()=>{
+ if(!book.length){toast("장부가 비어 있습니다");return}
+ download(new File([JSON.stringify({v:1,kind:"db-book",saved:today(),book},null,1)],"DB_backup_"+today().replaceAll("-","")+".json",{type:"application/json"}));
+ toast(book.length+"명 장부를 백업 파일로 받았습니다");
+});
+$("bookRestore").addEventListener("click",()=>$("bookRestoreFile").click());
+$("bookRestoreFile").addEventListener("change",async e=>{
+ const f=e.target.files[0];e.target.value="";if(!f)return;
+ try{
+  const d=JSON.parse(await f.text());if(!d||!Array.isArray(d.book))throw 0;
+  const by=new Map(book.map(b=>[b.phone,b]));let add=0,upd=0;
+  for(const r of d.book){if(!r||!r.phone||!r.name)continue;const b=by.get(r.phone);if(b){Object.assign(b,r);upd++}else{book.push(r);by.set(r.phone,r);add++}}
+  store.set("db_book",JSON.stringify(book));renderBook();load();
+  toast(`백업을 불러왔습니다 (새로 ${add}명, 덮어쓴 ${upd}명)`);
+ }catch(err){toast("백업 파일을 읽지 못했습니다. DB 고객 관리에서 받은 .json 파일인지 확인해 주세요")}
+});
 $("fixVcf").addEventListener("click",()=>{const l=book.filter(b=>b.fixed);if(!l.length)return;download(vcfFile(l,"fix_"+l.length));l.forEach(b=>delete b.fixed);store.set("db_book",JSON.stringify(book));renderBook();toast(l.length+"명 고친 연락처 파일을 받았습니다")});
 $("bookVcf").addEventListener("click",()=>{if(!book.length){toast("장부가 비어 있습니다");return}download(vcfFile(book,"all_"+book.length))});
 $("bookXlsx").addEventListener("click",()=>{
