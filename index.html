@@ -362,6 +362,7 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
           <button type="button" data-f="call" aria-pressed="false">통화됨 · 결과 전<b id="fCall"></b></button>
           <button type="button" data-f="meet" aria-pressed="false">미팅 잡힘<b id="fMeet"></b></button>
           <button type="button" data-f="reject" aria-pressed="false">미팅 거절<b id="fReject"></b></button>
+          <button type="button" data-f="re" id="fReBtn" aria-pressed="false" title="전에도 이관받아 이미 연락한 고객. 터치·콜 대상에서 빠집니다">재이관<b id="fRe"></b></button>
           <button type="button" data-f="hidden" aria-pressed="false">숨김<b id="fHide"></b></button>
         </div>
         <div class="hidebar"><button type="button" class="text" id="hideDone" title="미팅이 잡혔거나 거절한 고객을 목록에서 한 번에 숨깁니다">끝난 고객 한 번에 숨기기</button><span>숨긴 고객은 '숨김'에서 다시 꺼낼 수 있습니다.</span></div>
@@ -432,6 +433,22 @@ const tkey=c=>c.name+"|"+normPhone(c.phone);
 const T=c=>track[tkey(c)]||{};
 function saveTrack(){store.set("tcn_track",JSON.stringify(track))}
 const hid=c=>!!T(c).hide;
+// ---- 재이관: 전에 이관받은 고객이 또 이관된 경우 (연락 안 함) ----
+let seen={};try{seen=JSON.parse(store.get("tcn_seen")||"{}")||{}}catch(e){seen={}}
+const tsYM=ts=>{const d=new Date(ts);return String(d.getFullYear()).slice(2)+"."+String(d.getMonth()+1).padStart(2,"0")};
+function curYM(c){return c.moves&&c.moves.length?c.moves.slice().sort().pop():""}
+// 이번 이관 연.월보다 앞선 이관·연락 기록이 있으면 그 연.월을 돌려줌 (엑셀에 이관일이 있을 때만 자동 판단)
+function reYM(c){
+ const cur=curYM(c);if(!cur)return"";
+ const t=T(c),prev=[...c.moves,...Object.keys(seen[tkey(c)]||{})];
+ [t.touch,t.call,t.lastMiss,t.saved].filter(Boolean).forEach(ts=>prev.push(tsYM(ts)));
+ const older=prev.filter(y=>y<cur).sort();return older.length?older.pop():"";
+}
+function isRe(c){const r=T(c).re;return r===1?true:r===0?false:!!reYM(c)}
+const off=c=>hid(c)||isRe(c);
+function reLabel(c){const y=reYM(c);return y?"재이관 · "+(+y.slice(3))+"월에도 이관":"재이관 · 연락 안 함"}
+function noteSeen(){let ch=false;customers.forEach(c=>{const y=curYM(c);if(!y)return;const k=tkey(c);if(!seen[k])seen[k]={};c.moves.forEach(m=>{if(!seen[k][m]){seen[k][m]=1;ch=true}})});if(ch)store.set("tcn_seen",JSON.stringify(seen))}
+function setRe(c,on){const k=tkey(c),t=track[k]||(track[k]={});t.re=on?1:0;if(!on&&!reYM(c))delete t.re;if(!Object.keys(t).length)delete track[k];saveTrack();toast(on?c.name+" 고객님을 재이관(연락 안 함)으로 뺐습니다":c.name+" 고객님을 이번에도 연락할 고객으로 돌렸습니다");render()}
 const openMsg=new Set();
 const foldOn=()=>store.get("tcn_fold")!=="0";
 function setT(c,key,val){const k=tkey(c),t=track[k]||(track[k]={});if(val)t[key]=val;else delete t[key];if(!Object.keys(t).length)delete track[k];saveTrack()}
@@ -448,7 +465,7 @@ function mark(c,what,quiet){
  else if(what==="miss"){t.miss=(t.miss||0)+1;t.lastMiss=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 부재 "+t.miss+"회")}
  else if(what==="call"){if(t.call){delete t.call;delete t.result;delete t.meetNote}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 통화됨")}}
  else if(what==="meet"||what==="reject"){if(t.result===what){delete t.result}else{t.result=what;t.resultAt=now;if(!t.call)t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
- else if(what==="reset"){const keep={};if(t.memo)keep.memo=t.memo;if(t.hide)keep.hide=t.hide;if(t.saved)keep.saved=t.saved;track[k]=keep}
+ else if(what==="reset"){const keep={};if(t.memo)keep.memo=t.memo;if(t.hide)keep.hide=t.hide;if(t.re!=null)keep.re=t.re;if(t.saved)keep.saved=t.saved;track[k]=keep}
  if(track[k]&&!Object.keys(track[k]).length)delete track[k];
  saveTrack();render();
 }
@@ -456,8 +473,8 @@ function mark(c,what,quiet){
 // 진행 결과 엑셀: 불러온 고객 전체의 연락 진행을 한 표로
 function resultRows(){
  const d=ts=>ts?hm(ts):"";
- return [["연번","고객명","전화","상품","진행","터치","부재 횟수","마지막 부재","통화","미팅","미팅 메모","콜 메모","숨김","연락처 저장"],
-  ...customers.map(c=>{const t=T(c);return [noLabel(c.nos),c.name,c.phone,c.products.join(", "),STAGE_TXT[stage(c)],d(t.touch),t.miss||"",d(t.lastMiss),d(t.call),t.result==="meet"?"잡힘":t.result==="reject"?"거절":"",t.meetNote||"",t.memo||"",t.hide?"숨김":"",d(t.saved)]})];
+ return [["연번","고객명","전화","상품","진행","터치","부재 횟수","마지막 부재","통화","미팅","미팅 메모","콜 메모","숨김","연락처 저장","재이관"],
+  ...customers.map(c=>{const t=T(c);return [noLabel(c.nos),c.name,c.phone,c.products.join(", "),isRe(c)?"재이관 · 연락 안 함":STAGE_TXT[stage(c)],d(t.touch),t.miss||"",d(t.lastMiss),d(t.call),t.result==="meet"?"잡힘":t.result==="reject"?"거절":"",t.meetNote||"",t.memo||"",t.hide?"숨김":"",d(t.saved),isRe(c)?reLabel(c):""]})];
 }
 function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
 function normPhone(p){return String(p||"").replace(/\D/g,"")}
@@ -473,10 +490,10 @@ function group(rs){
  for(const r of rs){
   if(!r.name)continue;
   const key=r.name+"|"+normPhone(r.phone);
-  if(!m.has(key))m.set(key,{key,name:r.name,phone:r.phone||"",nos:[],products:[],lapsed:[],optout:false,contacted:false,addr:"",moved:"",area:"",pays:[]});
+  if(!m.has(key))m.set(key,{key,name:r.name,phone:r.phone||"",nos:[],products:[],lapsed:[],optout:false,contacted:false,addr:"",moved:"",area:"",pays:[],moves:[]});
   const c=m.get(key);
   c.nos.push(r.no);c.products.push(cleanProduct(r.product));
-  if(!c.addr&&r.addr)c.addr=r.addr;if(!c.moved&&r.moved)c.moved=r.moved;if(!c.area&&r.area)c.area=r.area;
+  if(!c.addr&&r.addr)c.addr=r.addr;if(!c.moved&&r.moved)c.moved=r.moved;{const y=toYM(r.moved);if(y&&!c.moves.includes(y))c.moves.push(y)}if(!c.area&&r.area)c.area=r.area;
   c.pays.push(r.pay||"");
   if(/실효/.test(r.note||""))c.lapsed.push(cleanProduct(r.product));
   if(/수신거부/.test((r.note||"")+(r.phone||"")))c.optout=true;
@@ -595,25 +612,26 @@ function visible(){
   const ns=c.nos.filter(Number.isFinite);const lo=ns.length?Math.min(...ns):NaN,hi=ns.length?Math.max(...ns):NaN;
   if(Number.isFinite(f)&&Number.isFinite(hi)&&hi<f)return false;
   if(Number.isFinite(t)&&Number.isFinite(lo)&&lo>t)return false;
-  if(fMode==="hidden"){if(!hid(c))return false}else if(hid(c))return false;
+  if(fMode==="hidden"){if(!hid(c))return false}else if(fMode==="re"){if(hid(c)||!isRe(c))return false}else if(off(c))return false;
   if($("onlyNew").checked&&c.contacted&&fMode==="all")return false;
   if(q&&!(c.name.includes(q)||(qd&&normPhone(c.phone).includes(qd))))return false;
-  if(fMode!=="all"&&fMode!=="hidden"&&stage(c)!==fMode)return false;
+  if(fMode!=="all"&&fMode!=="hidden"&&fMode!=="re"&&stage(c)!==fMode)return false;
   return true;
  });
 }
 function tag(cls,txt){const s=document.createElement("span");s.className="tag "+cls;s.textContent=txt;return s}
 function renderCounts(){
- const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0};let hn=0;customers.forEach(c=>{if(hid(c))hn++;else n[stage(c)]++});
+ const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0};let hn=0,rn=0;customers.forEach(c=>{if(hid(c))hn++;else if(isRe(c))rn++;else n[stage(c)]++});
+ $("fRe").textContent=rn;$("fReBtn").hidden=!rn&&fMode!=="re";
  $("fHide").textContent=hn;$("hideDone").disabled=!(n.meet+n.reject);
- $("fAll").textContent=customers.length-hn;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
+ $("fAll").textContent=customers.length-hn-rn;$("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
  document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===fMode)));
 }
 function renderRoster(){
  renderCounts();
  const v=visible();$("shownN").textContent=v.length;
  const el=$("roster");el.replaceChildren();
- if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="hidden"?"숨긴 고객이 없습니다.":fMode!=="all"?"'"+STAGE_TXT[fMode]+"'인 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
+ if(!v.length){const e=document.createElement("div");e.className="empty";e.textContent=!customers.length?"엑셀에서 고객을 찾지 못했습니다.":fMode==="hidden"?"숨긴 고객이 없습니다.":fMode==="re"?"재이관 고객이 없습니다.":fMode!=="all"?"'"+STAGE_TXT[fMode]+"'인 고객이 없습니다.":"조건에 맞는 고객이 없습니다. 연번 범위나 찾는 말을 바꿔 보세요.";el.append(e);return}
  v.forEach((c,idx)=>{
   const on=selected.has(c.key);
   const d=document.createElement("div");d.className="lrow"+(on?" on":"");d.setAttribute("role","listitem");
@@ -628,6 +646,7 @@ function renderRoster(){
   if(c.products.length>1)tg.append(tag("cnt",c.products.length+"건"));
   if(c.lapsed.length)tg.append(tag("lapse","실효"));
   if(c.optout)tg.append(tag("optout","수신거부"));
+  if(isRe(c))tg.append(tag("hid",reLabel(c)));
   if(c.contacted)tg.append(tag("done","접촉함"));
   if(T(c).saved&&stage(c)==="none")tg.append(tag("cnt","연락처 저장됨"));
   const t=T(c);
@@ -644,7 +663,7 @@ function renderRoster(){
  });
 }
 function renderOut(){
- const sel=customers.filter(c=>selected.has(c.key)&&(fMode==="hidden"?hid(c):!hid(c)));
+ const sel=customers.filter(c=>selected.has(c.key)&&(fMode==="hidden"?hid(c):fMode==="re"?isRe(c)&&!hid(c):!off(c)));
  $("selN").textContent=sel.length;$("outN").textContent=sel.length;
  // 오른쪽 검색: 고르지 않은 고객도 이름·번호(뒷자리)로 바로 찾아 보여줌
  const oq=$("oq").value.trim(),oqd=normPhone(oq);
@@ -667,11 +686,15 @@ function renderOut(){
   if(c.lapsed.length)tg.append(tag("lapse","실효 계약"));
   if(c.optout)tg.append(tag("optout","문자 수신거부 · 전화 권장"));
   const t=T(c),k=tkey(c),isHid=!!t.hide;
+  const re=isRe(c);
+  if(re){tg.append(tag("hid",reLabel(c)));box.classList.add("hid")}
   if(isHid){tg.append(tag("hid","숨김"));box.classList.add("hid")}
   const acts=document.createElement("div");acts.className="acts";
   const bH=document.createElement("button");bH.type="button";bH.className="text";bH.textContent=isHid?"다시 보이기":"숨기기";bH.title=isHid?"목록에 다시 나오게 합니다":"이 고객을 목록과 문자에서 뺍니다. 기록은 그대로 남습니다";
   bH.addEventListener("click",()=>setHide(c,!isHid));
-  acts.append(tg,bH);
+  const bRe=document.createElement("button");bRe.type="button";bRe.className="text";bRe.textContent=re?"이번에도 연락하기":"재이관 · 연락 안 함";bRe.title=re?"터치·콜 대상으로 다시 넣습니다":"전에도 이관받아 이미 연락한 고객이면 누르세요. 터치·콜 대상에서 빠집니다";
+  bRe.addEventListener("click",()=>setRe(c,!re));
+  acts.append(tg,bRe,bH);
   h.append(id,acts);
   const b=document.createElement("div");b.className="msg-b";b.textContent=body;
   const f=document.createElement("div");f.className="msg-f";
@@ -764,8 +787,8 @@ const PG=[["meet","미팅 잡힘",""],["call","통화됨 · 미팅 결과 전","
 function renderProg(){
  if($("p-prog").hidden)return;
  const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0},by={none:[],touch:[],miss:[],call:[],meet:[],reject:[]};
- let missSum=0;customers.forEach(c=>{const g=stage(c);n[g]++;by[g].push(c);missSum+=T(c).miss||0});
- const tot=customers.length,touched=tot-n.none,reached=n.call+n.meet+n.reject;
+ by.re=[];let missSum=0;customers.forEach(c=>{if(isRe(c)){by.re.push(c);return}const g=stage(c);n[g]++;by[g].push(c);missSum+=T(c).miss||0});
+ const tot=customers.length-by.re.length,touched=tot-n.none,reached=n.call+n.meet+n.reject;
  const tl=$("tiles");tl.replaceChildren();
  for(const [l,v,sub] of [["전체 고객",tot,"명"],["연락한 고객",touched,"명"],["부재 중",n.miss,"명"],["통화 연결",reached,"명"],["미팅 잡힘",n.meet,"명"],["미팅 거절",n.reject,"명"]]){
   const d=document.createElement("div");d.className="tile";const a=document.createElement("span");a.textContent=l;const b=document.createElement("b");b.textContent=v;const sm=document.createElement("small");sm.textContent=sub;b.append(sm);d.append(a,b);tl.append(d)}
@@ -776,9 +799,9 @@ function renderProg(){
  by.miss.sort((a,b)=>(T(a).miss||0)-(T(b).miss||0)||(T(a).lastMiss||0)-(T(b).lastMiss||0));
  by.touch.sort((a,b)=>(T(a).touch||0)-(T(b).touch||0));
  const out=$("progOut");const wasOpen=new Map([...out.querySelectorAll("details.pg")].map(d=>[d.dataset.g,d.open]));out.replaceChildren();
- if(!tot){const b=document.createElement("div");b.className="blank";b.textContent="먼저 '문자 · 콜'에서 엑셀을 불러오세요.";out.append(b);return}
- for(const [g,title,sub] of PG){
-  const d=document.createElement("details");d.className="pg";d.dataset.g=g;d.open=wasOpen.has(g)?wasOpen.get(g):(g!=="none"&&g!=="reject"&&by[g].length>0);
+ if(!customers.length){const b=document.createElement("div");b.className="blank";b.textContent="먼저 '문자 · 콜'에서 엑셀을 불러오세요.";out.append(b);return}
+ for(const [g,title,sub] of [...PG,...(by.re.length?[["re","재이관 · 연락 안 함","전에도 이관받아 이미 연락한 고객. 위 숫자에서는 뺐습니다"]]:[])]){
+  const d=document.createElement("details");d.className="pg";d.dataset.g=g;d.open=wasOpen.has(g)?wasOpen.get(g):(g!=="none"&&g!=="reject"&&g!=="re"&&by[g].length>0);
   const sm=document.createElement("summary");sm.append(title+" ");const b=document.createElement("b");b.textContent=by[g].length+"명";sm.append(b);
   if(sub&&by[g].length){const x=document.createElement("small");x.textContent=sub;sm.append(x)}
   d.append(sm);
@@ -788,6 +811,7 @@ function renderProg(){
    if(t.hide)w.append(" ",tag("hid","숨김"));
    const rec=document.createElement("div");rec.className="rec";const ps=[];
    if(t.touch)ps.push("터치 "+hm(t.touch));if(t.miss)ps.push("부재 "+t.miss+"회"+(t.lastMiss?" (최근 "+hm(t.lastMiss)+")":""));if(t.call)ps.push("통화 "+hm(t.call));
+   if(g==="re")ps.unshift(reLabel(c));
    if(g==="none")ps.push(c.products.join(", ")+(t.saved?" · 연락처 저장됨":""));
    rec.textContent=ps.join(" · ");
    if(t.meetNote){const m=document.createElement("span");m.className="mm";m.textContent="미팅 · "+t.meetNote;rec.append(m)}
@@ -799,7 +823,7 @@ function renderProg(){
 }
 const TABS=["work","prog"];
 function showTab(t){if(!TABS.includes(t))t="work";TABS.forEach(k=>{$("p-"+k).hidden=k!==t;$("t-"+k).setAttribute("aria-selected",String(k===t))});store.set("tcn_tab",t);renderProg()}
-function render(){renderRoster();renderOut();cRender();renderProg();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
+function render(){if(loadedName)noteSeen();renderRoster();renderOut();cRender();renderProg();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
 
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),1800)}
 function selectText(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
@@ -848,15 +872,16 @@ function contactName(c){
 }
 // 저장 대상: 고른 고객 중 번호 있고, (설정에 따라) 터치했거나 이미 받은 사람은 뺌
 function savePlan(){
- const list=customers.filter(c=>selected.has(c.key)&&!hid(c)),ok=[],skip={noPhone:0,touched:0,saved:0};
+ const list=customers.filter(c=>selected.has(c.key)&&!hid(c)),ok=[],skip={noPhone:0,touched:0,saved:0,re:0};
  for(const c of list){const t=T(c);
-  if(normPhone(c.phone).length<9)skip.noPhone++;
+  if(isRe(c))skip.re++;
+  else if(normPhone(c.phone).length<9)skip.noPhone++;
   else if($("cskipT").checked&&(t.touch||t.miss||t.call))skip.touched++;
   else if($("cskipS").checked&&t.saved)skip.saved++;
   else ok.push(c)}
  return {list,ok,skip};
 }
-function skipText(k){const a=[];if(k.touched)a.push("터치한 "+k.touched+"명");if(k.saved)a.push("이미 받은 "+k.saved+"명");if(k.noPhone)a.push("번호 없는 "+k.noPhone+"명");return a.join(", ")}
+function skipText(k){const a=[];if(k.re)a.push("재이관 "+k.re+"명");if(k.touched)a.push("터치한 "+k.touched+"명");if(k.saved)a.push("이미 받은 "+k.saved+"명");if(k.noPhone)a.push("번호 없는 "+k.noPhone+"명");return a.join(", ")}
 function canSave(){return savePlan().ok}
 function cRender(){
  const n=canSave().length;const b=$("vcf");b.replaceChildren(document.createTextNode("연락처 저장"));
@@ -969,7 +994,7 @@ function foldPaint(){$("foldToggle").setAttribute("aria-pressed",String(foldOn()
 foldPaint();
 $("foldToggle").addEventListener("click",()=>{store.set("tcn_fold",foldOn()?"0":"1");openMsg.clear();foldPaint();renderOut()});
 $("hideDone").addEventListener("click",()=>{
- const l=customers.filter(c=>!hid(c)&&(stage(c)==="meet"||stage(c)==="reject"));if(!l.length)return;
+ const l=customers.filter(c=>!off(c)&&(stage(c)==="meet"||stage(c)==="reject"));if(!l.length)return;
  if(!confirm("미팅이 잡혔거나 거절한 고객 "+l.length+"명을 숨길까요? 기록은 남고 '숨김'에서 다시 꺼낼 수 있습니다."))return;
  const now=Date.now();l.forEach(c=>{(track[tkey(c)]||(track[tkey(c)]={})).hide=now});saveTrack();render();toast(l.length+"명을 숨겼습니다");
 });
