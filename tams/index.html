@@ -238,6 +238,12 @@ td .phi{width:9.5em;padding:4px 8px;font-size:14px}
 tr.done td{color:var(--ink-2)}
 tr.no td{color:var(--ink-2)}tr.no td.st{color:var(--amber)}tr.no .nmi{text-decoration:line-through}
 .msg.no{opacity:.6}
+.counts .todoBtn{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:0 0 2px;min-height:0;font:inherit;color:var(--ink-2);cursor:pointer}
+.counts .todoBtn:hover{color:var(--ink)}
+.counts .todoBtn.hot b{color:var(--seal)}
+.counts .todoBtn.on{color:var(--ink);border-bottom-color:var(--seal)}
+.counts .due{flex-basis:100%;font-size:14px}
+.counts .due b{font-size:14px;margin-left:0}
 .counts .noBtn{border:0;background:transparent;padding:0;min-height:0;font:inherit;color:var(--ink-2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .counts .noBtn b{color:var(--amber);font-size:18px;font-weight:700;margin-left:4px}
 td.del{white-space:nowrap}
@@ -412,7 +418,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
         <div class="filters">
           <select id="fGisu" aria-label="기수"></select>
           <select id="fSrc" aria-label="들어온 경로"><option value="">모든 경로</option><option value="qr">캠리 QR</option><option value="cr">캠리 종이</option><option value="ad">탐스 광고</option></select>
-          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치 전</option><option value="got">지원서 기다리는 중</option><option value="edit">첨삭 중</option><option value="sub">제출 전</option><option value="done">첨삭 후 제출완료</option><option value="no">거절한 사람</option></select>
+          <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치할 사람</option><option value="wait">지원서 기다리는 중</option><option value="edit">첨삭할 차례</option><option value="sub">제출할 차례</option><option value="done">제출완료</option><option value="no">거절한 사람</option></select>
           <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
         </div>
         <div class="row-btns">
@@ -786,11 +792,15 @@ function stat(b){const n=edits(b).length;
  if(b.no)return "거절 ("+md(b.no)+")";
  return b.sub?(n>1?n+"차 첨삭 후 제출완료":n?"첨삭 후 제출완료":"제출완료"):n?n+"차 첨삭 완료 · 제출 전":b.got?"지원서 첨삭 중":b.touch?"터치 완료 · 지원서 기다리는 중":"터치 전"}
 function md(d){return d?Number(d.slice(5,7))+"/"+Number(d.slice(8,10)):""}
+// 지금 이 사람에게 내가 할 일 (하나로만 나뉨)
+function todoOf(b){return b.no?"no":b.sub?"done":edits(b).length?"sub":b.got?"edit":b.touch?"wait":"touch"}
+const TODO=[["touch","터치할 사람"],["wait","지원서 기다리는 중"],["edit","첨삭할 차례"],["sub","제출할 차례"],["done","제출완료"]];
+function dday(){const v=store.get("tams_due")||"";if(!v)return "";const a=new Date(v+"T00:00:00"),t=new Date(today()+"T00:00:00"),n=Math.round((a-t)/864e5);return n>0?"D-"+n:n===0?"오늘 마감":"마감 지남"}
 function bookList(){
  const g=$("fGisu").value, s=$("fSrc").value, t=$("fTodo").value, q=$("fQ").value.trim(), qd=digits(q);
  return book.filter(b=>(!g||String(b.gisu||gisu())===g)&&(!s||route(b)===s)
   &&(t==="no"?!!b.no:!b.no)
-  &&(!t||t==="no"||(t==="touch"&&!b.touch)||(t==="got"&&!b.got)||(t==="edit"&&b.got&&!b.sub)||(t==="sub"&&!b.sub)||(t==="done"&&b.sub))
+  &&(!t||t==="no"||todoOf(b)===t)
   &&(!q||[b.name,b.school,b.place,b.major,b.memo].join(" ").includes(q)||(qd.length>=3&&digits(b.phone).includes(qd)))).map((b,i)=>[b,i]).sort((x,y)=>(y[0].added||"").localeCompare(x[0].added||"")||x[1]-y[1]).map(x=>x[0]);
 }
 function renderGisuFilter(){
@@ -803,9 +813,16 @@ function renderBook(){
  renderGisuFilter();
  const g=$("fGisu").value, base=book.filter(b=>!g||String(b.gisu||gisu())===g);
  const c=$("counts");c.replaceChildren();
- [["멘티",base.filter(b=>!b.no).length],...STEPS.map(([k,l])=>[l,base.filter(b=>!b.no&&(k==="edit"?edits(b).length:b[k])).length])].forEach(([l,n])=>{const s=document.createElement("span");s.append(l);const b=document.createElement("b");b.textContent=n;s.append(b);c.append(s)});
+ const cur=$("fTodo").value;
+ {const sp=document.createElement("span");sp.append("멘티");const bb=document.createElement("b");bb.textContent=base.filter(b=>!b.no).length;sp.append(bb);c.append(sp)}
+ for(const [k,l] of TODO){const n=base.filter(b=>todoOf(b)===k).length;
+  const nb=document.createElement("button");nb.type="button";nb.className="todoBtn"+(cur===k?" on":"")+(k!=="done"&&k!=="wait"&&n?" hot":"");nb.append(l);const bb=document.createElement("b");bb.textContent=n;nb.append(bb);
+  nb.title=cur===k?"전체 보기로":l+"만 보기";nb.setAttribute("aria-pressed",String(cur===k));
+  nb.addEventListener("click",()=>{$("fTodo").value=cur===k?"":k;renderBook()});c.append(nb)}
  {const nb=document.createElement("button");nb.type="button";nb.className="noBtn";nb.append($("fTodo").value==="no"?"거절 (전체 보기로)":"거절");const bb=document.createElement("b");bb.textContent=base.filter(b=>b.no).length;nb.append(bb);
   nb.title="거절한 사람만 따로 보기";nb.addEventListener("click",()=>{$("fTodo").value=$("fTodo").value==="no"?"":"no";renderBook()});c.append(nb)}
+ if(dueText()){const sp=document.createElement("span");sp.className="due";sp.append("지원서 마감 "+dueText()+" · ");const bb=document.createElement("b");bb.textContent=dday();sp.append(bb);
+  const left=base.filter(b=>!b.no&&!b.sub).length;if(left)sp.append(" · 아직 제출 전 "+left+"명");c.append(sp)}
  const rn=$("routeN");rn.replaceChildren();
  for(const [k,l] of Object.entries(RLONG)){const sp=document.createElement("span");sp.append(l);const bb=document.createElement("b");bb.textContent=base.filter(b=>route(b)===k).length;sp.append(bb,"명");rn.append(sp," ")}
  const list=bookList(), tb=$("book");tb.replaceChildren();

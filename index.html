@@ -326,7 +326,7 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
     <section class="out" aria-labelledby="outTitle">
       <div class="out-h">
         <h2 id="outTitle">보낼 문자 <span id="outN">0</span>건</h2>
-        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="csToggle" aria-pressed="true" title="고객별 콜 스크립트를 보이거나 숨깁니다">콜 스크립트 숨기기</button><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="csToggle" aria-pressed="true" title="고객별 콜 스크립트를 보이거나 숨깁니다">콜 스크립트 숨기기</button><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" id="resXlsx" title="불러온 고객 전체의 연락 진행(터치·부재·통화·미팅)을 엑셀로 받기">진행 결과 엑셀</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
       </div>
       <div class="osearch">
         <input type="search" id="oq" placeholder="고객 찾기 · 이름 또는 번호 (전화 올 때 바로 찾기)" autocomplete="off" aria-label="고객 찾기">
@@ -386,6 +386,12 @@ function mark(c,what,quiet){
  saveTrack();render();
 }
 
+// 진행 결과 엑셀: 불러온 고객 전체의 연락 진행을 한 표로
+function resultRows(){
+ const d=ts=>ts?hm(ts):"";
+ return [["연번","고객명","전화","상품","진행","터치","부재 횟수","마지막 부재","통화","미팅","미팅 메모"],
+  ...customers.map(c=>{const t=T(c);return [noLabel(c.nos),c.name,c.phone,c.products.join(", "),STAGE_TXT[stage(c)],d(t.touch),t.miss||"",d(t.lastMiss),d(t.call),t.result==="meet"?"잡힘":t.result==="reject"?"거절":"",t.meetNote||""]})];
+}
 function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
 function normPhone(p){return String(p||"").replace(/\D/g,"")}
 // Windows 엑셀에서 숫자로 저장돼 앞자리 0이 빠진 번호(1012345678)를 되살림
@@ -836,6 +842,15 @@ $("pickNone").addEventListener("click",()=>{selected.clear();render()});
 $("vcf").addEventListener("click",saveVcf);
 $("oq").addEventListener("input",renderOut);
 $("oq").addEventListener("keydown",e=>{if(e.key==="Escape"){$("oq").value="";renderOut()}});
+$("resXlsx").addEventListener("click",()=>{
+ if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
+ if(!customers.length){toast("먼저 엑셀을 불러오세요");return}
+ const aoa=resultRows(), ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[8,12,15,36,20,12,9,12,12,7,24].map(w=>({wch:w}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"진행 결과");
+ const n=new Date(),ymd=n.getFullYear()+String(n.getMonth()+1).padStart(2,"0")+String(n.getDate()).padStart(2,"0");
+ XLSX.writeFile(wb,`transfer_result_${ymd}.xlsx`);
+ const done=customers.filter(c=>stage(c)!=="none").length;toast(`${customers.length}명 중 연락한 ${done}명의 진행 결과를 받았습니다`);
+});
 $("copyAll").addEventListener("click",()=>{const list=customers.filter(c=>selected.has(c.key));if(!list.length){toast("먼저 고객을 고르세요");return}copy(list.map(c=>`▼ [${noLabel(c.nos)}] ${c.name} ${c.phone}\n${message(c)}`).join("\n\n"),list.length+"명 문자 전체 복사됨",$("out"))});
 const drop=$("drop");
 async function useHandle(h){if(!h||h.kind!=="file")return false;fileHandle=h;try{await loadFile(await h.getFile())}catch(e){fileHandle=null;return false}return true}
