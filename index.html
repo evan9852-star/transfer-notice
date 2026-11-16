@@ -183,6 +183,41 @@ details.script .sc{padding:0 14px 12px;white-space:pre-wrap;font-size:15px;line-
 details.script .sc .dir{color:var(--ink-2);font-size:14px}
 details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-radius:var(--r-s);padding:0 4px}
 .hide-script details.script{display:none}
+[hidden]{display:none!important}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ink-2);padding:10px 16px;font-size:15px;font-weight:600;min-height:44px;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
+.tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
+.prog{display:flex;flex-direction:column;gap:20px}
+.prog-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.prog-h h2{margin:0;font-size:18px}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:900px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:420px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile span{font-size:13px;color:var(--ink-2)}
+.tile b{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile b small{font-size:13px;font-weight:500;color:var(--ink-2);margin-left:2px}
+.rates{display:flex;flex-wrap:wrap;gap:6px 24px;font-size:14px;color:var(--ink-2)}
+.rates b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pg{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r-m);overflow:hidden}
+.pg>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:15px;font-weight:600}
+.pg>summary::-webkit-details-marker{display:none}
+.pg>summary::before{content:"";width:0;height:0;border-left:5px solid var(--ink);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
+.pg[open]>summary::before{transform:rotate(90deg)}
+.pg>summary b{color:var(--seal);font-variant-numeric:tabular-nums}
+.pg>summary small{font-weight:400;color:var(--ink-2);font-size:13px}
+.prow{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr) auto;gap:4px 16px;align-items:start;padding:10px 14px;border-top:1px solid var(--rule-2);font-size:14px}
+@media (max-width:700px){.prow{grid-template-columns:minmax(0,1fr) auto}.prow .rec{grid-column:1/-1;grid-row:2}}
+.prow .who b{font-weight:600}.prow .who span{color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:6px;white-space:nowrap}
+.prow .who .no{margin:0 6px 0 0;font-size:13px}
+.prow .rec{color:var(--ink-2);overflow-wrap:anywhere}
+.prow .rec .mm{color:var(--ink);display:block}
+.prow button{font-size:13px;padding:4px 10px;min-height:30px}
+.csum{font-size:13px;color:var(--ink-2);margin:0}
+.csum b{color:var(--ink)}
 .track .memo-in{flex-basis:100%;font:inherit;font-size:14px;line-height:1.5;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink);resize:vertical;min-height:38px}
 .msg-fold{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:10px 16px 12px;font-size:13px;color:var(--ink-2)}
 .msg-fold .btns{display:flex;gap:6px;flex-wrap:wrap}
@@ -237,6 +272,11 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
     <div class="kbar"><span class="safe">엑셀은 이 컴퓨터 안에서만 읽습니다.</span><span id="kstate" class="kstate">카카오 로그인 안 됨</span><button type="button" id="klogin" class="kbtn">카카오 로그인</button><button type="button" id="klogout" class="text" hidden>로그아웃</button></div>
   </header>
 
+  <div class="tabs" role="tablist" aria-label="이관고객 구역">
+    <button type="button" role="tab" data-tab="work" id="t-work">문자 · 콜</button>
+    <button type="button" role="tab" data-tab="prog" id="t-prog">진행 현황<span id="nProg"></span></button>
+  </div>
+  <div id="p-work" role="tabpanel" aria-labelledby="t-work">
   <div class="grid">
     <div class="steps">
       <section class="step" aria-labelledby="s1">
@@ -275,6 +315,10 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
             </div>
             <label class="check" for="cmemo"><input type="checkbox" id="cmemo" checked>메모에 사는 구 넣기 (해운대구, 북구 …)</label>
             <label class="check" for="caddr"><input type="checkbox" id="caddr" checked>주소 간단히 저장 (예: 부산 해운대구 좌동)</label>
+            <label class="check" for="cprod"><input type="checkbox" id="cprod">메모에 가입 상품 넣기</label>
+            <label class="check" for="cskipT"><input type="checkbox" id="cskipT" checked>이미 터치한 사람은 빼기</label>
+            <label class="check" for="cskipS"><input type="checkbox" id="cskipS" checked>이미 연락처 파일로 받은 사람은 빼기</label>
+            <p class="csum" id="csum"></p>
             <p class="hint">엑셀에 '이관일' 열이 있으면 그 날짜가 먼저 들어갑니다. 양식은 이 컴퓨터에 기억됩니다.</p>
             <div><button type="button" class="text" id="resetC">기본 양식으로 되돌리기</button></div>
           </div>
@@ -337,7 +381,7 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
     <section class="out" aria-labelledby="outTitle">
       <div class="out-h">
         <h2 id="outTitle">보낼 문자 <span id="outN">0</span>건</h2>
-        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="foldToggle" aria-pressed="true" title="이미 터치했거나 전화한 고객은 문자를 접어 두고 콜 기록만 보여 줍니다">터치한 문자 접기</button><button type="button" id="csToggle" aria-pressed="true" title="고객별 콜 스크립트를 보이거나 숨깁니다">콜 스크립트 숨기기</button><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" id="resXlsx" title="불러온 고객 전체의 연락 진행(터치·부재·통화·미팅)을 엑셀로 받기">진행 결과 엑셀</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="foldToggle" aria-pressed="true" title="이미 터치했거나 전화한 고객은 문자를 접어 두고 콜 기록만 보여 줍니다">터치한 문자 접기</button><button type="button" id="csToggle" aria-pressed="true" title="고객별 콜 스크립트를 보이거나 숨깁니다">콜 스크립트 숨기기</button><button type="button" id="vcf" title="고른 고객을 '이관 이름 연.월' 이름으로 연락처 파일로 받기">연락처 저장</button><button type="button" id="copyAll">전체 복사</button><button type="button" class="primary" id="ksend">카톡 나에게 보내기</button></div>
       </div>
       <div class="osearch">
         <input type="search" id="oq" placeholder="고객 찾기 · 이름 또는 번호 (전화 올 때 바로 찾기)" autocomplete="off" aria-label="고객 찾기">
@@ -346,6 +390,13 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
       <div class="stack" id="out"></div>
     </section>
   </div>
+  </div>
+  <section class="prog" id="p-prog" role="tabpanel" aria-labelledby="t-prog" hidden>
+    <div class="prog-h"><h2>진행 현황</h2><button type="button" class="text" id="resXlsx" title="불러온 고객 전체의 연락 진행을 엑셀로 받기">엑셀로 받기</button></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="rates" id="rates"></div>
+    <div class="stack" id="progOut"></div>
+  </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -397,7 +448,7 @@ function mark(c,what,quiet){
  else if(what==="miss"){t.miss=(t.miss||0)+1;t.lastMiss=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 부재 "+t.miss+"회")}
  else if(what==="call"){if(t.call){delete t.call;delete t.result;delete t.meetNote}else{t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 통화됨")}}
  else if(what==="meet"||what==="reject"){if(t.result===what){delete t.result}else{t.result=what;t.resultAt=now;if(!t.call)t.call=now;if(!t.touch)t.touch=now;toast(c.name+" 고객님 "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
- else if(what==="reset"){const keep={};if(t.memo)keep.memo=t.memo;if(t.hide)keep.hide=t.hide;track[k]=keep}
+ else if(what==="reset"){const keep={};if(t.memo)keep.memo=t.memo;if(t.hide)keep.hide=t.hide;if(t.saved)keep.saved=t.saved;track[k]=keep}
  if(track[k]&&!Object.keys(track[k]).length)delete track[k];
  saveTrack();render();
 }
@@ -405,8 +456,8 @@ function mark(c,what,quiet){
 // 진행 결과 엑셀: 불러온 고객 전체의 연락 진행을 한 표로
 function resultRows(){
  const d=ts=>ts?hm(ts):"";
- return [["연번","고객명","전화","상품","진행","터치","부재 횟수","마지막 부재","통화","미팅","미팅 메모","콜 메모","숨김"],
-  ...customers.map(c=>{const t=T(c);return [noLabel(c.nos),c.name,c.phone,c.products.join(", "),STAGE_TXT[stage(c)],d(t.touch),t.miss||"",d(t.lastMiss),d(t.call),t.result==="meet"?"잡힘":t.result==="reject"?"거절":"",t.meetNote||"",t.memo||"",t.hide?"숨김":""]})];
+ return [["연번","고객명","전화","상품","진행","터치","부재 횟수","마지막 부재","통화","미팅","미팅 메모","콜 메모","숨김","연락처 저장"],
+  ...customers.map(c=>{const t=T(c);return [noLabel(c.nos),c.name,c.phone,c.products.join(", "),STAGE_TXT[stage(c)],d(t.touch),t.miss||"",d(t.lastMiss),d(t.call),t.result==="meet"?"잡힘":t.result==="reject"?"거절":"",t.meetNote||"",t.memo||"",t.hide?"숨김":"",d(t.saved)]})];
 }
 function cleanProduct(p){return String(p||"").replace(/^[A-Z]\d{3,5}\s+/,"").trim()}
 function normPhone(p){return String(p||"").replace(/\D/g,"")}
@@ -578,6 +629,7 @@ function renderRoster(){
   if(c.lapsed.length)tg.append(tag("lapse","실효"));
   if(c.optout)tg.append(tag("optout","수신거부"));
   if(c.contacted)tg.append(tag("done","접촉함"));
+  if(T(c).saved&&stage(c)==="none")tg.append(tag("cnt","연락처 저장됨"));
   const t=T(c);
   const sg=stage(c);
   if(sg==="meet")tg.append(tag("call","미팅 잡힘"+(t.meetNote?" · "+t.meetNote:"")));
@@ -707,7 +759,47 @@ function renderOut(){
   box.append(b,f,scriptBox(c));out.append(box);
  }
 }
-function render(){renderRoster();renderOut();cRender();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
+// ---- 진행 현황 ----
+const PG=[["meet","미팅 잡힘",""],["call","통화됨 · 미팅 결과 전","통화는 됐는데 미팅 여부를 아직 안 정한 고객"],["miss","부재 · 다시 걸 고객","부재 횟수가 적은 고객부터"],["touch","터치만 · 전화 전","터치한 지 오래된 고객부터"],["reject","미팅 거절",""],["none","아직 연락 안 함",""]];
+function renderProg(){
+ if($("p-prog").hidden)return;
+ const n={none:0,touch:0,miss:0,call:0,meet:0,reject:0},by={none:[],touch:[],miss:[],call:[],meet:[],reject:[]};
+ let missSum=0;customers.forEach(c=>{const g=stage(c);n[g]++;by[g].push(c);missSum+=T(c).miss||0});
+ const tot=customers.length,touched=tot-n.none,reached=n.call+n.meet+n.reject;
+ const tl=$("tiles");tl.replaceChildren();
+ for(const [l,v,sub] of [["전체 고객",tot,"명"],["연락한 고객",touched,"명"],["부재 중",n.miss,"명"],["통화 연결",reached,"명"],["미팅 잡힘",n.meet,"명"],["미팅 거절",n.reject,"명"]]){
+  const d=document.createElement("div");d.className="tile";const a=document.createElement("span");a.textContent=l;const b=document.createElement("b");b.textContent=v;const sm=document.createElement("small");sm.textContent=sub;b.append(sm);d.append(a,b);tl.append(d)}
+ const pct=(a,b)=>b?Math.round(a/b*100)+"%":"-";
+ const rt=$("rates");rt.replaceChildren();
+ for(const [l,v] of [["남은 고객(미연락)",n.none+"명"],["통화 연결률",pct(reached,touched)+` (연락한 ${touched}명 중 ${reached}명)`],["미팅 성사율",pct(n.meet,reached)+` (통화된 ${reached}명 중 ${n.meet}명)`],["부재 누적",missSum+"회"]]){
+  const sp=document.createElement("span");sp.append(l+" ");const b=document.createElement("b");b.textContent=v;sp.append(b);rt.append(sp)}
+ by.miss.sort((a,b)=>(T(a).miss||0)-(T(b).miss||0)||(T(a).lastMiss||0)-(T(b).lastMiss||0));
+ by.touch.sort((a,b)=>(T(a).touch||0)-(T(b).touch||0));
+ const out=$("progOut");const wasOpen=new Map([...out.querySelectorAll("details.pg")].map(d=>[d.dataset.g,d.open]));out.replaceChildren();
+ if(!tot){const b=document.createElement("div");b.className="blank";b.textContent="먼저 '문자 · 콜'에서 엑셀을 불러오세요.";out.append(b);return}
+ for(const [g,title,sub] of PG){
+  const d=document.createElement("details");d.className="pg";d.dataset.g=g;d.open=wasOpen.has(g)?wasOpen.get(g):(g!=="none"&&g!=="reject"&&by[g].length>0);
+  const sm=document.createElement("summary");sm.append(title+" ");const b=document.createElement("b");b.textContent=by[g].length+"명";sm.append(b);
+  if(sub&&by[g].length){const x=document.createElement("small");x.textContent=sub;sm.append(x)}
+  d.append(sm);
+  for(const c of by[g]){
+   const t=T(c),r=document.createElement("div");r.className="prow";
+   const w=document.createElement("div");w.className="who";const no=document.createElement("span");no.className="no";no.textContent=noLabel(c.nos);const nm=document.createElement("b");nm.textContent=c.name;const ph=document.createElement("span");ph.textContent=c.phone||"번호 없음";w.append(no,nm,ph);
+   if(t.hide)w.append(" ",tag("hid","숨김"));
+   const rec=document.createElement("div");rec.className="rec";const ps=[];
+   if(t.touch)ps.push("터치 "+hm(t.touch));if(t.miss)ps.push("부재 "+t.miss+"회"+(t.lastMiss?" (최근 "+hm(t.lastMiss)+")":""));if(t.call)ps.push("통화 "+hm(t.call));
+   if(g==="none")ps.push(c.products.join(", ")+(t.saved?" · 연락처 저장됨":""));
+   rec.textContent=ps.join(" · ");
+   if(t.meetNote){const m=document.createElement("span");m.className="mm";m.textContent="미팅 · "+t.meetNote;rec.append(m)}
+   if(t.memo){const m=document.createElement("span");m.className="mm";m.textContent="메모 · "+t.memo;rec.append(m)}
+   const go=document.createElement("button");go.type="button";go.className="text";go.textContent="카드 열기";go.title="이 고객의 문자·콜 기록 카드로 갑니다";
+   go.addEventListener("click",()=>{showTab("work");$("oq").value=c.name;renderOut();$("outTitle").scrollIntoView({block:"start"})});
+   r.append(w,rec,go);d.append(r)}
+  out.append(d)}
+}
+const TABS=["work","prog"];
+function showTab(t){if(!TABS.includes(t))t="work";TABS.forEach(k=>{$("p-"+k).hidden=k!==t;$("t-"+k).setAttribute("aria-selected",String(k===t))});store.set("tcn_tab",t);renderProg()}
+function render(){renderRoster();renderOut();cRender();renderProg();if(loadedName)store.set("tcn_sel",JSON.stringify([...selected]))}
 
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("show"),1800)}
 function selectText(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
@@ -754,28 +846,41 @@ function contactName(c){
  const f=$("cfmt").value.trim()||CFMT_DEF;
  return f.replaceAll("{이름}",c.name).replaceAll("{연월}",ym).replaceAll("{지역}",region(c.addr)).replace(/\s+/g," ").trim();
 }
-function canSave(){return customers.filter(c=>selected.has(c.key)&&normPhone(c.phone).length>=9)}
+// 저장 대상: 고른 고객 중 번호 있고, (설정에 따라) 터치했거나 이미 받은 사람은 뺌
+function savePlan(){
+ const list=customers.filter(c=>selected.has(c.key)&&!hid(c)),ok=[],skip={noPhone:0,touched:0,saved:0};
+ for(const c of list){const t=T(c);
+  if(normPhone(c.phone).length<9)skip.noPhone++;
+  else if($("cskipT").checked&&(t.touch||t.miss||t.call))skip.touched++;
+  else if($("cskipS").checked&&t.saved)skip.saved++;
+  else ok.push(c)}
+ return {list,ok,skip};
+}
+function skipText(k){const a=[];if(k.touched)a.push("터치한 "+k.touched+"명");if(k.saved)a.push("이미 받은 "+k.saved+"명");if(k.noPhone)a.push("번호 없는 "+k.noPhone+"명");return a.join(", ")}
+function canSave(){return savePlan().ok}
 function cRender(){
  const n=canSave().length;const b=$("vcf");b.replaceChildren(document.createTextNode("연락처 저장"));
  const nb=document.createElement("b");nb.textContent=n+"명";b.append(nb);b.disabled=!n;
- b.title=n?`고른 고객 ${n}명을 연락처 파일로 받습니다`:"먼저 고객을 고르세요 (번호가 있는 고객만 저장됩니다)";
+ const pl=savePlan(),sk=skipText(pl.skip);
+ b.title=n?`고른 고객 ${n}명을 연락처 파일로 받습니다`+(sk?` (${sk} 제외)`:""):pl.list.length?"저장할 사람이 없습니다 ("+sk+" 제외)":"먼저 고객을 고르세요";
+ {const e=$("csum");e.replaceChildren("지금 저장 대상 ");const x=document.createElement("b");x.textContent=n+"명";e.append(x,sk?" · "+sk+" 제외":pl.list.length?"":" · 왼쪽에서 고객을 고르세요")}
  const ex=customers.find(c=>selected.has(c.key))||customers[0]||{name:"홍길동",addr:"부산 해운대구",moved:""};
  $("cprev").textContent=contactName(ex)+($("cmemo").checked&&region(ex.addr)?"  · 메모: "+region(ex.addr):"")+($("caddr").checked&&simpleAddr(ex.addr)?"  · 주소: "+simpleAddr(ex.addr):"");
 }
 function makeVcf(list){
  return list.map(c=>{const nm=contactName(c),rg=region(c.addr);
-  return ["BEGIN:VCARD","VERSION:3.0","N:"+vEsc(nm)+";;;;","FN:"+vEsc(nm),"TEL;type=CELL;type=VOICE;type=pref:"+c.phone.replace(/[^\d\-+]/g,""),(rg&&$("cmemo").checked)?"NOTE:"+vEsc(rg):"",(c.addr&&$("caddr").checked&&simpleAddr(c.addr))?"ADR;type=HOME:;;"+vEsc(simpleAddr(c.addr))+";;;;":"","END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
+  return ["BEGIN:VCARD","VERSION:3.0","N:"+vEsc(nm)+";;;;","FN:"+vEsc(nm),"TEL;type=CELL;type=VOICE;type=pref:"+c.phone.replace(/[^\d\-+]/g,""),(()=>{const nt=[];if(rg&&$("cmemo").checked)nt.push(rg);if($("cprod").checked&&c.products.length)nt.push(c.products.join(", "));return nt.length?"NOTE:"+vEsc(nt.join(" · ")):""})(),(c.addr&&$("caddr").checked&&simpleAddr(c.addr))?"ADR;type=HOME:;;"+vEsc(simpleAddr(c.addr))+";;;;":"","END:VCARD"].filter(Boolean).join("\r\n")}).join("\r\n")+"\r\n";
 }
 function saveVcf(){
- const list=customers.filter(c=>selected.has(c.key));
+ const {list,ok,skip}=savePlan(),sk=skipText(skip);
  if(!list.length){toast("먼저 저장할 고객을 고르세요");return}
- const ok=list.filter(c=>normPhone(c.phone).length>=9),skip=list.length-ok.length;
- if(!ok.length){toast("고른 고객에게 전화번호가 없습니다");return}
+ if(!ok.length){toast("저장할 사람이 없습니다 ("+sk+" 제외)");return}
  const blob=new Blob([makeVcf(ok)],{type:"text/vcard;charset=utf-8"});
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
  a.download="transfer_contacts_"+ok.length+".vcf";document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
- toast(ok.length+"명 연락처 파일을 받았습니다"+(skip?` (번호 없는 ${skip}명 제외)`:"")+". 파일을 열면 연락처에 추가됩니다");
+ const now=Date.now();ok.forEach(c=>{(track[tkey(c)]||(track[tkey(c)]={})).saved=now});saveTrack();render();
+ toast(ok.length+"명 연락처 파일을 받았습니다"+(sk?` (${sk} 제외)`:"")+". 파일을 열면 연락처에 추가됩니다");
 }
 
 // ---- 엑셀 읽기 ----
@@ -852,6 +957,7 @@ $("ym").addEventListener("input",()=>{store.set("tcn_ym",$("ym").value.trim());c
 $("cfmt").value=store.get("tcn_cfmt")||CFMT_DEF;
 $("cfmt").addEventListener("input",()=>{store.set("tcn_cfmt",$("cfmt").value);cRender()});
 $("cmemo").checked=store.get("tcn_cmemo")!=="0";
+for(const [id,def] of [["cprod","0"],["cskipT","1"],["cskipS","1"]]){$(id).checked=(store.get("tcn_"+id)??def)==="1";$(id).addEventListener("change",()=>{store.set("tcn_"+id,$(id).checked?"1":"0");cRender()})}
 $("cmemo").addEventListener("change",()=>{store.set("tcn_cmemo",$("cmemo").checked?"1":"0");cRender()});
 document.querySelectorAll("[data-c]").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=$("cfmt"),a=t.selectionStart??t.value.length,e=t.selectionEnd??a;t.value=t.value.slice(0,a)+c.dataset.c+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=a+c.dataset.c.length;t.dispatchEvent(new Event("input"))})});
 $("cs").value=store.get("tcn_cs")||CS_DEF;$("visit").value=store.get("tcn_visit")||VISIT_DEF;
@@ -867,6 +973,8 @@ $("hideDone").addEventListener("click",()=>{
  if(!confirm("미팅이 잡혔거나 거절한 고객 "+l.length+"명을 숨길까요? 기록은 남고 '숨김'에서 다시 꺼낼 수 있습니다."))return;
  const now=Date.now();l.forEach(c=>{(track[tkey(c)]||(track[tkey(c)]={})).hide=now});saveTrack();render();toast(l.length+"명을 숨겼습니다");
 });
+TABS.forEach(k=>$("t-"+k).addEventListener("click",()=>showTab(k)));
+showTab(store.get("tcn_tab")||"work");
 $("csToggle").addEventListener("click",()=>{store.set("tcn_csShow",store.get("tcn_csShow")==="0"?"1":"0");csPaint()});
 csPaint();
 $("caddr").checked=store.get("tcn_caddr")!=="0";
@@ -892,7 +1000,7 @@ $("oq").addEventListener("keydown",e=>{if(e.key==="Escape"){$("oq").value="";ren
 $("resXlsx").addEventListener("click",()=>{
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
  if(!customers.length){toast("먼저 엑셀을 불러오세요");return}
- const aoa=resultRows(), ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[8,12,15,36,20,12,9,12,12,7,24].map(w=>({wch:w}));
+ const aoa=resultRows(), ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[8,12,15,36,20,12,9,12,12,7,24,36,6,12].map(w=>({wch:w}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"진행 결과");
  const n=new Date(),ymd=n.getFullYear()+String(n.getMonth()+1).padStart(2,"0")+String(n.getDate()).padStart(2,"0");
  XLSX.writeFile(wb,`transfer_result_${ymd}.xlsx`);
