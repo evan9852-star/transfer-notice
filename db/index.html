@@ -138,6 +138,37 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
 .msg-imgs{display:flex;gap:8px;margin:12px 16px 0;align-items:center;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
 .msg-imgs img{height:48px;max-width:80px;object-fit:contain;background:#fff;border:1px solid var(--rule);border-radius:var(--r-s)}
 .step-lb{font-size:12px;color:var(--ink-2);align-self:center;margin-right:auto}
+[hidden]{display:none!important}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ink-2);padding:10px 16px;font-size:15px;font-weight:600;min-height:44px;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
+.tabs button span{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:4px}
+@media (max-width:480px){.tabs button{padding:10px 9px;font-size:14px}}
+.book,.msgs{margin-top:0}
+.tag.touch{background:var(--amber-soft);color:var(--amber)}
+.tag.miss{background:var(--seal-soft);color:var(--seal)}
+.tag.call{background:var(--moss-soft);color:var(--moss)}
+.tag.none{background:var(--rule-2);color:var(--ink-2)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{font-size:13px;padding:5px 10px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.seg button b{font-weight:600;margin-left:3px;font-variant-numeric:tabular-nums}
+.callbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+tr.trk td{white-space:normal;padding:0 12px 10px;background:var(--sheet)}
+tr.has-trk td{border-bottom:0}
+.track{position:sticky;left:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:min(760px,calc(100vw - 72px));padding:8px 10px;border-radius:var(--r-s);background:var(--rule-2);font-size:13px}
+.track .st{margin-right:auto;color:var(--ink-2)}
+.track .st b{color:var(--ink);font-weight:600}
+.track button{font-size:13px;padding:4px 10px;min-height:30px}
+.track button.on{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.track button.rej{color:var(--seal);font-weight:600}
+.track .miss-step{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet)}
+.track .miss-step button{border:0;background:transparent;padding:4px 9px}
+.track .miss-step .n{font-weight:600;color:var(--seal);padding:0 2px;white-space:nowrap}
+.track input,.track textarea{flex-basis:100%;font:inherit;font-size:14px;line-height:1.5;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
+.track textarea{resize:vertical;min-height:38px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:var(--r-m);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -154,6 +185,13 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
     <div class="nav"><span class="safe">붙여넣은 내용은 이 기기 안에서만 다룹니다.</span></div>
   </header>
 
+  <div class="tabs" role="tablist" aria-label="DB 고객 관리 구역">
+    <button type="button" role="tab" data-tab="save" id="t-save">연락처 저장<span id="nSave"></span></button>
+    <button type="button" role="tab" data-tab="book" id="t-book">DB 장부 · 콜<span id="nBook"></span></button>
+    <button type="button" role="tab" data-tab="msg" id="t-msg">안내문자<span id="nMsg"></span></button>
+  </div>
+
+  <div id="p-save" role="tabpanel" aria-labelledby="t-save">
   <div class="grid">
     <div class="steps">
       <section class="step" aria-labelledby="s1">
@@ -195,13 +233,14 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
           <li>맥: 파일을 두 번 누르면 연락처 앱에 들어가고, 아이클라우드로 휴대폰에도 들어갑니다. 아이폰은 파일을 열고 <b>모두 추가</b>.</li>
           <li>카카오톡 톱니바퀴 → 환경설정 → 친구 → <b>동기화</b>. 휴대폰 카톡에서도 친구 새로고침을 하면 빨리 뜹니다.</li>
           <li>카톡 친구에서 <b>DB</b>로 찾아 '카톡 이름 확인' 표시가 붙은 사람의 카톡 이름을 봅니다.</li>
-          <li>아래 장부에서 이름을 고치고 <b>고친 사람만 연락처 파일</b>을 받아 다시 엽니다. 연락처 앱이 같은 사람이라고 물으면 '업데이트'를 고르세요.</li>
+          <li><b>DB 장부 · 콜</b> 탭에서 이름을 고치고 <b>고친 사람만 연락처 파일</b>을 받아 다시 엽니다. 연락처 앱이 같은 사람이라고 물으면 '업데이트'를 고르세요.</li>
         </ol>
       </div>
     </section>
   </div>
+  </div>
 
-  <section class="book" aria-labelledby="bookTitle">
+  <section class="book" id="p-book" role="tabpanel" aria-labelledby="bookTitle" hidden>
     <div class="book-h">
       <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명 <span class="selN" id="bookSel" aria-live="polite"></span></h2>
       <div class="row-btns">
@@ -211,14 +250,20 @@ details.tpl summary{cursor:pointer;font-size:14px;font-weight:600}
         <button type="button" class="text" id="bookBackup" title="장부를 그대로 파일로 받아 둡니다">백업 받기</button><button type="button" class="text" id="bookRestore" title="받아 둔 백업 파일(.json)을 다시 넣습니다">불러오기</button><input type="file" id="bookRestoreFile" accept=".json,application/json" hidden>
       </div>
     </div>
-    <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 <b>백업 받기</b>로 파일을 받아 두세요. 다른 컴퓨터나 브라우저에서는 <b>불러오기</b>로 그 파일을 넣으면 보냄 표시까지 그대로 돌아옵니다. 왼쪽 칸을 고르면 아래에 안내문자가 만들어집니다.</p>
+    <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 <b>백업 받기</b>로 파일을 받아 두세요. 다른 컴퓨터나 브라우저에서는 <b>불러오기</b>로 그 파일을 넣으면 보냄 표시와 콜 기록까지 그대로 돌아옵니다. 왼쪽 칸을 고르면 <b>안내문자</b> 탭에 문자가 만들어집니다.</p>
+    <div class="callbar">
+      <div class="seg" id="bseg" role="group" aria-label="콜 진행으로 보기">
+        <button type="button" data-f="all">전체<b id="cAll"></b></button><button type="button" data-f="none">미연락<b id="cNone"></b></button><button type="button" data-f="touch">문자만<b id="cTouch"></b></button><button type="button" data-f="miss">부재<b id="cMiss"></b></button><button type="button" data-f="call">통화됨 · 결과 전<b id="cCall"></b></button><button type="button" data-f="meet">미팅 잡힘<b id="cMeet"></b></button><button type="button" data-f="reject">미팅 거절<b id="cReject"></b></button>
+      </div>
+      <div class="row-btns"><label class="check" for="trkAll"><input type="checkbox" id="trkAll">콜 기록 칸 모두 펼치기</label><button type="button" class="primary" id="goMsg" hidden></button></div>
+    </div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th class="cb"><input type="checkbox" id="bookAll" aria-label="장부 전체 선택"></th><th>받은 날</th><th>저장 이름</th><th>이름</th><th>전화</th><th>지역</th><th>캠페인</th><th></th></tr></thead>
+      <thead><tr><th class="cb"><input type="checkbox" id="bookAll" aria-label="장부 전체 선택"></th><th>받은 날</th><th>저장 이름</th><th>이름</th><th>전화</th><th>진행</th><th>지역</th><th>캠페인</th><th></th></tr></thead>
       <tbody id="book"></tbody>
     </table></div>
   </section>
 
-  <section class="msgs" aria-labelledby="msgTitle">
+  <section class="msgs" id="p-msg" role="tabpanel" aria-labelledby="msgTitle" hidden>
     <div class="book-h">
       <h2 id="msgTitle">안내문자 <span id="msgN">0</span>건</h2>
       <div class="row-btns">
@@ -399,11 +444,11 @@ function download(file){
  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
 }
 function addToBook(recs){
- for(const r of recs){const i=book.findIndex(b=>b.phone===r.phone);if(i>=0)book[i]=r;else book.push(r)}
+ for(const r of recs){const i=book.findIndex(b=>b.phone===r.phone);if(i>=0)book[i]={...book[i],...r};else book.push(r)}
  recs.forEach(r=>sel.add(r.phone));  // 방금 넣은 사람은 안내문자에 바로 보이게
  store.set("db_book",JSON.stringify(book));renderBook();
  items.forEach(it=>{if(it.on){it.dup=true;it.on=false}});renderList();
- const st=$("status");st.className="status ok";st.textContent=`${recs.length}명을 연락처 파일로 받고 아래 장부에 넣었습니다.`;
+ const st=$("status");st.className="status ok";st.textContent=`${recs.length}명을 연락처 파일로 받고 DB 장부에 넣었습니다.`;
 }
 $("vcfBtn").addEventListener("click",()=>{
  const recs=records();if(!recs.length)return;
@@ -426,23 +471,73 @@ function bookSaveName(b){
  return ($("fmt").value||DEF_FMT).replaceAll("{이름}",b.name||"").replaceAll("{연월}",ym(d)).replaceAll("{월일}",md(d))
   .replaceAll("{지역}",b.region||"").replaceAll("{캠페인}",b.camp||"").replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
 }
+// 콜 진행: 미연락 → 문자만 → 부재 → 통화됨(결과 전) → 미팅 잡힘 / 미팅 거절
+function stage(b){if(b.call)return b.result==="meet"?"meet":b.result==="reject"?"reject":"call";if(b.miss)return"miss";if(b.sent)return"touch";return"none"}
+const STAGE_TXT={none:"미연락",touch:"문자 보냄 · 전화 전",miss:"부재 · 콜 안 닿음",call:"통화됨 · 미팅 결과 전",meet:"미팅 잡힘",reject:"미팅 거절"};
+const STAGE_CLS={none:"none",touch:"touch",miss:"miss",call:"call",meet:"call",reject:"miss"};
+function stageShort(b){const g=stage(b);return g==="none"?"미연락":g==="touch"?"문자 보냄":g==="miss"?"부재 "+b.miss+"회":g==="call"?"통화됨":STAGE_TXT[g]}
+function hm(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+let bMode=store.get("db_bmode")||"all";
+const openTrk=new Set();
+function saveBook(){store.set("db_book",JSON.stringify(book))}
+function markCall(b,what){
+ const now=Date.now(),nm=b.name||"";
+ if(what==="miss"){b.miss=(b.miss||0)+1;b.lastMiss=now;toast(nm+" 부재 "+b.miss+"회")}
+ else if(what==="miss-"){b.miss=Math.max(0,(b.miss||0)-1);if(!b.miss){delete b.miss;delete b.lastMiss}toast(nm+" 부재 "+(b.miss||0)+"회")}
+ else if(what==="call"){if(b.call){delete b.call;delete b.result;delete b.meetNote}else{b.call=now;toast(nm+" 통화됨")}}
+ else if(what==="meet"||what==="reject"){if(b.result===what)delete b.result;else{b.result=what;if(!b.call)b.call=now;toast(nm+" "+(what==="meet"?"미팅 잡힘":"미팅 거절"))}}
+ else if(what==="reset"){["miss","lastMiss","call","result","meetNote"].forEach(k=>delete b[k])}
+ openTrk.add(b.phone);saveBook();renderBook();
+}
+function trackRow(b){
+ const tr=document.createElement("div");tr.className="track";
+ const mk=(txt,cls,fn,title)=>{const x=document.createElement("button");x.type="button";if(cls)x.className=cls;x.textContent=txt;if(title)x.title=title;x.addEventListener("click",fn);return x};
+ const st=document.createElement("span");st.className="st";const sb=document.createElement("b");sb.textContent=STAGE_TXT[stage(b)];
+ const parts=[];if(b.sent)parts.push("문자 "+(+b.sent.slice(5,7))+"/"+(+b.sent.slice(8,10)));if(b.miss)parts.push("부재 "+b.miss+"회"+(b.lastMiss?" (최근 "+hm(b.lastMiss)+")":""));if(b.call)parts.push("통화 "+hm(b.call));
+ st.append(sb,parts.length?" · "+parts.join(" · "):"");
+ let bM;
+ if(!b.miss)bM=mk("부재","text",()=>markCall(b,"miss"),"전화했는데 안 받았을 때");
+ else{bM=document.createElement("span");bM.className="miss-step";bM.setAttribute("role","group");bM.setAttribute("aria-label","부재 횟수");
+  const minus=mk("−","",()=>markCall(b,"miss-"));minus.setAttribute("aria-label","부재 1회 빼기");
+  const n=document.createElement("span");n.className="n";n.textContent="부재 "+b.miss+"회";
+  const plus=mk("+","",()=>markCall(b,"miss"));plus.setAttribute("aria-label","부재 1회 더하기");bM.append(minus,n,plus)}
+ tr.append(st,mk(b.sent?"문자 보냄 ✓":"문자 보냄",b.sent?"text on":"text",()=>{b.sent=b.sent?undefined:today();openTrk.add(b.phone);saveBook();renderBook()},"안내문자를 보냈으면 누르세요 (다시 누르면 취소)"),bM,
+  mk(b.call?"통화됨 ✓":"통화 연결",b.call?"on":"",()=>markCall(b,"call"),"통화가 됐으면 누르세요 (다시 누르면 취소)"));
+ if(b.call){
+  tr.append(mk(b.result==="meet"?"미팅 잡힘 ✓":"미팅 잡힘",b.result==="meet"?"on":"",()=>markCall(b,"meet")),mk(b.result==="reject"?"미팅 거절 ✓":"미팅 거절","text"+(b.result==="reject"?" rej":""),()=>markCall(b,"reject")));
+ }
+ tr.append(mk("전화 걸기","text",()=>{location.href="tel:"+digits(b.phone)},"휴대폰에서는 바로 전화가 걸립니다"),mk("번호 복사","text",()=>copyText(b.phone,"번호 복사됨")));
+ if(b.miss||b.call)tr.append(mk("콜 기록 지우기","text",()=>{if(confirm((b.name||"")+" 님의 부재·통화 기록을 지울까요? 메모는 남습니다."))markCall(b,"reset")}));
+ if(b.result==="meet"){const mi=document.createElement("input");mi.type="text";mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=b.meetNote||"";mi.setAttribute("aria-label",(b.name||"")+" 미팅 일정");
+  mi.addEventListener("change",()=>{b.meetNote=mi.value.trim()||undefined;saveBook();renderBook()});tr.append(mi)}
+ const memo=document.createElement("textarea");memo.rows=1;memo.placeholder="콜 메모 (예: 저녁 7시 이후 통화 가능, 재테크 관심)";memo.value=b.memo||"";memo.setAttribute("aria-label",(b.name||"")+" 콜 메모");
+ memo.addEventListener("input",()=>{b.memo=memo.value.trim()||undefined;saveBook()});tr.append(memo);
+ return tr;
+}
 function renderBook(){
  renderBookTable();renderMsgs();
+ const ns=book.filter(b=>sel.has(b.phone)).length;
+ $("nBook").textContent=book.length||"";$("nMsg").textContent=ns||"";
+ $("goMsg").hidden=!ns;$("goMsg").textContent=`고른 ${ns}명 안내문자 보기`;
 }
 function renderBookTable(){
  const nf=book.filter(b=>b.fixed).length;$("fixVcf").disabled=!nf;$("fixVcf").textContent=nf?`고친 사람만 연락처 파일 (${nf}명)`:"고친 사람만 연락처 파일";
  const q=$("bq").value.trim(),qd=digits(q);
- const list=book.slice().reverse().filter(b=>!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd)));
+ const cn={none:0,touch:0,miss:0,call:0,meet:0,reject:0};book.forEach(b=>cn[stage(b)]++);
+ $("cAll").textContent=book.length;for(const [k,id] of Object.entries({none:"cNone",touch:"cTouch",miss:"cMiss",call:"cCall",meet:"cMeet",reject:"cReject"}))$(id).textContent=cn[k];
+ document.querySelectorAll("#bseg button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.f===bMode)));
+ const list=book.slice().reverse().filter(b=>(bMode==="all"||stage(b)===bMode)&&(!q||(b.saveName+b.name).includes(q)||(qd&&digits(b.phone).includes(qd))));
  $("bookN").textContent=book.length;
  {const ns=book.filter(b=>sel.has(b.phone)).length;$("bookSel").textContent=ns?`· ${ns}명 선택`:""}
  const tb=$("book");tb.replaceChildren();
- if(!list.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=8;td.style.color="var(--ink-2)";td.textContent=book.length?"찾는 사람이 없습니다.":"아직 저장한 DB가 없습니다.";tr.append(td);tb.append(tr);return}
+ if(!list.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=9;td.style.color="var(--ink-2)";td.textContent=!book.length?"아직 저장한 DB가 없습니다.":bMode!=="all"&&!q?"'"+STAGE_TXT[bMode]+"'인 사람이 없습니다.":"찾는 사람이 없습니다.";tr.append(td);tb.append(tr);return}
  $("bookAll").checked=!!list.length&&list.every(b=>sel.has(b.phone));$("bookAll").indeterminate=list.some(b=>sel.has(b.phone))&&!$("bookAll").checked;
  for(const b of list){
   const tr=document.createElement("tr");
   const ctd=document.createElement("td");ctd.className="cb";const cb=document.createElement("input");cb.type="checkbox";cb.checked=sel.has(b.phone);cb.setAttribute("aria-label",(b.name||"")+" 안내문자");
   cb.addEventListener("change",()=>{cb.checked?sel.add(b.phone):sel.delete(b.phone);renderBook()});ctd.append(cb);tr.append(ctd);
-  const cells=[b.got,b.saveName,null,b.phone,b.region,b.camp];
+  const showTrk=$("trkAll").checked||openTrk.has(b.phone);
+  const cells=[b.got,b.saveName,null,b.phone,"stage",b.region,b.camp];
   cells.forEach((v,i)=>{
    const td=document.createElement("td");
    if(i===2){
@@ -451,7 +546,13 @@ function renderBookTable(){
     td.append(inp);
     if(!looksReal(b.name)){const s=document.createElement("span");s.className="tag chk";s.style.marginLeft="6px";s.textContent="카톡 이름 확인";td.append(s)}
     else if(b.fixed){const s=document.createElement("span");s.className="tag dup";s.style.marginLeft="6px";s.textContent="고침";td.append(s)}
-    if(b.sent){const s=document.createElement("span");s.className="tag dup";s.style.marginLeft="6px";s.textContent="문자 보냄";td.append(s)}
+   }else if(v==="stage"){
+    const s=document.createElement("span");s.className="tag "+STAGE_CLS[stage(b)];s.textContent=stageShort(b);s.style.marginRight="6px";
+    const o=document.createElement("button");o.type="button";o.className="text";o.style.cssText="font-size:13px;padding:3px 8px;min-height:28px";o.textContent=showTrk?"기록 접기":"콜 기록";o.setAttribute("aria-expanded",String(showTrk));
+    if($("trkAll").checked)o.hidden=true;
+    o.addEventListener("click",()=>{openTrk.has(b.phone)?openTrk.delete(b.phone):openTrk.add(b.phone);renderBookTable()});
+    td.append(s,o);
+    if(b.memo&&!showTrk){const m=document.createElement("span");m.style.cssText="margin-left:6px;color:var(--ink-2);font-size:13px";m.textContent="메모 있음";td.append(m)}
    }else td.textContent=v||"";
    tr.append(td);
   });
@@ -459,9 +560,17 @@ function renderBookTable(){
   const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
   x.addEventListener("click",()=>{book=book.filter(o=>o!==b);store.set("db_book",JSON.stringify(book));renderBook();load()});
   td.append(x);tr.append(td);tb.append(tr);
+  if(showTrk){tr.className="has-trk";const t2=document.createElement("tr");t2.className="trk";const c2=document.createElement("td");c2.colSpan=9;c2.append(trackRow(b));t2.append(c2);tb.append(t2)}
  }
 }
 $("bq").addEventListener("input",renderBook);
+document.querySelectorAll("#bseg button").forEach(x=>x.addEventListener("click",()=>{bMode=x.dataset.f;store.set("db_bmode",bMode);renderBookTable()}));
+$("trkAll").checked=store.get("db_trkAll")==="1";$("trkAll").addEventListener("change",()=>{store.set("db_trkAll",$("trkAll").checked?"1":"0");renderBookTable()});
+// ---- 구역 탭 ----
+const TABS=["save","book","msg"];
+function showTab(t){if(!TABS.includes(t))t="save";TABS.forEach(k=>{$("p-"+k).hidden=k!==t;$("t-"+k).setAttribute("aria-selected",String(k===t))});store.set("db_tab",t)}
+TABS.forEach(k=>$("t-"+k).addEventListener("click",()=>showTab(k)));
+$("goMsg").addEventListener("click",()=>{showTab("msg");window.scrollTo({top:0})});
 $("bookBackup").addEventListener("click",()=>{
  if(!book.length){toast("장부가 비어 있습니다");return}
  download(new File([JSON.stringify({v:1,kind:"db-book",saved:today(),book},null,1)],"DB_backup_"+today().replaceAll("-","")+".json",{type:"application/json"}));
@@ -483,8 +592,8 @@ $("bookVcf").addEventListener("click",()=>{if(!book.length){toast("장부가 비
 $("bookXlsx").addEventListener("click",()=>{
  if(!book.length){toast("장부가 비어 있습니다");return}
  if(typeof XLSX==="undefined"){toast("엑셀 도구를 불러오지 못했습니다. 새로고침하세요");return}
- const aoa=[["받은 날","저장 이름","이름","전화","지역","캠페인"],...book.map(b=>[b.got,b.saveName,b.name,b.phone,b.region,b.camp])];
- const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:22},{wch:12},{wch:15},{wch:14},{wch:18}];
+ const aoa=[["받은 날","저장 이름","이름","전화","지역","캠페인","진행","문자 보냄","부재 횟수","통화","미팅","미팅 메모","콜 메모"],...book.map(b=>[b.got,b.saveName,b.name,b.phone,b.region,b.camp,STAGE_TXT[stage(b)],b.sent||"",b.miss||"",b.call?hm(b.call):"",b.result==="meet"?"잡힘":b.result==="reject"?"거절":"",b.meetNote||"",b.memo||""])];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:22},{wch:12},{wch:15},{wch:14},{wch:18},{wch:20},{wch:12},{wch:9},{wch:12},{wch:8},{wch:24},{wch:36}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"DB");
  XLSX.writeFile(wb,"DB_list_"+today().replaceAll("-","")+".xlsx");
 });
@@ -508,7 +617,7 @@ function msgList(){return book.filter(b=>sel.has(b.phone)&&!($("hideSent").check
 function renderMsgs(){
  const list=msgList();$("msgN").textContent=list.length;
  const out=$("msgOut");out.replaceChildren();
- if(!list.length){const d=document.createElement("div");d.className="blank";d.textContent=sel.size?"고른 사람은 모두 문자를 보냈습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"위 장부에서 사람을 고르면 여기에 안내문자가 만들어집니다. 맨 위 칸을 누르면 전체 선택.";out.append(d);return}
+ if(!list.length){const d=document.createElement("div");d.className="blank";d.textContent=sel.size?"고른 사람은 모두 문자를 보냈습니다. '보낸 사람 빼기'를 끄면 다시 보입니다.":"'DB 장부 · 콜' 탭에서 사람을 고르면 여기에 안내문자가 만들어집니다. 표 맨 위 칸을 누르면 전체 선택.";out.append(d);return}
  for(const b of list){
   const box=document.createElement("article");box.className="msg"+(b.sent?" sent":"");
   const h=document.createElement("div");h.className="msg-h";
@@ -623,6 +732,7 @@ $("pasteBtn").addEventListener("click",async()=>{
 });
 $("clearBtn").addEventListener("click",()=>{$("src").value="";edits={};store.set("db_edits","{}");store.set("db_got","");$("got").value=today();load();$("src").focus()});
 prev();load();renderSlots();renderBook();
+showTab(store.get("db_tab")||"save");
 </script>
 </body>
 </html>
