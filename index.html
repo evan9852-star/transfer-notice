@@ -155,9 +155,6 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--rule)}
 .d-none{background:var(--ink-2);opacity:.45}.d-touch{background:var(--amber)}.d-miss{background:var(--seal)}.d-call{background:var(--moss);opacity:.6}.d-meet{background:var(--moss)}.d-reject{background:var(--plum)}
 .seg button[aria-pressed="true"] .dot{box-shadow:0 0 0 2px var(--sheet)}
-.fnote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:8px 12px;border-radius:var(--r-s);background:var(--seal-soft);color:var(--ink);font-size:14px}
-.fnote b{font-variant-numeric:tabular-nums}
-.fnote button{font-size:13px;padding:4px 12px;min-height:32px;font-weight:600}
 .check.off{opacity:.45;cursor:default}
 .lrow.nav{grid-template-columns:64px minmax(0,1fr) auto}
 .msg.flash{outline:2px solid var(--seal);outline-offset:2px}
@@ -389,7 +386,6 @@ details.script .sc .ctx{background:var(--amber-soft);color:var(--amber);border-r
             <button type="button" class="text" id="hideDone" title="미팅이 잡혔거나 거절한 고객을 목록에서 한 번에 숨깁니다. 숨긴 고객은 '숨김'에서 다시 꺼낼 수 있습니다">끝난 고객 한 번에 숨기기</button>
           </div>
         </div>
-        <div class="fnote" id="fnote" hidden><span id="fnoteTx"></span><button type="button" id="fOff">필터 풀기</button></div>
         <div class="pickbar">
           <div class="left">
             <button type="button" id="pickTop">앞에서 <span id="topNLabel">6</span>명 선택</button>
@@ -659,9 +655,6 @@ function renderCounts(){
  $("fNone").textContent=n.none;$("fTouch").textContent=n.touch;$("fMiss").textContent=n.miss;$("fCall").textContent=n.call;$("fMeet").textContent=n.meet;$("fReject").textContent=n.reject;
  document.querySelectorAll(".fbox button[data-f]").forEach(b=>{b.setAttribute("aria-pressed",String(b.dataset.f===fMode));b.classList.toggle("zero",(b.querySelector("b").textContent||"0")==="0")});
  $("onlyNew").disabled=!!fMode;$("onlyNewLb").classList.toggle("off",!!fMode);$("onlyNewLb").title=fMode?"필터를 걸면 이 조건은 쓰지 않습니다":"";
- const sn=customers.filter(c=>selected.has(c.key)&&!off(c)).length;
- $("fnote").hidden=!fMode;
- if(fMode){const tx=$("fnoteTx");tx.replaceChildren();const b1=document.createElement("b");b1.textContent=FNAME[fMode]+" "+visible().length+"명";tx.append(b1,document.createTextNode("만 보는 중 · 골라 둔 "+sn+"명은 필터를 풀면 그대로 나옵니다"))}
  document.querySelectorAll(".pickbar .left").forEach(e=>e.hidden=!!fMode);
 }
 function renderRoster(){
@@ -1057,7 +1050,6 @@ for(const k of ["noFrom","noTo","q"])$(k).addEventListener("input",renderRoster)
 $("onlyNew").addEventListener("change",renderRoster);
 function setF(f){fMode=fMode===f?"":f;fKeep=new Set();renderRoster();renderOut();if(fMode)visible().forEach(c=>fKeep.add(c.key))}
 document.querySelectorAll(".fbox button[data-f]").forEach(b=>b.addEventListener("click",()=>setF(b.dataset.f)));
-$("fOff").addEventListener("click",()=>setF(fMode));
 try{localStorage.removeItem("tcn_fmode")}catch(e){}
 let lastFocus=$("tpl");["tpl","tplMulti","tplLapse"].forEach(k=>$(k).addEventListener("focus",()=>lastFocus=$(k)));
 document.querySelectorAll(".tokens button").forEach(c=>{c.addEventListener("mousedown",e=>e.preventDefault());c.addEventListener("click",()=>{const t=lastFocus,s=t.selectionStart??t.value.length,e=t.selectionEnd??s;t.value=t.value.slice(0,s)+c.dataset.t+t.value.slice(e);t.focus();t.selectionStart=t.selectionEnd=s+c.dataset.t.length;t.dispatchEvent(new Event("input"))})});
