@@ -167,7 +167,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .track .st{margin-right:auto;color:var(--ink-2)}
 .track .st b{color:var(--ink);font-weight:600}
 .track button{font-size:13px;padding:4px 10px}
-.track .meet-in{flex-basis:100%;font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
+.track .meet-in{flex-basis:100%;min-height:38px;line-height:1.5;font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--sheet);color:var(--ink)}
 .track .miss-step{display:inline-flex;align-items:center;border:1px solid var(--seal);border-radius:var(--r-s);background:var(--seal-soft);color:var(--seal);overflow:hidden}
 .track .miss-step button{min-height:32px;padding:2px 10px;border:0;border-radius:0;background:transparent;color:var(--seal);font-weight:700;font-size:15px}
 .track .miss-step button:hover{background:rgba(0,0,0,.06)}
@@ -778,7 +778,7 @@ function renderOut(){
    bRej.addEventListener("click",()=>mark(c,"reject"));
    tr.append(bMeet,bRej);
    if(t.result==="meet"){
-    const mi=document.createElement("input");mi.type="text";mi.className="meet-in";mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=t.meetNote||"";mi.setAttribute("aria-label",c.name+" 미팅 일정");
+    const mi=document.createElement("textarea");mi.rows=1;mi.className="meet-in";mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=t.meetNote||"";mi.setAttribute("aria-label",c.name+" 미팅 일정");
     mi.addEventListener("change",()=>{const k=tkey(c);if(!track[k])return;track[k].meetNote=mi.value.trim();if(!track[k].meetNote)delete track[k].meetNote;saveTrack();renderRoster()});
     tr.append(mi);
    }
