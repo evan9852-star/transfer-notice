@@ -86,6 +86,9 @@
     background: var(--surface); font-size: 16px; resize: vertical; }
   textarea:focus, input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
   .back { margin-top: 20px; }
+  .quick { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin: 0 0 16px; }
+  .quick .qnote { flex: 1 1 260px; font-size: 13px; color: var(--muted); }
+  .quick a { font-size: 13px; }
 
   details.fold { border-top: 1px solid var(--line); margin-top: 32px; }
   details.fold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
@@ -318,6 +321,11 @@
   <section class="upload" id="upload">
     <h1>대화 파일 불러오기</h1>
     <p class="sub">카카오톡 '대화 내보내기'로 저장한 파일을 올리면 사람별·사업단별 활동 사진을 집계합니다. 파일은 이 브라우저 안에서만 읽습니다.</p>
+    <div class="quick" id="quick" hidden>
+      <button class="btn primary" id="quickBtn">최신 대화 파일 불러오기</button>
+      <span class="qnote" id="quickNote">처음 한 번 카톡이 대화를 저장하는 폴더를 고르면, 다음부터는 이 버튼 하나로 그 폴더의 가장 최근 파일을 읽습니다.</span>
+      <a href="#" id="quickReset" hidden>폴더 다시 고르기</a>
+    </div>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".txt,.csv,text/plain,text/csv" aria-label="대화 파일 선택">
       <span class="ico" aria-hidden="true">TXT</span>
@@ -772,6 +780,49 @@ $('pasteText').addEventListener('input', e => { if (e.target.value.trim().length
 ['dragenter', 'dragover'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave', 'drop'].forEach(ev => $('drop').addEventListener(ev, () => $('drop').classList.remove('over')));
 $('drop').addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+/* 카톡 저장 폴더 기억 → 가장 최근 대화 파일 바로 읽기 (크롬·엣지) */
+const idb = (mode, fn) => new Promise((ok, no) => {
+  if (!window.indexedDB) return no(new Error('no idb'));
+  const r = indexedDB.open('activityFolder', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('h');
+  r.onerror = () => no(r.error);
+  r.onsuccess = () => { try { const tx = r.result.transaction('h', mode); const q = fn(tx.objectStore('h')); tx.oncomplete = () => ok(q && q.result); tx.onerror = () => no(tx.error); } catch (e) { no(e); } };
+});
+const getDir = () => idb('readonly', st => st.get('dir')).catch(() => null);
+const setDir = h => idb('readwrite', st => st.put(h, 'dir')).catch(() => {});
+async function pickDir() { const h = await window.showDirectoryPicker({ id: 'kakaoExport', mode: 'read' }); await setDir(h); return h; }
+async function newestIn(dir) {
+  let best = null;
+  for await (const [name, h] of dir.entries()) {
+    if (h.kind !== 'file' || !/\.(txt|csv)$/i.test(name)) continue;
+    const f = await h.getFile();
+    if (!best || f.lastModified > best.lastModified) best = f;
+  }
+  return best;
+}
+async function quickLoad(forcePick) {
+  try {
+    let dir = forcePick ? null : await getDir();
+    if (dir && (await dir.queryPermission({ mode: 'read' })) !== 'granted' && (await dir.requestPermission({ mode: 'read' })) !== 'granted') dir = null;
+    if (!dir) dir = await pickDir();
+    const f = await newestIn(dir);
+    $('quickReset').hidden = false;
+    if (!f) { $('quickNote').textContent = '"' + dir.name + '" 폴더에 .txt·.csv 파일이 없습니다. 카톡에서 대화를 내보낸 뒤 다시 누르거나, 폴더를 다시 고르세요.'; return; }
+    const when = new Date(f.lastModified);
+    $('quickNote').textContent = dir.name + ' 폴더 · ' + f.name + ' (' + (when.getMonth() + 1) + '/' + when.getDate() + ' ' + String(when.getHours()).padStart(2, '0') + ':' + String(when.getMinutes()).padStart(2, '0') + ' 저장)';
+    loadFile(f);
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    $('quickNote').textContent = '폴더를 읽지 못했습니다. 아래 칸에 파일을 끌어다 놓아 주세요.';
+  }
+}
+if (window.showDirectoryPicker) {
+  $('quick').hidden = false;
+  getDir().then(h => { if (h) { $('quickReset').hidden = false; $('quickNote').textContent = '"' + h.name + '" 폴더에서 가장 최근 대화 파일을 읽습니다.'; } });
+  $('quickBtn').addEventListener('click', () => quickLoad(false));
+  $('quickReset').addEventListener('click', e => { e.preventDefault(); quickLoad(true); });
+}
 
 /* rosters */
 loadTeams();
