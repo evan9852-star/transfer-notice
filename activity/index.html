@@ -323,7 +323,7 @@
     <p class="sub">카카오톡 '대화 내보내기'로 저장한 파일을 올리면 사람별·사업단별 활동 사진을 집계합니다. 파일은 이 브라우저 안에서만 읽습니다.</p>
     <div class="quick" id="quick" hidden>
       <button class="btn primary" id="quickBtn">최신 대화 파일 불러오기</button>
-      <span class="qnote" id="quickNote">처음 한 번 카톡이 대화를 저장하는 폴더를 고르면, 다음부터는 이 버튼 하나로 그 폴더의 가장 최근 파일을 읽습니다.</span>
+      <span class="qnote" id="quickNote">처음 한 번 카톡이 대화를 저장하는 폴더를 고르면, 다음부터는 이 버튼 하나로 그 폴더의 가장 최근 활동샷 방 대화를 읽습니다. 카톡 대화가 아니거나 다른 방 대화는 건너뜁니다.</span>
       <a href="#" id="quickReset" hidden>폴더 다시 고르기</a>
     </div>
     <label class="drop" id="drop">
@@ -792,26 +792,49 @@ const idb = (mode, fn) => new Promise((ok, no) => {
 const getDir = () => idb('readonly', st => st.get('dir')).catch(() => null);
 const setDir = h => idb('readwrite', st => st.put(h, 'dir')).catch(() => {});
 async function pickDir() { const h = await window.showDirectoryPicker({ id: 'kakaoExport', mode: 'read' }); await setDir(h); return h; }
+// 활동샷 방 대화인지: 카톡 대화로 읽히고 사진이 있고, 전에 불러온 방과 같은 방(방 이름 또는 참여자 절반 이상 겹침)
+const roomTitle = t => { const m = t.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0].match(/^(.+?) 님과 카카오톡 대화/); return m ? m[1].trim() : ''; };
+function roomSig() { try { return JSON.parse(localStorage.getItem('activityRoom') || 'null'); } catch (e) { return null; } }
+function saveRoomSig(text, msgs) {
+  const cnt = new Map(); for (const m of msgs) cnt.set(m.name, (cnt.get(m.name) || 0) + 1);
+  const names = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(e => e[0]);
+  try { localStorage.setItem('activityRoom', JSON.stringify({ title: roomTitle(text), names })); } catch (e) {}
+}
+function sameRoom(text, msgs) {
+  if (!msgs.length || !msgs.some(m => classify(m.text).kind === 'photo')) return false;
+  const sig = roomSig(); if (!sig) return true;
+  const t = roomTitle(text); if (t && sig.title) return t === sig.title;
+  const have = new Set(msgs.map(m => m.name));
+  return sig.names.filter(n => have.has(n)).length >= Math.min(sig.names.length, 10) / 2;
+}
 async function newestIn(dir) {
-  let best = null;
+  const files = [];
   for await (const [name, h] of dir.entries()) {
     if (h.kind !== 'file' || !/\.(txt|csv)$/i.test(name)) continue;
-    const f = await h.getFile();
-    if (!best || f.lastModified > best.lastModified) best = f;
+    files.push(await h.getFile());
   }
-  return best;
+  files.sort((a, b) => b.lastModified - a.lastModified);
+  let skipped = 0;
+  for (const f of files.slice(0, 20)) {
+    const text = decode(await f.arrayBuffer());
+    const msgs = parseKakao(text).messages;
+    if (sameRoom(text, msgs)) return { f, text, msgs, skipped };
+    skipped++;
+  }
+  return { f: null, skipped };
 }
 async function quickLoad(forcePick) {
   try {
     let dir = forcePick ? null : await getDir();
     if (dir && (await dir.queryPermission({ mode: 'read' })) !== 'granted' && (await dir.requestPermission({ mode: 'read' })) !== 'granted') dir = null;
     if (!dir) dir = await pickDir();
-    const f = await newestIn(dir);
+    const { f, text, msgs, skipped } = await newestIn(dir);
     $('quickReset').hidden = false;
-    if (!f) { $('quickNote').textContent = '"' + dir.name + '" 폴더에 .txt·.csv 파일이 없습니다. 카톡에서 대화를 내보낸 뒤 다시 누르거나, 폴더를 다시 고르세요.'; return; }
+    if (!f) { $('quickNote').textContent = '"' + dir.name + '" 폴더에서 활동샷 방 대화 파일을 찾지 못했습니다' + (skipped ? ' (다른 파일 ' + skipped + '개는 건너뜀)' : '') + '. 카톡에서 대화를 내보낸 뒤 다시 누르거나, 폴더를 다시 고르세요.'; return; }
     const when = new Date(f.lastModified);
-    $('quickNote').textContent = dir.name + ' 폴더 · ' + f.name + ' (' + (when.getMonth() + 1) + '/' + when.getDate() + ' ' + String(when.getHours()).padStart(2, '0') + ':' + String(when.getMinutes()).padStart(2, '0') + ' 저장)';
-    loadFile(f);
+    $('quickNote').textContent = dir.name + ' 폴더 · ' + f.name + ' (' + (when.getMonth() + 1) + '/' + when.getDate() + ' ' + String(when.getHours()).padStart(2, '0') + ':' + String(when.getMinutes()).padStart(2, '0') + ' 저장)' + (skipped ? ' · 다른 방·다른 파일 ' + skipped + '개는 건너뜀' : '');
+    saveRoomSig(text, msgs);
+    loadText(text, f.name);
   } catch (e) {
     if (e && e.name === 'AbortError') return;
     $('quickNote').textContent = '폴더를 읽지 못했습니다. 아래 칸에 파일을 끌어다 놓아 주세요.';
@@ -819,7 +842,7 @@ async function quickLoad(forcePick) {
 }
 if (window.showDirectoryPicker) {
   $('quick').hidden = false;
-  getDir().then(h => { if (h) { $('quickReset').hidden = false; $('quickNote').textContent = '"' + h.name + '" 폴더에서 가장 최근 대화 파일을 읽습니다.'; } });
+  getDir().then(h => { if (h) { $('quickReset').hidden = false; $('quickNote').textContent = '"' + h.name + '" 폴더에서 가장 최근 활동샷 방 대화를 읽습니다. 다른 파일은 건너뜁니다.'; } });
   $('quickBtn').addEventListener('click', () => quickLoad(false));
   $('quickReset').addEventListener('click', e => { e.preventDefault(); quickLoad(true); });
 }
