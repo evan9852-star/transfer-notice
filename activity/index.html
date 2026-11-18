@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>활동샷 집계기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -312,7 +313,6 @@
     </div>
     <div class="top-actions">
       <button class="btn sm" id="newFile" hidden>새 파일</button>
-      <button class="btn sm" id="themeBtn" aria-pressed="false">어둡게</button>
     </div>
   </div>
 </header>
@@ -707,20 +707,6 @@ const iso = d => ymd(d.getFullYear(), d.getMonth() + 1, d.getDate());
 const fmt = n => Number(n).toLocaleString();
 const md = s => +s.slice(5, 7) + '/' + +s.slice(8, 10);
 const isWide = () => window.matchMedia('(min-width: 1024px)').matches;
-
-/* theme */
-function applyTheme(t) {
-  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  const dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  $('themeBtn').textContent = dark ? '밝게' : '어둡게';
-  $('themeBtn').setAttribute('aria-pressed', dark ? 'true' : 'false');
-}
-{ let t = ''; try { t = localStorage.getItem('activityTheme') || ''; } catch (e) {} applyTheme(t); }
-$('themeBtn').addEventListener('click', () => {
-  const dark = $('themeBtn').getAttribute('aria-pressed') === 'true', t = dark ? 'light' : 'dark';
-  try { localStorage.setItem('activityTheme', t); } catch (e) {}
-  applyTheme(t);
-});
 
 /* loading */
 function decode(buf) {
