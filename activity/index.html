@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>활동샷 집계기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f5; --line: #dde2e8; --line-2: #eceff3;
+    --text: #111214; --muted: #5b616b; --faint: #8a9099;
+    --accent: #2f5bd3; --accent-soft: #eaf0fc; --accent-ink: #ffffff;
+    --kakao: #fee500; --kakao-ink: #3a3500;
+    --warn: #a8481f; --warn-soft: #fbefe8;
+    --t-winners: #2f6fe0; --t-ares: #d93030; --t-avengers: #1e9e5a; --t-hq: #8b5cd6; --t-none: #8a9099;
+    --r-card: 16px; --r-input: 8px; --r-pill: 999px;
+    --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1113; --surface: #171a1d; --surface-2: #1f2327; --line: #2c3238; --line-2: #23282d;
+      --text: #e8eaed; --muted: #a3a9b1; --faint: #737a83;
+      --accent: #7d9ef0; --accent-soft: #1c2640; --accent-ink: #0d1424;
+      --warn: #ef9f7c; --warn-soft: #34221a;
+      color-scheme: dark; --t-winners: #5b8ff0; --t-ares: #ef5d5d; --t-avengers: #3fbf7a; --t-hq: #a888ee; --t-none: #7d848d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1113; --surface: #171a1d; --surface-2: #1f2327; --line: #2c3238; --line-2: #23282d;
+    --text: #e8eaed; --muted: #a3a9b1; --faint: #737a83;
+    --accent: #7d9ef0; --accent-soft: #1c2640; --accent-ink: #0d1424;
+    --warn: #ef9f7c; --warn-soft: #34221a;
+    color-scheme: dark; --t-winners: #5b8ff0; --t-ares: #ef5d5d; --t-avengers: #3fbf7a; --t-hq: #a888ee; --t-none: #7d848d;
+  }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--font); word-break: keep-all;
+    -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .num, td.n, .tnum, .rcnt, .kpi .v { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  [hidden] { display: none !important; }
+  .apps { display: flex; gap: 4px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; font-size: 14px; }
+  .apps a { padding: 6px 12px; border-radius: var(--r-input); color: var(--muted); text-decoration: none; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; }
+  .apps a:hover { color: var(--text); border-color: var(--muted); }
+  .apps a[aria-current] { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
+
+  /* header */
+  .top { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding-top: 12px; padding-bottom: 12px; }
+  .brand { min-width: 0; }
+  .brand .t { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand .t span { color: var(--faint); font-weight: 500; margin: 0 4px; }
+  .brand .m { font-size: 13px; color: var(--muted); }
+  .top-actions { display: flex; gap: 8px; flex: none; }
+  .btn { height: 36px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface);
+    font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: border-color .15s, background-color .15s, color .15s; }
+  .btn:hover { border-color: var(--muted); }
+  .btn:active { background: var(--surface-2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .btn.ok { border-color: var(--accent); color: var(--accent); }
+
+  /* upload */
+  .upload { max-width: 720px; padding: 48px 0 32px; }
+  .upload h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .upload .sub { color: var(--muted); margin: 0 0 24px; }
+  .drop { position: relative; display: flex; align-items: center; gap: 16px; padding: 20px; border: 1.5px dashed var(--line);
+    border-radius: var(--r-card); background: var(--surface); cursor: pointer; transition: border-color .15s, background-color .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop:focus-within { border-color: var(--accent); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop .ico { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--kakao); color: var(--kakao-ink); font-size: 12px; font-weight: 700; }
+  .drop .t1 { font-weight: 600; }
+  .drop .t2 { font-size: 13px; color: var(--muted); word-break: break-all; }
+  .drop.err { border-color: var(--warn); border-style: solid; }
+  .drop.err .t2 { color: var(--warn); }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 13px; margin: 20px 0 12px; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .paste-label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .paste-help { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-input);
+    background: var(--surface); font-size: 16px; resize: vertical; }
+  textarea:focus, input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .back { margin-top: 20px; }
+
+  details.fold { border-top: 1px solid var(--line); margin-top: 32px; }
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; font-weight: 600; font-size: 14px; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 20px; line-height: 1; }
+  details.fold[open] > summary::after { content: "−"; }
+  .howto { display: grid; gap: 16px; padding-bottom: 16px; font-size: 14px; }
+  .howto h3 { font-size: 13px; color: var(--muted); margin: 0 0 4px; font-weight: 600; }
+  .howto ol { margin: 0; padding-left: 20px; }
+  .howto p { margin: 0; color: var(--muted); }
+
+  /* controls */
+  .controls { padding: 20px 0 16px; border-bottom: 1px solid var(--line); }
+  .ctl { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .fld > span { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .fld input { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-input); background: var(--surface); font-size: 15px; min-width: 0; }
+  .fld-name { flex: 1 1 220px; }
+  .fld-date input { width: 160px; -webkit-appearance: none; }
+  .ctl2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { height: 32px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); font-size: 13px; cursor: pointer; transition: border-color .15s, color .15s, background-color .15s; }
+  .chip:hover { color: var(--text); border-color: var(--muted); }
+  .chip.on { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .setbtn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 4px; border: 0; background: none; cursor: pointer; font-size: 13px; color: var(--muted); }
+  .setbtn b { color: var(--text); font-weight: 600; }
+  .setbtn .caret { transition: transform .15s; }
+  .setbtn[aria-expanded="true"] .caret { transform: rotate(180deg); }
+  .settings { margin-top: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); display: grid; gap: 20px; }
+  .settings h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
+  .toggle input { appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: var(--r-pill); background: var(--line);
+    position: relative; cursor: pointer; margin: 0; flex: none; transition: background-color .15s; }
+  .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .toggle input:checked { background: var(--accent); }
+  .toggle input:checked::after { transform: translateX(16px); }
+  .settings .note { font-size: 12px; color: var(--faint); margin: 8px 0 0; }
+  .settings input[type=text] { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-input); background: var(--surface); font-size: 15px; }
+  .teamset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .teamset label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .teamset textarea { min-height: 96px; font-size: 14px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  a { color: var(--accent); }
+
+  /* result */
+  #result { padding: 24px 0 48px; }
+  .notice { padding: 12px 16px; border-radius: var(--r-input); background: var(--warn-soft); color: var(--warn); font-size: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); }
+  .kpi { padding: 20px 24px; min-width: 0; }
+  .kpi + .kpi { border-left: 1px solid var(--line); }
+  .kpi .k { font-size: 13px; color: var(--muted); }
+  .kpi .v { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-top: 4px; white-space: nowrap; }
+  .kpi .v small { font-size: 16px; font-weight: 500; margin-left: 2px; color: var(--muted); }
+  .kpi .s { font-size: 12px; color: var(--faint); margin-top: 4px; }
+  .kpis.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+  .board { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; margin-top: 24px; align-items: start; }
+  .sec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 20px 24px; }
+  .sec + .sec { margin-top: 24px; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sec-head h2 { font-size: 16px; font-weight: 700; margin: 0; }
+  .sec-head .meta { font-size: 12px; color: var(--faint); }
+  .sec-head .right { display: flex; align-items: center; gap: 8px; }
+
+  /* teams */
+  .trow { display: grid; grid-template-columns: 148px minmax(0, 1fr) 88px 56px 80px 64px; align-items: center; gap: 12px; width: 100%;
+    padding: 12px 8px; border: 0; border-top: 1px solid var(--line-2); background: none; text-align: left; cursor: pointer; border-radius: 0; }
+  .trow:first-of-type { border-top: 0; }
+  .trow:hover { background: var(--surface-2); }
+  .trow.on { background: var(--accent-soft); }
+  .tname { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+  .tname small { display: block; font-size: 12px; color: var(--faint); font-weight: 400; }
+  .tbar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .tbar i { display: block; height: 100%; border-radius: 4px; }
+  .tnum { text-align: right; font-weight: 700; font-size: 16px; }
+  .tsub { text-align: right; font-size: 13px; color: var(--muted); }
+  .thead { display: grid; grid-template-columns: 148px minmax(0, 1fr) 88px 56px 80px 64px; gap: 12px; padding: 0 8px 8px; font-size: 12px; color: var(--faint); }
+  .thead span:nth-child(n+3) { text-align: right; }
+  .tminor { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .tminor button { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-pill);
+    background: var(--surface); font-size: 13px; color: var(--muted); cursor: pointer; }
+  .tminor button b { color: var(--text); font-weight: 600; }
+  .tminor button.on { border-color: var(--text); }
+
+  /* ranking */
+  .seg { display: inline-flex; padding: 2px; border-radius: var(--r-pill); background: var(--surface-2); }
+  .seg button { height: 28px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--line); }
+  .rtools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .rtools .filters { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 100%; }
+  .rsearch { flex: 1; min-width: 0; }
+  .fbtn { height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 13px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; }
+  .fbtn:hover { color: var(--text); }
+  .fbtn.on { border-color: var(--line); background: var(--surface-2); color: var(--text); font-weight: 600; }
+  .rsearch { height: 32px; width: 160px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font-size: 14px; }
+  .rank { list-style: none; margin: 0; padding: 0; }
+  .rrow { display: grid; grid-template-columns: 32px minmax(0, 1.2fr) 112px minmax(0, 1fr) 64px; align-items: center; gap: 12px; width: 100%;
+    padding: 8px; border: 0; border-top: 1px solid var(--line-2); background: none; text-align: left; cursor: pointer; }
+  .rank li:first-child .rrow { border-top: 0; }
+  .rrow:hover { background: var(--surface-2); }
+  .rrow.hit { background: var(--accent-soft); }
+  .rpos { font-size: 13px; color: var(--faint); text-align: right; }
+  .rname { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rname small { color: var(--faint); font-weight: 400; margin-left: 4px; }
+  .rteam { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .rteam em { font-style: normal; color: var(--text); font-weight: 600; }
+  .rbar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .rbar i { display: block; height: 100%; border-radius: 3px; min-width: 2px; }
+  .rcnt { text-align: right; font-weight: 600; font-size: 14px; }
+  .rcnt small { color: var(--faint); font-weight: 400; }
+  .empty { color: var(--muted); font-size: 14px; padding: 16px 0; }
+
+  /* detail */
+  .detail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+  .detail-empty { color: var(--muted); font-size: 14px; }
+  .detail-empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+  .dhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .dhead h2 { font-size: 20px; font-weight: 700; margin: 0; line-height: 1.3; }
+  .dhead .team { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .dclose { flex: none; }
+  .dbig { font-size: 48px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 16px 0 4px; color: var(--accent); }
+  .dbig small { font-size: 18px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .dperiod { font-size: 12px; color: var(--faint); }
+  .dstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px 0; border-top: 1px solid var(--line); }
+  .dstats div { padding: 8px 0; border-bottom: 1px solid var(--line-2); display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+  .dstats div:nth-child(odd) { padding-right: 12px; }
+  .dstats div:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--line-2); }
+  .dstats span { color: var(--muted); }
+  .dstats b { font-weight: 600; }
+  .detail .notice { margin: 12px 0; }
+  .tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--r-input); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-weight: 600; z-index: 1; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.cap { white-space: normal; min-width: 120px; width: 100%; }
+  .teamwrap { margin-top: 24px; }
+  td.n, th.n { text-align: right; }
+  .sm-note { display: block; color: var(--faint); font-size: 12px; }
+  .dfoot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; color: var(--faint); }
+
+  /* extras */
+  .extra { margin-top: 24px; }
+  .extra details.fold { margin-top: 0; border-top: 0; }
+  .extra .sec { padding-top: 4px; padding-bottom: 4px; }
+  select.who { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-input); background: var(--surface); font-size: 13px; }
+  .gap-note { margin-top: 24px; font-size: 13px; }
+  .foot { font-size: 12px; color: var(--faint); padding: 24px 0 40px; border-top: 1px solid var(--line); }
+
+  /* tablet + mobile: detail becomes its own screen */
+  @media (max-width: 1023px) {
+    .board { grid-template-columns: minmax(0, 1fr); }
+    .detail { position: fixed; inset: 0; z-index: 20; max-height: none; border-radius: 0; border: 0; display: none; padding: 16px; }
+    body.detail-open .detail { display: block; }
+    body.detail-open { overflow: hidden; }
+    .detail-empty-wrap { display: none; }
+    .detail > .inner { max-width: 720px; margin: 0 auto; }
+    .kpis, .kpis.five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi:nth-child(odd) { border-left: 0; }
+    .kpi:nth-child(n+3) { border-top: 1px solid var(--line); }
+  }
+  @media (min-width: 1024px) { .dclose { display: none; } }
+  @media (max-width: 767px) {
+    .wrap { padding: 0 16px; }
+    .top .wrap { min-height: 56px; }
+    .brand .m { font-size: 12px; }
+    .upload { padding-top: 32px; }
+    .upload h1 { font-size: 20px; }
+    .ctl { gap: 8px; }
+    .fld-name { flex-basis: 100%; }
+    .fld-date { flex: 1 1 0; }
+    .fld-date input { width: 100%; }
+    .fld input { font-size: 16px; }
+    .ctl .btn.primary { flex: 1 1 100%; height: 44px; }
+    .settings { padding: 16px; }
+    .teamset { grid-template-columns: minmax(0, 1fr); }
+    .kpi { padding: 16px; }
+    .kpi .v { font-size: 24px; }
+    .sec { padding: 16px; }
+    .thead { display: none; }
+    .trow { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n t" "b b" "s s"; gap: 8px 12px; padding: 12px 4px; }
+    .trow .tname { grid-area: n; }
+    .trow .tnum { grid-area: t; }
+    .trow .tbar { grid-area: b; }
+    .trow .tsubs { grid-area: s; display: flex; gap: 12px; }
+    .trow .tsub { text-align: left; }
+    .rtools .filters { flex-basis: 100%; overflow-x: auto; flex-wrap: nowrap; }
+    .rsearch { flex: 1; width: auto; font-size: 16px; }
+    .rrow { grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "p n c" "p b b"; gap: 4px 12px; padding: 12px 4px; }
+    .rrow .rpos { grid-area: p; }
+    .rrow .rmain { grid-area: n; min-width: 0; }
+    .rrow .rbar { grid-area: b; }
+    .rrow .rcnt { grid-area: c; }
+    .rrow .rteam { display: none; }
+    .rrow .rteam-m { display: flex !important; }
+    .dbig { font-size: 40px; }
+  }
+  .tsubs { display: contents; }
+  .ml { display: none; }
+  @media (max-width: 767px) { .ml { display: inline; } }
+  .rmain { display: contents; }
+  .rteam-m { display: none !important; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+  @media (max-width: 767px) { .rmain { display: block; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body data-state="empty">
+<nav class="apps wrap" aria-label="프로그램"><a href="../">이관고객 안내문자</a><a href="../db/">DB 고객 관리</a><a href="../tams/">TAMS 멘티</a><a href="./" aria-current="page">활동샷 집계</a></nav>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="t">미래로<span>/</span>활동샷 집계</div>
+      <div class="m" id="srcMeta">카카오톡 대화 파일을 불러오면 시작합니다</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn sm" id="newFile" hidden>새 파일</button>
+      <button class="btn sm" id="themeBtn" aria-pressed="false">어둡게</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="upload" id="upload">
+    <h1>대화 파일 불러오기</h1>
+    <p class="sub">카카오톡 '대화 내보내기'로 저장한 파일을 올리면 사람별·사업단별 활동 사진을 집계합니다. 파일은 이 브라우저 안에서만 읽습니다.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".txt,.csv,text/plain,text/csv" aria-label="대화 파일 선택">
+      <span class="ico" aria-hidden="true">TXT</span>
+      <span><div class="t1" id="dropT1">파일을 끌어다 놓거나 눌러서 선택</div><div class="t2" id="dropT2">.txt 또는 .csv (PC, Mac, 휴대폰 내보내기 모두 가능)</div></span>
+    </label>
+    <div class="or">또는</div>
+    <div id="pasteBox">
+      <label class="paste-label" for="pasteText">대화 내용 붙여넣기</label>
+      <p class="paste-help">회사 보안 프로그램 때문에 파일이 안 열리면, 내보낸 .txt를 메모장으로 열어 Ctrl+A → Ctrl+C 한 뒤 아래에 붙여넣습니다.</p>
+      <textarea id="pasteText" placeholder="여기에 대화 내용 붙여넣기"></textarea>
+    </div>
+    <button class="btn back" id="backToResult" hidden>지금 파일로 돌아가기</button>
+    <details class="fold">
+      <summary>대화 내용 내보내는 방법</summary>
+      <div class="howto">
+        <div><h3>PC (Windows)</h3><ol><li>채팅방 오른쪽 위 메뉴(≡) → 대화 내용 → 대화 내보내기 (또는 채팅방에서 Ctrl+S)</li><li>저장 창에서 [저장]. 보통 문서 → 카카오톡 받은 파일에 .txt로 저장됩니다.</li><li>그 .txt 파일을 위 칸에 끌어다 놓습니다.</li></ol></div>
+        <div><h3>Mac</h3><ol><li>채팅방 메뉴 → 대화 내용 내보내기</li><li>저장된 .csv 또는 .txt 파일을 올립니다.</li></ol></div>
+        <div><h3>휴대폰 (안드로이드 · 아이폰)</h3><ol><li>채팅방 ≡ → 설정(톱니바퀴) → 대화 내용 내보내기 → "텍스트만 보내기"</li><li>메일이나 '나와의 채팅'으로 옮긴 뒤, .zip이면 압축을 풀어 .txt를 올립니다.</li></ol></div>
+        <p>"사진 3장"처럼 묶어 보낸 사진은 장수대로 셉니다. 방에 들어오기 전 기록과 삭제된 메시지는 파일에 없어서 셀 수 없습니다. 맥·휴대폰은 대화를 끝까지 불러오지 않고 내보내면 며칠이 빠질 수 있어 PC 내보내기를 권장합니다.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="controls" id="controls" hidden>
+    <div class="ctl">
+      <label class="fld fld-name"><span>이름</span><input type="search" id="name" list="names" placeholder="이름으로 개인 실적 보기" autocomplete="off"></label>
+      <datalist id="names"></datalist>
+      <label class="fld fld-date"><span>시작일</span><input type="date" id="from"></label>
+      <label class="fld fld-date"><span>종료일</span><input type="date" id="to"></label>
+      <button class="btn primary" id="run">집계</button>
+    </div>
+    <div class="ctl2">
+      <div class="chips" role="group" aria-label="기간 빠른 선택">
+        <button class="chip" data-range="thisMonth">이번 달</button>
+        <button class="chip" data-range="lastMonth">지난달</button>
+        <button class="chip" data-range="30">최근 30일</button>
+        <button class="chip" data-range="all">전체</button>
+      </div>
+      <button class="setbtn" id="setBtn" aria-expanded="false" aria-controls="settings">상세 설정 <b id="setSum"></b><span class="caret" aria-hidden="true">▾</span></button>
+    </div>
+    <div class="settings" id="settings" hidden>
+      <div>
+        <h3>집계 방식</h3>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="credit" checked>설명에 적힌 사람도 1건씩 인정</label>
+          <label class="toggle"><input type="checkbox" id="video">동영상도 함께 세기</label>
+          <label class="toggle"><input type="checkbox" id="partial">이름 일부만 맞아도 포함</label>
+        </div>
+        <p class="note">"어제자", "10/17 활동"처럼 늦게 올린 사진은 항상 활동한 날로 셉니다.</p>
+      </div>
+      <div>
+        <h3>제외 단어</h3>
+        <textarea id="exclude" rows="2" style="min-height:64px" aria-label="제외 단어">주인, 찾아가, 가져가, 나눠, 드세요, 드셔, 케이크, 케익, 남았는데</textarea>
+        <p class="note">설명에 이 단어가 있으면 그 무렵 사진을 활동에서 뺍니다. 쉼표로 구분, 비우면 빼지 않습니다.</p>
+      </div>
+      <div>
+        <h3>사업단 명단</h3>
+        <label class="paste-label" for="bulk">명단 한 번에 붙여넣기</label>
+        <textarea id="bulk" rows="2" style="min-height:64px;margin-bottom:12px" placeholder="받은 명단 글을 통째로 붙여넣으면 아래 칸이 모두 채워집니다"></textarea>
+        <div class="teamset">
+          <div><label for="teamW"><span class="dot" style="background:var(--t-winners)"></span>위너스</label><textarea id="teamW"></textarea></div>
+          <div><label for="teamR"><span class="dot" style="background:var(--t-ares)"></span>아레스</label><textarea id="teamR"></textarea></div>
+          <div><label for="teamA"><span class="dot" style="background:var(--t-avengers)"></span>어벤져스</label><textarea id="teamA"></textarea></div>
+          <div><label for="teamH"><span class="dot" style="background:var(--t-hq)"></span>본부 (사업단 아님)</label><textarea id="teamH" placeholder="본부장님, 실장님 이름"></textarea></div>
+          <div><label for="leftOut"><span class="dot" style="background:var(--t-none)"></span>집계에서 뺄 사람</label><textarea id="leftOut" placeholder="비워 두면 모두 셉니다"></textarea></div>
+          <div><label for="alias"><span class="dot" style="background:var(--t-none)"></span>카톡 이름 = 명단 이름 (한 줄에 한 명)</label><textarea id="alias" placeholder="🤍 = 홍길동&#10;_ = 김철수"></textarea></div>
+        </div>
+        <p class="note">이름은 띄어쓰기로 구분하고, 각 사업단 명단의 첫 이름이 사업단장입니다. 세 명단 어디에도 없거나 카톡 이름이 이모지·기호뿐인 사람은 미분류로 표시됩니다. 명단은 사이트에 올라가지 않고 이 브라우저에만 저장되니, 다른 컴퓨터에서는 한 번 더 붙여넣으세요. <a href="#" id="teamReset">저장한 명단 지우기</a></p>
+      </div>
+    </div>
+  </section>
+
+  <div id="result"></div>
+  <p class="foot">활동샷 집계기 v9 · 파일은 이 브라우저 안에서만 읽고, 어디에도 전송되지 않습니다.</p>
+</main>
+
+<script>
+/* ===== parser ===== */
+function to24(ampm, h) {
+  h = +h;
+  if (ampm === '오후' || /^pm$/i.test(ampm || '')) return h % 12 + 12;
+  if (ampm === '오전' || /^am$/i.test(ampm || '')) return h % 12;
+  return h;
+}
+function ymd(y, m, d) { return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+
+const RE = {
+  // PC Windows:  --------------- 2024년 5월 1일 수요일 ---------------
+  pcDate: /^-{3,}\s*(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일.*?-{3,}\s*$/,
+  // PC Windows:  [홍길동] [오후 3:12] 사진 3장
+  pcMsg: /^\[(.+?)\] \[(오전|오후)\s*(\d{1,2}):(\d{2})\] ?(.*)$/,
+  // Android / iOS:  2024년 5월 1일 오후 3:12, 홍길동 : 사진   |   2024. 5. 1. 오후 3:12, 홍길동 : 사진
+  mobMsg: /^(\d{4})\s*[년.]\s*(\d{1,2})\s*[월.]\s*(\d{1,2})\s*[일.]?\s*(오전|오후)?\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*,\s*(.+?) : (.*)$/,
+  // English mobile:  May 1, 2024 at 3:12 PM, Name : Photo  |  May 1, 2024, 3:12 PM, Name : Photo
+  enMsg: /^([A-Z][a-z]{2,8}) (\d{1,2}), (\d{4})(?: at|,) (\d{1,2}):(\d{2})\s*(AM|PM)?, (.+?) : (.*)$/,
+  // English PC:  [Name] [3:12 PM] Photo   (date from separator)
+  enPcMsg: /^\[(.+?)\] \[(\d{1,2}):(\d{2})\s*(AM|PM)\] ?(.*)$/i,
+  enPcDate: /^-{3,}\s*[A-Za-z]+,\s*([A-Z][a-z]+) (\d{1,2}), (\d{4})\s*-{3,}\s*$/
+};
+const MONTHS = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+function monthNum(s) { return MONTHS[s.slice(0, 3)]; }
+
+// returns {kind:'photo'|'video'|null, n}
+function classify(msg) {
+  const t = msg.trim();
+  let m;
+  if ((m = t.match(/^사진(?:\s*(\d+)\s*장)?$/))) return { kind: 'photo', n: m[1] ? +m[1] : 1 };
+  if ((m = t.match(/^(?:photo|(\d+)\s*photos)$/i))) return { kind: 'photo', n: m[1] ? +m[1] : 1 };
+  if ((m = t.match(/^photos?\s*(\d+)$/i))) return { kind: 'photo', n: +m[1] };
+  if (/^<?\s*사진\s*읽지\s*않음\s*>?$/.test(t)) return { kind: 'photo', n: 1 };
+  if (/^(?:파일\s*:\s*)?\S+\.(?:jpe?g|png|gif|heic|heif|webp|bmp)$/i.test(t)) return { kind: 'photo', n: 1 };
+  if ((m = t.match(/^동영상(?:\s*(\d+)\s*개)?$/))) return { kind: 'video', n: m[1] ? +m[1] : 1 };
+  if (/^video$/i.test(t)) return { kind: 'video', n: 1 };
+  if (/^(?:파일\s*:\s*)?\S+\.(?:mp4|mov|avi|m4v|3gp)$/i.test(t)) return { kind: 'video', n: 1 };
+  return { kind: null, n: 0 };
+}
+
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); rows.push(row); row = []; field = '';
+    } else field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// -> {messages:[{date:'YYYY-MM-DD', time:'HH:MM', name, text}], format}
+function parseKakao(text) {
+  text = text.replace(/^﻿/, '').replace(/&#xD;/gi, '');
+  const firstLine = text.split(/\r?\n/, 1)[0].trim();
+  const out = [];
+  if (/^"?Date"?,\s*"?User"?,\s*"?Message"?/i.test(firstLine) || /^"?날짜"?,\s*"?(사용자|이름)"?,\s*"?(메시지|내용)"?/.test(firstLine)) {
+    const rows = parseCSV(text).slice(1);
+    for (const r of rows) {
+      if (r.length < 3) continue;
+      const m = r[0].match(/(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+      if (!m) continue;
+      out.push({ date: ymd(m[1], m[2], m[3]), time: m[4].padStart(2, '0') + ':' + m[5], name: r[1].trim(), text: r.slice(2).join(',') });
+    }
+    return { messages: out, format: 'Mac CSV' };
+  }
+  let cur = null, fmt = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/\s+$/, '');
+    let m;
+    if ((m = line.match(RE.pcDate))) { cur = ymd(m[1], m[2], m[3]); continue; }
+    if ((m = line.match(RE.enPcDate))) { cur = ymd(m[3], monthNum(m[1]), m[2]); continue; }
+    if ((m = line.match(RE.mobMsg))) {
+      fmt['모바일(안드로이드/iOS)'] = 1;
+      out.push({ date: ymd(m[1], m[2], m[3]), time: String(to24(m[4], m[5])).padStart(2, '0') + ':' + m[6], name: m[7].trim(), text: m[8] });
+      continue;
+    }
+    if ((m = line.match(RE.enMsg))) {
+      fmt['모바일(영문)'] = 1;
+      out.push({ date: ymd(m[3], monthNum(m[1]), m[2]), time: String(to24(m[6], m[4])).padStart(2, '0') + ':' + m[5], name: m[7].trim(), text: m[8] });
+      continue;
+    }
+    if (cur && (m = line.match(RE.pcMsg))) {
+      fmt['PC'] = 1;
+      out.push({ date: cur, time: String(to24(m[2], m[3])).padStart(2, '0') + ':' + m[4], name: m[1].trim(), text: m[5] });
+      continue;
+    }
+    if (cur && (m = line.match(RE.enPcMsg))) {
+      fmt['PC(영문)'] = 1;
+      out.push({ date: cur, time: String(to24(m[4], m[2])).padStart(2, '0') + ':' + m[3], name: m[1].trim(), text: m[5] });
+      continue;
+    }
+    // other lines: continuation of multi-line messages, system notices, headers -> ignored
+  }
+  return { messages: out, format: Object.keys(fmt).join(', ') || '알 수 없음' };
+}
+
+// short name used to spot people inside captions: "홍길동 선배님 미래에셋" -> 홍길동 / 길동
+// 이름 앞뒤에 붙는 꼬리표 ("미래에셋 홍길동", "홍길동 실장님 미래에셋")
+const NAME_TAGS = /미래에셋|미래로|사업단장님|교육실장님|실장님|본부장님|팀장님|선배님|멘토님|동기/g;
+function baseName(n) {
+  n = n.replace(NAME_TAGS, ' ').trim();
+  const m = n.match(/^([가-힣]{2,4})(?:\s|$|[^가-힣])/) || n.match(/([가-힣]{3})/);
+  return m ? m[1] : null;
+}
+function nameMatcher(names) {
+  const bases = new Map(), given = new Map();
+  for (const n of names) {
+    const b = baseName(n); if (!b) continue;
+    bases.set(n, b);
+    if (b.length === 3) { const g = b.slice(1); given.set(g, given.has(g) ? null : n); }
+  }
+  return text => {
+    const hit = new Set();
+    for (const [n, b] of bases) if (text.includes(b)) hit.add(n);
+    for (const [g, n] of given) if (n && text.includes(g)) hit.add(n);
+    return hit;
+  };
+}
+
+// count per person in [from, to] (inclusive, 'YYYY-MM-DD' or '')
+// opts.credit: also credit everyone named in the caption ("길동 철수 영희 캠리입니다", "길동 멘토님 동행")
+// opts.unit: 'photos' (장수) | 'posts' (올린 건수, 묶음 1번 = 1건)
+function countPhotos(messages, opts) {
+  const per = new Map(); const detail = []; const excluded = [];
+  const q = (opts.name || '').trim();
+  const match = n => opts.partial ? (q && n.includes(q)) : n === q;
+  const inRange = d => !(opts.from && d < opts.from) && !(opts.to && d > opts.to);
+  const named = nameMatcher(new Set(messages.map(m => m.name)));
+  const mins = m => Date.parse(m.date + 'T' + m.time + ':00') / 60000;
+  // group each person's consecutive messages (≤10 min apart) into one post: photos + caption
+  const open = new Map(), groups = [];
+  for (const m of messages) {
+    const t = mins(m), g = open.get(m.name);
+    if (g && t - g.last <= 10) { g.msgs.push(m); g.last = t; }
+    else { const ng = { name: m.name, msgs: [m], last: t }; open.set(m.name, ng); groups.push(ng); }
+  }
+  for (const g of groups) {
+    let photos = 0, posts = 0, videos = 0; const caps = [];
+    // photos sent within 3 min of a notice-type text ("케이크 드세요", "주인 찾아가세요") are not activity
+    const kwTimes = opts.exclude && opts.exclude.length
+      ? g.msgs.filter(m => !classify(m.text).kind && opts.exclude.some(k => m.text.includes(k))).map(mins) : [];
+    const skip = m => kwTimes.some(k => Math.abs(k - mins(m)) <= 3);
+    for (const m of g.msgs) {
+      const c = classify(m.text);
+      if (c.kind && skip(m)) { if (inRange(m.date)) excluded.push({ date: m.date, time: m.time, name: g.name, text: m.text, n: c.n, why: g.msgs.find(x => !classify(x.text).kind && opts.exclude.some(k => x.text.includes(k))).text }); continue; }
+      if (c.kind === 'photo') { photos += c.n; posts++; }
+      else if (c.kind === 'video') videos += c.n;
+      else if (m.text.trim() && !skip(m) && !/삭제되었습니다|가려진 메시지|초대했습니다|나갔습니다/.test(m.text)) caps.push(m.text.trim());
+    }
+    if (!opts.video) videos = 0;
+    if (!photos && !videos) continue;
+    const caption = caps.join(' / ');
+    // 늦게 올린 사진: "어제자입니다" -> 전날, "10/17일 활동입니다" -> 그 날짜
+    let date = g.msgs[0].date, m2;
+    if (opts.yday) {
+      if ((m2 = caption.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*일?\s*(?:활동|자)/))) {
+        const y = +date.slice(0, 4), mo = +m2[1];
+        const cand = ymd(mo > +date.slice(5, 7) ? y - 1 : y, mo, +m2[2]);
+        if (cand <= date) date = cand;
+      } else if (/어제|전날/.test(caption)) {
+        const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 1);
+        date = ymd(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      }
+    }
+    if (!inRange(date)) continue;
+    const who = new Set([g.name]);
+    if (opts.credit) for (const n of named(caption)) who.add(n);
+    const score = opts.unit === 'posts' ? posts : photos;
+    for (const n of who) {
+      const p = per.get(n) || { photos: 0, videos: 0, posts: 0, score: 0 };
+      p.photos += photos; p.posts += posts; p.videos += videos; p.score += score;
+      per.set(n, p);
+      if (match(n)) detail.push({ date, time: g.msgs[0].time, posted: g.msgs[0].date, name: n, poster: g.name, caption, photos, posts, videos, n: score, own: n === g.name });
+    }
+  }
+  return { per, detail, excluded };
+}
+/* ===== end parser ===== */
+
+
+/* ===== 사업단 ===== */
+// 명단은 코드에 넣지 않음(공개 사이트). 상세 설정에서 한 번 붙여넣으면 이 브라우저에 저장됨
+const TEAM_DEFAULT = { W: '', R: '', A: '' };
+const ALIAS_DEFAULT = '';
+// 아래 셋은 상세 설정 칸에서 채움: 각 사업단 명단의 첫 이름 = 사업단장, 본부 칸, 제외 칸
+let LEADERS = {}, HQ = [], LEFT_OUT = [];
+function applyRoster() {
+  LEADERS = {};
+  for (const id of ['W', 'R', 'A']) { const first = $('team' + id).value.split(/[\s,]+/).filter(Boolean)[0]; if (first) LEADERS[first] = id; }
+  HQ = $('teamH').value.split(/[\s,]+/).filter(Boolean);
+  LEFT_OUT = $('leftOut').value.split(/[\s,]+/).filter(Boolean);
+}
+const TEAMS = [
+  { id: 'W', name: '위너스', color: 'var(--t-winners)', emoji: '🔵' },
+  { id: 'R', name: '아레스', color: 'var(--t-ares)', emoji: '🔴' },
+  { id: 'A', name: '어벤져스', color: 'var(--t-avengers)', emoji: '🟢' },
+  { id: 'H', name: '본부', color: 'var(--t-hq)', emoji: '🟣' },
+  { id: 'U', name: '미분류', color: 'var(--t-none)', emoji: '⚪' }
+];
+// 기본 명단을 고칠 때마다 올림: 예전 명단을 저장해 둔 브라우저도 새 명단으로 바뀜
+function loadTeams() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('activityTeams') || 'null'); } catch (e) {}
+  $('teamW').value = (saved && saved.W) || TEAM_DEFAULT.W;
+  $('teamA').value = (saved && saved.A) || TEAM_DEFAULT.A;
+  $('teamR').value = (saved && saved.R) || TEAM_DEFAULT.R;
+  $('alias').value = (saved && saved.alias) || ALIAS_DEFAULT;
+  $('teamH').value = (saved && saved.H) || '';
+  $('leftOut').value = (saved && saved.out) || '';
+  applyRoster();
+}
+function saveTeams() { applyRoster(); try { localStorage.setItem('activityTeams', JSON.stringify({ W: $('teamW').value, A: $('teamA').value, R: $('teamR').value, H: $('teamH').value, out: $('leftOut').value, alias: $('alias').value })); } catch (e) {} }
+// display name -> team id; matches full name ("홍길동 선배님" -> 홍길동) or given name only ("길동" -> 홍길동)
+function teamMatcher() {
+  const full = new Map(), given = new Map();
+  for (const id of ['W', 'R', 'A']) for (const n of $('team' + id).value.split(/[\s,]+/).filter(Boolean)) {
+    full.set(n, id);
+    if (n.length === 3) { const g = n.slice(1); given.set(g, given.has(g) && given.get(g) !== id ? null : id); }
+  }
+  const alias = new Map();
+  // 기본 별칭 먼저, 이 브라우저에서 고친 별칭이 그 위를 덮음
+  for (const line of (ALIAS_DEFAULT + '\n' + $('alias').value).split('\n')) {
+    const i = line.lastIndexOf('='); if (i < 0) continue;
+    const k = line.slice(0, i).trim(), v = line.slice(i + 1).trim();
+    if (k && v) alias.set(k, v);
+  }
+  const fn = name => {
+    if (alias.has(name)) name = alias.get(name);
+    // 이름 대신 이모지·기호만 쓴 경우 (🤍, -, _, 진 등): 누군지 알 수 없어 미분류
+    if (!/[가-힣]{2,}/.test(name)) return 'U';
+    // 폰마다 저장된 이름이 달라서 "길동 … 홍"처럼 성이 뒤에 오기도 함
+    const tok = name.replace(NAME_TAGS, ' ').match(/[가-힣]+/g) || [];
+    for (const t2 of tok) for (const t1 of tok) if (t1.length === 1 && t2.length === 2) {
+      const n = t1 + t2;
+      if (LEADERS[n]) return LEADERS[n];
+      if (HQ.includes(n)) return 'H';
+      if (full.has(n)) return full.get(n);
+    }
+    const b = baseName(name);
+    if (b && LEADERS[b]) return LEADERS[b];
+    if (b && (HQ.includes(b) || b === '본부')) return 'H';
+    if (b && full.has(b)) return full.get(b);
+    const g = (name.match(/[가-힣]+/) || [''])[0];
+    // "길동 교육실장님(미래에셋) 홍"처럼 이름만 쓴 단장님·실장님
+    if (b && b.length === 2) {
+      const lead = Object.keys(LEADERS).find(k => k.slice(1) === b), hq = HQ.find(k => k.slice(1) === b);
+      if (lead) return LEADERS[lead];
+      if (hq) return 'H';
+    }
+    if (g.length === 2 && given.get(g)) return given.get(g);
+    if (b === '아레스') return 'R';
+    // 세 명단 어디에도 없음: 소속 확인 필요
+    return 'U';
+  };
+  fn.alias = alias; fn.roster = [...full.keys()];
+  // 순위 복사용: 카톡 이름을 명단 이름으로 (못 찾으면 꼬리표·기호만 걷어 낸 이름)
+  fn.resolve = name => {
+    const orig = name;
+    if (alias.has(name) && /[가-힣]{2,}/.test(alias.get(name)) && !/^(아레스|본부)$/.test(alias.get(name))) name = alias.get(name);
+    const known = n => LEADERS[n] || HQ.includes(n) || full.has(n);
+    const tok = name.replace(NAME_TAGS, ' ').match(/[가-힣]+/g) || [];
+    for (const t2 of tok) for (const t1 of tok) if (t1.length === 1 && t2.length === 2 && known(t1 + t2)) return t1 + t2;
+    const b = baseName(name);
+    if (b && known(b)) return b;
+    if (b && b.length === 2) {
+      const hit = Object.keys(LEADERS).find(k => k.slice(1) === b) || HQ.find(k => k.slice(1) === b) ||
+        (given.get(b) ? [...full.keys()].find(k => k.length === 3 && k.slice(1) === b && full.get(k) === given.get(b)) : null);
+      if (hit) return hit;
+    }
+    const tag = (orig.replace(NAME_TAGS, ' ').match(/[가-힣]{2,4}/) || [''])[0];
+    return b || tag || orig;
+  };
+  // roster names that no kakao name points to
+  fn.missing = names => {
+    const hit = new Set();
+    for (let n of names) {
+      if (alias.has(n)) n = alias.get(n);
+      const b = baseName(n); if (b) hit.add(b);
+      const tok = n.replace(NAME_TAGS, ' ').match(/[가-힣]+/g) || [];
+      for (const t2 of tok) for (const t1 of tok) if (t1.length === 1 && t2.length === 2) hit.add(t1 + t2);
+      const g = (n.match(/[가-힣]+/) || [''])[0]; if (g.length === 2) for (const r of full.keys()) if (r.length === 3 && r.slice(1) === g) hit.add(r);
+    }
+    return fn.roster.filter(r => !hit.has(r));
+  };
+  return fn;
+}
+const teamById = id => TEAMS.find(t => t.id === id);
+
+/* ===== UI ===== */
+let parsed = null, bounds = null, srcLabel = '', lastDetail = [], rankUnit = 'photos', teamFilter = '', rankQuery = '', view = null, rawCache = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const iso = d => ymd(d.getFullYear(), d.getMonth() + 1, d.getDate());
+const fmt = n => Number(n).toLocaleString();
+const md = s => +s.slice(5, 7) + '/' + +s.slice(8, 10);
+const isWide = () => window.matchMedia('(min-width: 1024px)').matches;
+
+/* theme */
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  const dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  $('themeBtn').textContent = dark ? '밝게' : '어둡게';
+  $('themeBtn').setAttribute('aria-pressed', dark ? 'true' : 'false');
+}
+{ let t = ''; try { t = localStorage.getItem('activityTheme') || ''; } catch (e) {} applyTheme(t); }
+$('themeBtn').addEventListener('click', () => {
+  const dark = $('themeBtn').getAttribute('aria-pressed') === 'true', t = dark ? 'light' : 'dark';
+  try { localStorage.setItem('activityTheme', t); } catch (e) {}
+  applyTheme(t);
+});
+
+/* loading */
+function decode(buf) {
+  let t = new TextDecoder('utf-8').decode(buf);
+  if ((t.match(/�/g) || []).length > 20) { try { t = new TextDecoder('euc-kr').decode(buf); } catch (e) {} }
+  return t;
+}
+async function loadFile(f) {
+  if (!f) return;
+  $('dropT1').textContent = f.name; $('dropT2').textContent = '읽는 중';
+  const text = decode(await f.arrayBuffer());
+  loadText(text, f.name);
+}
+function loadText(text, label) {
+  const drop = $('drop');
+  const p = parseKakao(text);
+  const msgs = p.messages;
+  drop.classList.remove('err');
+  if (!msgs.length) {
+    drop.classList.add('err');
+    $('dropT1').textContent = label;
+    // company DRM (OfficeKeeper 등) hands the browser an encrypted or placeholder file
+    const blocked = /officekeeper|drm|암호화|document security/i.test(label + text.slice(0, 2000)) || (text.match(/�/g) || []).length > 50 || (text.match(/[\x00-\x08\x0E-\x1F]/g) || []).length > 10;
+    $('dropT2').textContent = blocked
+      ? '회사 보안 프로그램이 파일을 잠가서 읽을 수 없습니다. 아래 붙여넣기 칸을 이용하세요.'
+      : '메시지를 읽지 못했습니다. 카카오톡에서 내보낸 원본 파일인지 확인하거나, 아래 칸에 붙여넣으세요.';
+    return;
+  }
+  parsed = p; srcLabel = label; rawCache = null;
+  const names = [...new Set(msgs.map(m => m.name))].sort((a, b) => a.localeCompare(b, 'ko'));
+  $('names').innerHTML = names.map(n => '<option value="' + esc(n) + '">').join('');
+  bounds = {
+    first: msgs.reduce((a, m) => m.date < a ? m.date : a, msgs[0].date),
+    last: msgs.reduce((a, m) => m.date > a ? m.date : a, msgs[0].date)
+  };
+  $('from').value = bounds.first; $('to').value = bounds.last;
+  $('dropT1').textContent = '파일을 끌어다 놓거나 눌러서 선택';
+  $('dropT2').textContent = '.txt 또는 .csv (PC, Mac, 휴대폰 내보내기 모두 가능)';
+  $('file').value = ''; $('pasteText').value = '';
+  $('srcMeta').textContent = label + ' · ' + parsed.format + ' · 메시지 ' + fmt(msgs.length) + '개 · ' + names.length + '명 · ' + bounds.first.replace(/-/g, '.') + ' ~ ' + bounds.last.replace(/-/g, '.');
+  showReady();
+  run();
+}
+function showReady() {
+  document.body.dataset.state = 'ready';
+  $('upload').hidden = true; $('controls').hidden = false; $('result').hidden = false; $('newFile').hidden = false;
+}
+$('newFile').addEventListener('click', () => {
+  document.body.dataset.state = 'empty'; closeDetail();
+  $('upload').hidden = false; $('controls').hidden = true; $('result').hidden = true;
+  $('backToResult').hidden = !parsed;
+  window.scrollTo(0, 0);
+});
+$('backToResult').addEventListener('click', showReady);
+$('file').addEventListener('change', e => loadFile(e.target.files[0]));
+$('pasteText').addEventListener('input', e => { if (e.target.value.trim().length > 50) loadText(e.target.value, '붙여넣은 대화'); });
+['dragenter', 'dragover'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => $('drop').addEventListener(ev, () => $('drop').classList.remove('over')));
+$('drop').addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+/* rosters */
+loadTeams();
+// "위너스: …", "아레스: …", "어벤져스: …", "본부: …", "제외: …", "별칭:" 다음 줄들 = 별칭
+$('bulk').addEventListener('input', e => {
+  const text = e.target.value; if (!/위너스|아레스|어벤져스/.test(text)) return;
+  const KEY = { '위너스': 'teamW', '아레스': 'teamR', '어벤져스': 'teamA', '본부': 'teamH', '제외': 'leftOut' };
+  const got = {}; let inAlias = false; const alias = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const m = line.match(/^\[?(위너스|아레스|어벤져스|본부|제외|별칭)\]?\s*[:：]?\s*(.*)$/);
+    if (m) { inAlias = m[1] === '별칭'; if (!inAlias) got[KEY[m[1]]] = m[2].trim(); else if (m[2].includes('=')) alias.push(m[2].trim()); continue; }
+    if (inAlias && line.includes('=')) alias.push(line);
+  }
+  for (const id in got) $(id).value = got[id];
+  if (alias.length) $('alias').value = alias.join('\n');
+  saveTeams(); e.target.value = ''; e.target.placeholder = '명단을 넣었습니다. 아래 칸에서 확인하세요';
+  if (parsed) run();
+});
+['teamW', 'teamR', 'teamA', 'teamH', 'leftOut', 'alias'].forEach(id => $(id).addEventListener('change', () => { saveTeams(); if (parsed) run(); }));
+$('teamReset').addEventListener('click', e => {
+  e.preventDefault(); if (!confirm('이 브라우저에 저장한 명단을 모두 지울까요?')) return;
+  ['teamW', 'teamA', 'teamR', 'teamH', 'leftOut', 'alias'].forEach(id => { $(id).value = ''; }); applyRoster();
+  try { localStorage.removeItem('activityTeams'); } catch (e2) {}
+  if (parsed) run();
+});
+
+/* controls */
+function presetRange(r) {
+  const now = new Date();
+  let from, to = iso(now);
+  if (r === 'thisMonth') from = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+  else if (r === 'lastMonth') { from = iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)); to = iso(new Date(now.getFullYear(), now.getMonth(), 0)); }
+  else if (r === '30') from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29));
+  else { from = bounds ? bounds.first : ''; to = bounds ? bounds.last : ''; }
+  return [from, to];
+}
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', e => {
+  e.preventDefault();
+  [$('from').value, $('to').value] = presetRange(c.dataset.range);
+  run();
+}));
+['from', 'to'].forEach(id => $(id).addEventListener('change', run));
+['credit', 'video', 'partial'].forEach(id => $(id).addEventListener('change', run));
+$('exclude').addEventListener('change', run);
+$('name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); run(); openDetail(); } });
+$('name').addEventListener('change', () => { run(); openDetail(); });
+$('name').addEventListener('input', () => { if (!$('name').value) { run(); closeDetail(); } });
+$('run').addEventListener('click', () => { run(); openDetail(); });
+$('setBtn').addEventListener('click', () => {
+  const open = $('settings').hidden;
+  $('settings').hidden = !open; $('setBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+function syncControls() {
+  document.querySelectorAll('.chip').forEach(c => {
+    const [f, t] = presetRange(c.dataset.range);
+    c.classList.toggle('on', $('from').value === f && $('to').value === t);
+  });
+  const ex = $('exclude').value.split(',').map(s => s.trim()).filter(Boolean).length;
+  const on = [$('credit').checked ? '이름 언급 인정' : '올린 사람만', $('video').checked && '동영상 포함', $('partial').checked && '부분 일치', ex ? '제외 단어 ' + ex + '개' : '제외 없음'].filter(Boolean);
+  $('setSum').textContent = on.join(' · ');
+}
+
+/* detail open/close (phone & tablet: full screen) */
+function openDetail() { if ($('name').value.trim() && !isWide()) document.body.classList.add('detail-open'); }
+function closeDetail() { document.body.classList.remove('detail-open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('detail-open')) clearPerson(); });
+function clearPerson() { $('name').value = ''; closeDetail(); run(); }
+
+/* counting */
+function run() {
+  const box = $('result');
+  syncControls();
+  if (!parsed) { box.innerHTML = ''; return; }
+  const opts = { name: $('name').value, from: $('from').value, to: $('to').value, partial: $('partial').checked,
+    video: $('video').checked, credit: $('credit').checked, yday: true, unit: rankUnit,
+    exclude: $('exclude').value.split(',').map(s => s.trim()).filter(Boolean) };
+  if (opts.from && opts.to && opts.from > opts.to) { view = null; box.innerHTML = '<div class="notice">시작일이 종료일보다 늦습니다. 날짜를 다시 고르세요.</div>'; return; }
+  const msgs = parsed.messages.filter(m => !LEFT_OUT.includes(baseName(m.name)));
+  const res = countPhotos(msgs, opts);
+  // 올라온 사진 자체(이름 언급 중복 없이)는 순위와 별개로 한 번만 센다
+  const rk = [opts.from, opts.to, opts.video, opts.exclude.join(',')].join('|');
+  if (!rawCache || rawCache.key !== rk) {
+    const raw = countPhotos(msgs, { ...opts, name: '', credit: false, partial: false, unit: 'photos' });
+    let photos = 0, posts = 0, videos = 0;
+    for (const p of raw.per.values()) { photos += p.photos; posts += p.posts; videos += p.videos; }
+    rawCache = { key: rk, photos, posts, videos, posters: raw.per.size };
+  }
+  view = { opts, res, teamOf: teamMatcher() };
+  lastDetail = res.detail;
+  render();
+}
+
+function render() {
+  const box = $('result');
+  const { opts, res, teamOf } = view;
+  const { per, detail, excluded } = res;
+  const U = opts.unit === 'posts' ? '건' : '장';
+  const q = opts.name.trim();
+  const isHit = n => opts.partial ? (q && n.includes(q)) : n === q;
+  const period = (opts.from || '처음').replace(/-/g, '.') + ' ~ ' + (opts.to || '끝').replace(/-/g, '.');
+  const rank = [...per.entries()].sort((a, b) => b[1].score - a[1].score || a[0].localeCompare(b[0], 'ko'));
+  const ranks = []; rank.forEach(([, p], i) => ranks.push(i && p.score === rank[i - 1][1].score ? ranks[i - 1] : i + 1));
+  const max = Math.max(1, ...rank.map(r => r[1].score));
+  const leaderOf = id => Object.keys(LEADERS).find(k => LEADERS[k] === id);
+  const days = opts.from && opts.to ? Math.round((new Date(opts.to + 'T12:00:00') - new Date(opts.from + 'T12:00:00')) / 864e5) + 1 : 0;
+
+  /* KPIs */
+  let html = (Object.keys(LEADERS).length ? '' : '<div class="notice" style="margin-bottom:16px">사업단 명단이 비어 있어 모두 미분류로 나옵니다. 상세 설정 → 사업단 명단에 한 번 붙여넣으면 이 브라우저에 저장됩니다.</div>') + '<div class="kpis' + (opts.video ? ' five' : '') + '">' +
+    '<div class="kpi"><div class="k">올라온 사진</div><div class="v">' + fmt(rawCache.photos) + '<small>장</small></div><div class="s">이름 언급 중복 없이</div></div>' +
+    '<div class="kpi"><div class="k">올린 건수</div><div class="v">' + fmt(rawCache.posts) + '<small>건</small></div><div class="s">10분 안에 올린 사진은 1건</div></div>' +
+    '<div class="kpi"><div class="k">활동 인원</div><div class="v">' + fmt(per.size) + '<small>명</small></div><div class="s">직접 올린 사람 ' + rawCache.posters + '명</div></div>' +
+    '<div class="kpi"><div class="k">기간</div><div class="v">' + (days || '–') + '<small>일</small></div><div class="s">' + esc(period) + '</div></div>' +
+    (opts.video ? '<div class="kpi"><div class="k">동영상</div><div class="v">' + fmt(rawCache.videos) + '<small>개</small></div><div class="s">순위에 포함</div></div>' : '') +
+    '</div>';
+
+  /* teams */
+  const tstat = TEAMS.map(tm => {
+    const mem = rank.filter(([n]) => teamOf(n) === tm.id);
+    const sum = mem.reduce((s, [, p]) => s + p.score, 0);
+    return { tm, n: mem.length, sum, avg: mem.length ? sum / mem.length : 0 };
+  });
+  const all = tstat.reduce((s, t) => s + t.sum, 0) || 1;
+  const main = tstat.filter(t => 'WRA'.includes(t.tm.id));
+  const tmax = Math.max(1, ...main.map(t => t.sum));
+  let teams = '<section class="sec" id="teamSec"><div class="sec-head"><h2>사업단 실적</h2><span class="meta">' + (opts.unit === 'posts' ? '건수' : '장수') + ' 기준 · 줄을 누르면 순위가 그 사업단만 보입니다</span></div>' +
+    '<div class="thead"><span>사업단</span><span></span><span>합계</span><span>인원</span><span>1인 평균</span><span>비중</span></div>' +
+    main.map(t => '<button class="trow' + (teamFilter === t.tm.id ? ' on' : '') + '" data-team="' + t.tm.id + '" aria-pressed="' + (teamFilter === t.tm.id) + '">' +
+      '<span class="tname"><span class="dot" style="background:' + t.tm.color + '"></span><span>' + t.tm.name + (leaderOf(t.tm.id) ? '<small>' + leaderOf(t.tm.id) + ' 단장</small>' : '') + '</span></span>' +
+      '<span class="tbar"><i style="width:' + (t.sum / tmax * 100).toFixed(1) + '%;background:' + t.tm.color + '"></i></span>' +
+      '<span class="tnum">' + fmt(t.sum) + U + '</span>' +
+      '<span class="tsubs"><span class="tsub">' + t.n + '명</span><span class="tsub"><span class="ml">평균 </span>' + t.avg.toFixed(1) + U + '</span><span class="tsub"><span class="ml">비중 </span>' + (t.sum / all * 100).toFixed(1) + '%</span></span>' +
+      '</button>').join('') +
+    '<div class="tminor">' + tstat.filter(t => !'WRA'.includes(t.tm.id) && (t.n || t.tm.id === 'H')).map(t =>
+      '<button data-team="' + t.tm.id + '"' + (teamFilter === t.tm.id ? ' class="on"' : '') + ' aria-pressed="' + (teamFilter === t.tm.id) + '"><span class="dot" style="background:' + t.tm.color + '"></span>' + t.tm.name + ' <b class="num">' + fmt(t.sum) + U + '</b> ' + t.n + '명</button>').join('') +
+    '</div></section>';
+
+  /* ranking */
+  const filters = [{ id: '', name: '전체' }].concat(TEAMS.filter(tm => tm.id !== 'U' || tstat.find(t => t.tm.id === 'U').n));
+  const ranking = '<section class="sec" id="rankSec"><div class="sec-head"><h2>개인 순위</h2><div class="right"><span class="meta">' + rank.length + '명</span>' +
+    '<span class="seg" role="group" aria-label="집계 단위"><button data-unit="photos"' + (opts.unit === 'photos' ? ' class="on"' : '') + '>장수</button><button data-unit="posts"' + (opts.unit === 'posts' ? ' class="on"' : '') + '>건수</button></span></div></div>' +
+    '<div class="rtools"><div class="filters" role="group" aria-label="사업단 보기">' + filters.map(f =>
+      '<button class="fbtn' + (teamFilter === f.id ? ' on' : '') + '" data-filter="' + f.id + '">' + (f.color ? '<span class="dot" style="background:' + f.color + '"></span>' : '') + f.name + '</button>').join('') + '</div>' +
+    '<input type="search" class="rsearch" id="rankSearch" placeholder="순위에서 찾기" value="' + esc(rankQuery) + '" aria-label="순위에서 이름 찾기">' +
+    (rank.length ? '<button class="btn sm" id="copyRank">순위 복사</button>' : '') + '</div>' +
+    '<ol class="rank" id="rankList"></ol></section>';
+
+  /* detail */
+  let det;
+  if (q) {
+    const known = parsed.messages.some(m => isHit(m.name));
+    const pos = rank.findIndex(r => isHit(r[0]));
+    const total = detail.reduce((s, d) => s + d.n, 0);
+    const videos = detail.reduce((s, d) => s + d.videos, 0);
+    const own = detail.filter(d => d.own).length;
+    const dd = new Set(detail.map(d => d.date)).size;
+    const tm = teamById(teamOf(q));
+    det = '<div class="inner"><div class="dhead"><div><h2>' + esc(opts.partial ? q : teamOf.resolve(q)) + (opts.partial ? ' <small style="font-size:13px;color:var(--muted);font-weight:400">부분 일치</small>' : '') + '</h2>' +
+      (opts.partial ? '' : '<div class="team"><span class="dot" style="background:' + tm.color + '"></span>' + tm.name + (LEADERS[baseName(q)] ? ' 단장' : '') + (teamOf.resolve(q) !== q ? ' · 카톡 이름 ' + esc(q) : '') + '</div>') + '</div>' +
+      '<button class="btn sm dclose" id="dclose">닫기</button></div>' +
+      '<div class="dbig num">' + fmt(total) + '<small>' + U + '</small></div><div class="dperiod">' + esc(period) + ' · ' + (opts.credit ? '설명 속 이름 포함' : '올린 사람 기준') + '</div>' +
+      '<div class="dstats">' +
+      (opts.unit === 'posts' ? '<div><span>사진 장수</span><b class="num">' + detail.reduce((s, d) => s + d.photos, 0) + '장</b></div>' : '<div><span>올린 건수</span><b class="num">' + detail.reduce((s, d) => s + d.posts, 0) + '건</b></div>') +
+      '<div><span>활동한 날</span><b class="num">' + dd + '일</b></div>' +
+      '<div><span>순위</span><b class="num">' + (pos >= 0 && !opts.partial ? ranks[pos] + ' / ' + rank.length : '–') + '</b></div>' +
+      (opts.credit ? '<div><span>직접 / 언급</span><b class="num">' + own + ' / ' + (detail.length - own) + '</b></div>' : '<div><span>올린 횟수</span><b class="num">' + detail.length + '번</b></div>') +
+      (opts.video ? '<div><span>동영상</span><b class="num">' + videos + '개</b></div>' : '') +
+      '</div>';
+    if (!known) det += '<div class="notice">이 대화에 "' + esc(q) + '" 이름이 없습니다. 이름 칸을 누르면 나오는 목록에서 고르세요.</div>';
+    if (opts.partial) {
+      const who = [...new Set(detail.map(d => d.name))];
+      if (who.length > 1) det += '<div class="notice">' + who.length + '명이 함께 집계됐습니다: ' + who.map(esc).join(', ') + '</div>';
+    }
+    if (detail.length) {
+      det += '<div class="tablewrap"><table><thead><tr><th>활동일</th><th>설명</th><th class="n">인정</th></tr></thead><tbody>' +
+        detail.map(d => '<tr><td>' + md(d.date) + ' <span class="sm-note">' + d.time + (d.posted !== d.date ? '<br>' + md(d.posted) + ' 올림' : '') + '</span></td><td class="cap">' +
+          esc(d.caption || '(설명 없음)') + ' <span class="sm-note">사진 ' + d.photos + '장' + (d.own ? '' : ' · ' + esc(d.poster) + ' 올림') + '</span></td><td class="n">' + d.n + U + '</td></tr>').join('') +
+        '</tbody></table></div><div class="dfoot"><span>' + detail.length + '건</span><button class="btn sm" id="dl">CSV로 저장</button></div>';
+    }
+    det += '</div>';
+  } else {
+    det = '<div class="detail-empty"><b>개인 내역</b>순위에서 이름을 누르거나 위 이름 칸에서 고르면, 그 사람이 올린 사진과 언급된 내역이 여기 나옵니다.</div>';
+  }
+  html += '<div class="teamwrap">' + teams + '</div><div class="board"><div>' + ranking + '</div><aside class="sec detail" id="detail" aria-label="개인 내역">' + det + '</aside></div>';
+
+  /* extras */
+  let extra = '';
+  {
+    const names = [...new Set(parsed.messages.map(m => m.name))].filter(n => !LEFT_OUT.includes(baseName(n)));
+    const unk = names.filter(n => teamOf(n) === 'U');
+    const miss = teamOf.missing(names);
+    if (unk.length) {
+      const sample = n => parsed.messages.filter(m => m.name === n && !classify(m.text).kind && m.text.trim().length > 3).slice(-3).map(m => m.text.trim().slice(0, 40));
+      extra += '<section class="sec"><details class="fold"' + (teamFilter === 'U' ? ' open' : '') + '><summary>명단 대조 · 미분류 ' + unk.length + '명, 카톡에서 못 찾은 명단 ' + miss.length + '명</summary>' +
+        '<div style="padding-bottom:16px;font-size:14px">' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 8px">누군지 알 수 없는 카톡 이름입니다. 최근에 쓴 설명을 보고 고르면 바로 반영됩니다.</p>' +
+        '<div class="tablewrap"><table><thead><tr><th>카톡 이름</th><th class="n">사진</th><th>누구인지</th><th>최근에 쓴 설명</th></tr></thead><tbody>' +
+          unk.map(n => '<tr><td>' + esc(n) + '</td><td class="n">' + ((per.get(n) || {}).photos || 0) + '장</td><td>' +
+            '<select class="who" data-name="' + esc(n) + '"><option value="">모름</option>' +
+            (miss.length ? '<optgroup label="명단에서 못 찾은 사람">' + miss.map(r => '<option>' + esc(r) + '</option>').join('') + '</optgroup>' : '') +
+            '<optgroup label="명단에 없는 사람"><option value="아레스">아레스 소속</option><option value="본부">본부 소속</option></optgroup>' +
+            '<optgroup label="전체 명단">' + teamOf.roster.filter(r => !miss.includes(r)).sort((a, b) => a.localeCompare(b, 'ko')).map(r => '<option>' + esc(r) + '</option>').join('') + '</optgroup>' +
+            '</select></td><td class="cap">' + (sample(n).map(esc).join('<br>') || '<span class="sm-note">설명 없음</span>') + '</td></tr>').join('') +
+          '</tbody></table></div>' +
+        '<p style="font-size:13px;color:var(--muted);margin:16px 0 4px">명단에는 있는데 카톡 이름으로 못 찾은 사람</p>' +
+        (miss.length ? '<div>' + miss.map(esc).join(', ') + '</div>' : '<div class="sm-note">없음</div>') +
+        '<p class="sm-note" style="margin-top:12px">카톡 이름은 내보낸 사람 폰에 저장된 이름으로 나와서 파일마다 다를 수 있습니다. 고른 내용은 상세 설정의 "카톡 이름 = 명단 이름" 칸에 저장됩니다(이 브라우저에만).</p>' +
+        '</div></details></section>';
+    }
+  }
+  if (excluded.length) {
+    extra += '<section class="sec"><details class="fold"><summary>활동이 아니라서 뺀 사진 ' + excluded.reduce((s, x) => s + x.n, 0) + '장</summary>' +
+      '<div class="tablewrap" style="margin-bottom:16px"><table><thead><tr><th>날짜</th><th>올린 사람</th><th>뺀 이유 (설명)</th><th class="n">장수</th></tr></thead><tbody>' +
+      excluded.map(x => '<tr><td>' + md(x.date) + ' <span class="sm-note">' + x.time + '</span></td><td>' + esc(x.name) + '</td><td class="cap">' + esc(x.why) + '</td><td class="n">' + x.n + '</td></tr>').join('') +
+      '</tbody></table></div></details></section>';
+  }
+  // 맥·폰에서 동기화가 덜 된 채 내보내면 며칠치가 통째로 빠짐: 대화가 하나도 없는 날을 맨 아래에 알려 줌
+  const has = new Set(parsed.messages.map(m => m.date)), gaps = [];
+  for (let d = new Date((opts.from > bounds.first ? opts.from : bounds.first) + 'T12:00:00'), end = opts.to && opts.to < bounds.last ? opts.to : bounds.last; ; d.setDate(d.getDate() + 1)) {
+    const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (k > end) break;
+    if (!has.has(k)) gaps.push((d.getMonth() + 1) + '/' + d.getDate());
+  }
+  if (extra) html += '<div class="extra">' + extra.replace(/<\/section><section class="sec">/g, '</section><section class="sec" style="margin-top:12px">') + '</div>';
+  if (gaps.length) html += '<div class="notice gap-note"><b>' + gaps.join(', ') + '</b> 대화가 파일에 없습니다. 내보낼 때 빠졌을 수 있으니, 숫자가 이상하면 PC 카톡에서 내보낸 파일로 다시 확인하세요.</div>';
+  box.innerHTML = html;
+
+  /* rank list */
+  const drawRank = () => {
+    const rq = rankQuery.trim();
+    const rows = rank.map(([n, p], i) => [n, p, i]).filter(([n]) => !teamFilter || teamOf(n) === teamFilter)
+      .filter(([n]) => !rq || n.includes(rq) || teamOf.resolve(n).includes(rq));
+    $('rankList').innerHTML = !rank.length ? '<li class="empty">이 기간에는 올라온 사진이 없습니다.</li>'
+      : !rows.length ? '<li class="empty">조건에 맞는 사람이 없습니다.</li>'
+      : rows.map(([n, p, i]) => {
+        const tm = teamById(teamOf(n)), lead = LEADERS[baseName(n)] ? ' <em>단장</em>' : '';
+        return '<li><button class="rrow' + (isHit(n) ? ' hit' : '') + '" data-name="' + esc(n) + '"><span class="rpos num">' + ranks[i] + '</span>' +
+          '<span class="rmain"><span class="rname">' + esc(teamOf.resolve(n)) + (teamOf.resolve(n) !== n ? '<small>' + esc(n) + '</small>' : '') + '</span>' +
+          '<span class="rteam-m"><span class="dot" style="background:' + tm.color + '"></span>' + tm.name + lead + '</span></span>' +
+          '<span class="rteam"><span class="dot" style="background:' + tm.color + '"></span>' + tm.name + lead + '</span>' +
+          '<span class="rbar"><i style="width:' + (p.score / max * 100).toFixed(1) + '%;background:' + tm.color + '"></i></span>' +
+          '<span class="rcnt">' + p.score + U + (opts.video && p.videos ? ' <small>동영상 ' + p.videos + '</small>' : '') + '</span></button></li>';
+      }).join('');
+    $('rankList').querySelectorAll('.rrow').forEach(b => b.addEventListener('click', () => {
+      $('name').value = b.dataset.name; $('partial').checked = false; run(); openDetail();
+      if (isWide()) $('detail').scrollTop = 0;
+    }));
+  };
+  drawRank();
+  $('rankSearch').addEventListener('input', e => { rankQuery = e.target.value; drawRank(); });
+
+  box.querySelectorAll('select.who').forEach(sel => sel.addEventListener('change', () => {
+    if (!sel.value) return;
+    const a = $('alias'); a.value = (a.value.trim() ? a.value.trim() + '\n' : '') + sel.dataset.name + ' = ' + sel.value;
+    saveTeams(); run();
+  }));
+  box.querySelectorAll('[data-team]').forEach(bt => bt.addEventListener('click', () => {
+    teamFilter = teamFilter === bt.dataset.team ? '' : bt.dataset.team; render();
+  }));
+  box.querySelectorAll('[data-filter]').forEach(bt => bt.addEventListener('click', () => {
+    teamFilter = bt.dataset.filter; render();
+  }));
+  box.querySelectorAll('.seg button').forEach(bt => bt.addEventListener('click', () => {
+    if (rankUnit === bt.dataset.unit) return;
+    rankUnit = bt.dataset.unit; run();
+  }));
+  const dc = $('dclose');
+  if (dc) dc.addEventListener('click', clearPerson);
+
+  const cp = $('copyRank');
+  if (cp) cp.addEventListener('click', async () => {
+    const shown = rank.map(([name, p], i) => [name, p, i]).filter(([n]) => !teamFilter || teamOf(n) === teamFilter);
+    const lines = [];
+    let grp = null;
+    shown.forEach(([name, p, i]) => {
+      // 10위 단위로 한 줄 띄움 (공동 순위는 같은 묶음에)
+      const g = Math.floor((ranks[i] - 1) / 10);
+      if (grp !== null && g !== grp) lines.push('');
+      grp = g;
+      const nm = teamOf.resolve(name);
+      lines.push(teamById(teamOf(name)).emoji + ' ' + ranks[i] + '. ' + nm + (LEADERS[nm] ? ' 단장' : '') + ' ' + fmt(p.score) + U + (opts.video && p.videos ? ' (동영상 ' + p.videos + '개)' : ''));
+    });
+    const sumLines = tstat.filter(t => t.n && (!teamFilter || t.tm.id === teamFilter))
+      .sort((a, b) => ('WRA'.includes(b.tm.id) - 'WRA'.includes(a.tm.id)) || b.sum - a.sum)
+      .map(t => t.tm.emoji + ' ' + t.tm.name + ' ' + fmt(t.sum) + U + ' · ' + t.n + '명' + ('WRA'.includes(t.tm.id) ? ' · 1인 ' + t.avg.toFixed(1) + U : ''));
+    const per = (opts.from || '처음') + ' ~ ' + (opts.to || '끝');
+    const text = '📸 미래로 활동샷 순위' + (teamFilter ? ' · ' + teamById(teamFilter).name : '') + '\n' + per + ' · ' + (opts.unit === 'posts' ? '건수' : '사진 장수') + ' 기준\n\n' +
+      '[사업단]\n' + sumLines.join('\n') + '\n\n[개인 ' + shown.length + '명]\n' + lines.join('\n');
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) {}
+      ta.remove();
+    }
+    cp.textContent = ok ? '복사됨' : '복사 실패';
+    cp.classList.toggle('ok', ok);
+    setTimeout(() => { cp.textContent = '순위 복사'; cp.classList.remove('ok'); }, 1800);
+  });
+  const dl = $('dl');
+  if (dl) dl.addEventListener('click', () => {
+    const csv = '﻿날짜,시간,이름,올린 사람,설명,사진 장수,인정(' + U + ')\n' + lastDetail.map(d =>
+      [d.date, d.time, d.name, d.poster, d.caption, d.photos, d.n].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = '활동내역_' + q + '.csv'; a.click();
+  });
+}
+window.matchMedia('(min-width: 1024px)').addEventListener('change', e => { if (e.matches) closeDetail(); else openDetail(); });
+syncControls();
+</script>
+</body>
+</html>
