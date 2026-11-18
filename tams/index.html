@@ -233,7 +233,7 @@ td.ck .cnt span{min-width:2.4em;font-variant-numeric:tabular-nums;font-weight:60
 th.ck:nth-child(6){width:110px}
 tr.done td.st{color:var(--moss)}
 td.ck small{display:block;font-size:11px;color:var(--ink-2);line-height:1.2;margin-top:2px}
-td .memo{width:12em;padding:4px 8px;font-size:14px}
+td .memo{width:12em;padding:4px 8px;font-size:14px;line-height:1.4;vertical-align:middle;min-height:0;display:block}
 td .nmi{width:8em;padding:4px 8px;font-size:14px;font-weight:600}
 td .phi{width:9.5em;padding:4px 8px;font-size:14px}
 tr.done td{color:var(--ink-2)}
@@ -854,7 +854,7 @@ function renderBook(){
    tr.append(td);
   }
   const td3=document.createElement("td");td3.textContent=[b.school||b.place,b.grade,b.major].filter(Boolean).join(" · ");if(b.age)td3.title="나이 "+b.age+(b.email?" · "+b.email:"");tr.append(td3);
-  const td8=document.createElement("td");const mi=document.createElement("input");mi.type="text";mi.className="memo";mi.value=b.memo||"";mi.setAttribute("aria-label","메모");
+  const td8=document.createElement("td");const mi=document.createElement("textarea");mi.rows=1;mi.className="memo";mi.value=b.memo||"";mi.setAttribute("aria-label","메모");
   mi.addEventListener("change",()=>{b.memo=mi.value;saveBook()});td8.append(mi);tr.append(td8);
   const td9=document.createElement("td");td9.className="del";const x=document.createElement("button");x.type="button";x.className="text";x.textContent="지우기";
   x.addEventListener("click",()=>{

@@ -511,7 +511,7 @@ function trackRow(b){
  }
  tr.append(mk("전화 걸기","text",()=>{location.href="tel:"+digits(b.phone)},"휴대폰에서는 바로 전화가 걸립니다"),mk("번호 복사","text",()=>copyText(b.phone,"번호 복사됨")));
  if(b.miss||b.call)tr.append(mk("콜 기록 지우기","text",()=>{if(confirm((b.name||"")+" 님의 부재·통화 기록을 지울까요? 메모는 남습니다."))markCall(b,"reset")}));
- if(b.result==="meet"){const mi=document.createElement("input");mi.type="text";mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=b.meetNote||"";mi.setAttribute("aria-label",(b.name||"")+" 미팅 일정");
+ if(b.result==="meet"){const mi=document.createElement("textarea");mi.rows=1;mi.placeholder="미팅 일정·장소 (예: 11/13 목 2시 ○○카페)";mi.value=b.meetNote||"";mi.setAttribute("aria-label",(b.name||"")+" 미팅 일정");
   mi.addEventListener("change",()=>{b.meetNote=mi.value.trim()||undefined;saveBook();renderBook()});tr.append(mi)}
  const memo=document.createElement("textarea");memo.rows=1;memo.placeholder="콜 메모 (예: 저녁 7시 이후 통화 가능, 재테크 관심)";memo.value=b.memo||"";memo.setAttribute("aria-label",(b.name||"")+" 콜 메모");
  memo.addEventListener("input",()=>{b.memo=memo.value.trim()||undefined;saveBook()});tr.append(memo);
