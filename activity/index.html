@@ -112,8 +112,11 @@
     color: var(--muted); font-size: 13px; cursor: pointer; transition: border-color .15s, color .15s, background-color .15s; }
   .chip:hover { color: var(--text); border-color: var(--muted); }
   .chip.on { background: var(--text); border-color: var(--text); color: var(--bg); }
-  .setbtn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 4px; border: 0; background: none; cursor: pointer; font-size: 13px; color: var(--muted); }
-  .setbtn b { color: var(--text); font-weight: 600; }
+  .setbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); cursor: pointer; font-size: 13px; color: var(--muted); text-align: left; transition: border-color .15s; }
+  .setbtn:hover { border-color: var(--muted); }
+  .setbtn[aria-expanded="true"] { border-color: var(--text); }
+  .setbtn .lbl { color: var(--text); font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .setbtn b { font-weight: 400; }
   .setbtn .caret { transition: transform .15s; }
   .setbtn[aria-expanded="true"] .caret { transform: rotate(180deg); }
   .settings { margin-top: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); display: grid; gap: 20px; }
@@ -353,7 +356,7 @@
         <button class="chip" data-range="30">최근 30일</button>
         <button class="chip" data-range="all">전체</button>
       </div>
-      <button class="setbtn" id="setBtn" aria-expanded="false" aria-controls="settings">상세 설정 <b id="setSum"></b><span class="caret" aria-hidden="true">▾</span></button>
+      <button class="setbtn" id="setBtn" aria-expanded="false" aria-controls="settings"><span class="lbl">상세 설정 · 명단</span><b id="setSum"></b><span class="caret" aria-hidden="true">▾</span></button>
     </div>
     <div class="settings" id="settings" hidden>
       <div>
@@ -388,7 +391,7 @@
   </section>
 
   <div id="result"></div>
-  <p class="foot">활동샷 집계기 v9 · 파일은 이 브라우저 안에서만 읽고, 어디에도 전송되지 않습니다.</p>
+  <p class="foot">파일은 이 브라우저 안에서만 읽고, 어디에도 전송되지 않습니다.</p>
 </main>
 
 <script>
@@ -611,7 +614,7 @@ function loadTeams() {
   $('leftOut').value = (saved && saved.out) || '';
   applyRoster();
 }
-function saveTeams() { applyRoster(); try { localStorage.setItem('activityTeams', JSON.stringify({ W: $('teamW').value, A: $('teamA').value, R: $('teamR').value, H: $('teamH').value, out: $('leftOut').value, alias: $('alias').value })); } catch (e) {} }
+function saveTeams() { applyRoster(); syncControls(); try { localStorage.setItem('activityTeams', JSON.stringify({ W: $('teamW').value, A: $('teamA').value, R: $('teamR').value, H: $('teamH').value, out: $('leftOut').value, alias: $('alias').value })); } catch (e) {} }
 // display name -> team id; matches full name ("홍길동 선배님" -> 홍길동) or given name only ("길동" -> 홍길동)
 function teamMatcher() {
   const full = new Map(), given = new Map();
@@ -829,6 +832,8 @@ function syncControls() {
   });
   const ex = $('exclude').value.split(',').map(s => s.trim()).filter(Boolean).length;
   const on = [$('credit').checked ? '이름 언급 인정' : '올린 사람만', $('video').checked && '동영상 포함', $('partial').checked && '부분 일치', ex ? '제외 단어 ' + ex + '개' : '제외 없음'].filter(Boolean);
+  const rn = ['teamW', 'teamR', 'teamA'].reduce((n, id) => n + $(id).value.split(/[\s,]+/).filter(Boolean).length, 0);
+  on.push(rn ? '명단 ' + rn + '명' : '명단 없음');
   $('setSum').textContent = on.join(' · ');
 }
 
@@ -877,7 +882,7 @@ function render() {
   const days = opts.from && opts.to ? Math.round((new Date(opts.to + 'T12:00:00') - new Date(opts.from + 'T12:00:00')) / 864e5) + 1 : 0;
 
   /* KPIs */
-  let html = (Object.keys(LEADERS).length ? '' : '<div class="notice" style="margin-bottom:16px">사업단 명단이 비어 있어 모두 미분류로 나옵니다. 상세 설정 → 사업단 명단에 한 번 붙여넣으면 이 브라우저에 저장됩니다.</div>') + '<div class="kpis' + (opts.video ? ' five' : '') + '">' +
+  let html = (Object.keys(LEADERS).length ? '' : '<div class="notice" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>사업단 명단이 비어 있어 모두 미분류로 나옵니다. 한 번 붙여넣으면 이 브라우저에 저장됩니다.</span><button class="btn sm" id="openRoster">명단 넣기</button></div>') + '<div class="kpis' + (opts.video ? ' five' : '') + '">' +
     '<div class="kpi"><div class="k">올라온 사진</div><div class="v">' + fmt(rawCache.photos) + '<small>장</small></div><div class="s">이름 언급 중복 없이</div></div>' +
     '<div class="kpi"><div class="k">올린 건수</div><div class="v">' + fmt(rawCache.posts) + '<small>건</small></div><div class="s">10분 안에 올린 사진은 1건</div></div>' +
     '<div class="kpi"><div class="k">활동 인원</div><div class="v">' + fmt(per.size) + '<small>명</small></div><div class="s">직접 올린 사람 ' + rawCache.posters + '명</div></div>' +
@@ -1035,6 +1040,11 @@ function render() {
     if (rankUnit === bt.dataset.unit) return;
     rankUnit = bt.dataset.unit; run();
   }));
+  const orb = $('openRoster');
+  if (orb) orb.addEventListener('click', () => {
+    $('settings').hidden = false; $('setBtn').setAttribute('aria-expanded', 'true');
+    $('bulk').scrollIntoView({ block: 'center' }); $('bulk').focus();
+  });
   const dc = $('dclose');
   if (dc) dc.addEventListener('click', clearPerson);
 
