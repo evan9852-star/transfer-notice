@@ -191,6 +191,8 @@
     display: inline-flex; align-items: center; gap: 8px; }
   .fbtn:hover { color: var(--text); }
   .fbtn.on { border-color: var(--line); background: var(--surface-2); color: var(--text); font-weight: 600; }
+  .fbtn.busan { position: relative; margin-left: 12px; }
+  .fbtn.busan::before { content: ""; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
   .rsearch { height: 32px; width: 160px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font-size: 14px; }
   .rank { list-style: none; margin: 0; padding: 0; }
   .rrow { display: grid; grid-template-columns: 32px minmax(0, 1.2fr) 112px minmax(0, 1fr) 64px; align-items: center; gap: 12px; width: 100%;
@@ -283,7 +285,7 @@
     .trow .tbar { grid-area: b; }
     .trow .tsubs { grid-area: s; display: flex; gap: 12px; }
     .trow .tsub { text-align: left; }
-    .rtools .filters { flex-basis: 100%; overflow-x: auto; flex-wrap: nowrap; }
+    .rtools .filters { flex-basis: 100%; }
     .rsearch { flex: 1; width: auto; font-size: 16px; }
     .rrow { grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "p n c" "p b b"; gap: 4px 12px; padding: 12px 4px; }
     .rrow .rpos { grid-area: p; }
@@ -391,6 +393,7 @@
           <div><label for="teamA"><span class="dot" style="background:var(--t-avengers)"></span>어벤져스</label><textarea id="teamA"></textarea></div>
           <div><label for="teamH"><span class="dot" style="background:var(--t-hq)"></span>본부 (사업단 아님)</label><textarea id="teamH" placeholder="본부장님, 실장님 이름"></textarea></div>
           <div><label for="leftOut"><span class="dot" style="background:var(--t-none)"></span>집계에서 뺄 사람</label><textarea id="leftOut" placeholder="비워 두면 모두 셉니다"></textarea></div>
+          <div><label for="teamB"><span class="dot" style="background:var(--t-none)"></span>부산 미래로 (사업단과 별개, 따로 보기용)</label><textarea id="teamB" placeholder="부산 미래로 사람 이름"></textarea></div>
           <div><label for="alias"><span class="dot" style="background:var(--t-none)"></span>카톡 이름 = 명단 이름 (한 줄에 한 명)</label><textarea id="alias" placeholder="🤍 = 홍길동&#10;_ = 김철수"></textarea></div>
         </div>
         <p class="note">이름은 띄어쓰기로 구분하고, 각 사업단 명단의 첫 이름이 사업단장입니다. 세 명단 어디에도 없거나 카톡 이름이 이모지·기호뿐인 사람은 미분류로 표시됩니다. 명단은 사이트에 올라가지 않고 이 브라우저에만 저장되니, 다른 컴퓨터에서는 한 번 더 붙여넣으세요. <a href="#" id="teamReset">저장한 명단 지우기</a></p>
@@ -596,12 +599,13 @@ function countPhotos(messages, opts) {
 const TEAM_DEFAULT = { W: '', R: '', A: '' };
 const ALIAS_DEFAULT = '';
 // 아래 셋은 상세 설정 칸에서 채움: 각 사업단 명단의 첫 이름 = 사업단장, 본부 칸, 제외 칸
-let LEADERS = {}, HQ = [], LEFT_OUT = [];
+let LEADERS = {}, HQ = [], LEFT_OUT = [], BUSAN = [];
 function applyRoster() {
   LEADERS = {};
   for (const id of ['W', 'R', 'A']) { const first = $('team' + id).value.split(/[\s,]+/).filter(Boolean)[0]; if (first) LEADERS[first] = id; }
   HQ = $('teamH').value.split(/[\s,]+/).filter(Boolean);
   LEFT_OUT = $('leftOut').value.split(/[\s,]+/).filter(Boolean);
+  BUSAN = $('teamB').value.split(/[\s,]+/).filter(Boolean);
 }
 const TEAMS = [
   { id: 'W', name: '위너스', color: 'var(--t-winners)', emoji: '🔵' },
@@ -620,9 +624,10 @@ function loadTeams() {
   $('alias').value = (saved && saved.alias) || ALIAS_DEFAULT;
   $('teamH').value = (saved && saved.H) || '';
   $('leftOut').value = (saved && saved.out) || '';
+  $('teamB').value = (saved && saved.B) || '';
   applyRoster();
 }
-function saveTeams() { applyRoster(); syncControls(); try { localStorage.setItem('activityTeams', JSON.stringify({ W: $('teamW').value, A: $('teamA').value, R: $('teamR').value, H: $('teamH').value, out: $('leftOut').value, alias: $('alias').value })); } catch (e) {} }
+function saveTeams() { applyRoster(); syncControls(); try { localStorage.setItem('activityTeams', JSON.stringify({ W: $('teamW').value, A: $('teamA').value, R: $('teamR').value, H: $('teamH').value, out: $('leftOut').value, B: $('teamB').value, alias: $('alias').value })); } catch (e) {} }
 // display name -> team id; matches full name ("홍길동 선배님" -> 홍길동) or given name only ("길동" -> 홍길동)
 function teamMatcher() {
   const full = new Map(), given = new Map();
@@ -838,11 +843,11 @@ loadTeams();
 // "위너스: …", "아레스: …", "어벤져스: …", "본부: …", "제외: …", "별칭:" 다음 줄들 = 별칭
 $('bulk').addEventListener('input', e => {
   const text = e.target.value; if (!/위너스|아레스|어벤져스/.test(text)) return;
-  const KEY = { '위너스': 'teamW', '아레스': 'teamR', '어벤져스': 'teamA', '본부': 'teamH', '제외': 'leftOut' };
+  const KEY = { '위너스': 'teamW', '아레스': 'teamR', '어벤져스': 'teamA', '본부': 'teamH', '제외': 'leftOut', '부산': 'teamB' };
   const got = {}; let inAlias = false; const alias = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim(); if (!line) continue;
-    const m = line.match(/^\[?(위너스|아레스|어벤져스|본부|제외|별칭)\]?\s*[:：]?\s*(.*)$/);
+    const m = line.match(/^\[?(위너스|아레스|어벤져스|본부|제외|별칭|부산)(?:\s*미래로)?\]?\s*[:：]?\s*(.*)$/);
     if (m) { inAlias = m[1] === '별칭'; if (!inAlias) got[KEY[m[1]]] = m[2].trim(); else if (m[2].includes('=')) alias.push(m[2].trim()); continue; }
     if (inAlias && line.includes('=')) alias.push(line);
   }
@@ -851,10 +856,10 @@ $('bulk').addEventListener('input', e => {
   saveTeams(); e.target.value = ''; e.target.placeholder = '명단을 넣었습니다. 아래 칸에서 확인하세요';
   if (parsed) run();
 });
-['teamW', 'teamR', 'teamA', 'teamH', 'leftOut', 'alias'].forEach(id => $(id).addEventListener('change', () => { saveTeams(); if (parsed) run(); }));
+['teamW', 'teamR', 'teamA', 'teamH', 'leftOut', 'teamB', 'alias'].forEach(id => $(id).addEventListener('change', () => { saveTeams(); if (parsed) run(); }));
 $('teamReset').addEventListener('click', e => {
   e.preventDefault(); if (!confirm('이 브라우저에 저장한 명단을 모두 지울까요?')) return;
-  ['teamW', 'teamA', 'teamR', 'teamH', 'leftOut', 'alias'].forEach(id => { $(id).value = ''; }); applyRoster();
+  ['teamW', 'teamA', 'teamR', 'teamH', 'leftOut', 'teamB', 'alias'].forEach(id => { $(id).value = ''; }); applyRoster();
   try { localStorage.removeItem('activityTeams'); } catch (e2) {}
   if (parsed) run();
 });
@@ -934,9 +939,17 @@ function render() {
   const U = opts.unit === 'posts' ? '건' : '장';
   const q = opts.name.trim();
   const isHit = n => opts.partial ? (q && n.includes(q)) : n === q;
+  // 부산 미래로는 사업단과 별개인 지역 묶음: 명단 이름으로 맞춰 봄
+  const inBusan = n => BUSAN.includes(teamOf.resolve(n));
+  if (teamFilter === 'B' && !BUSAN.length) teamFilter = '';
+  const inFilter = n => !teamFilter || (teamFilter === 'B' ? inBusan(n) : teamOf(n) === teamFilter);
   const period = (opts.from || '처음').replace(/-/g, '.') + ' ~ ' + (opts.to || '끝').replace(/-/g, '.');
   const rank = [...per.entries()].sort((a, b) => b[1].score - a[1].score || a[0].localeCompare(b[0], 'ko'));
   const ranks = []; rank.forEach(([, p], i) => ranks.push(i && p.score === rank[i - 1][1].score ? ranks[i - 1] : i + 1));
+  // 부산 미래로를 볼 때는 부산 사람끼리 순위를 다시 매김 (사업단 보기는 전체 순위 그대로)
+  const bRank = new Map();
+  if (teamFilter === 'B') { let prev = null, r = 0; rank.forEach(([n, p], i) => { if (!inBusan(n)) return; const k = bRank.size + 1; r = prev !== null && p.score === prev ? r : k; prev = p.score; bRank.set(i, r); }); }
+  const rk = i => bRank.size ? bRank.get(i) : ranks[i];
   const max = Math.max(1, ...rank.map(r => r[1].score));
   const leaderOf = id => Object.keys(LEADERS).find(k => LEADERS[k] === id);
   const days = opts.from && opts.to ? Math.round((new Date(opts.to + 'T12:00:00') - new Date(opts.from + 'T12:00:00')) / 864e5) + 1 : 0;
@@ -972,11 +985,11 @@ function render() {
     '</div></section>';
 
   /* ranking */
-  const filters = [{ id: '', name: '전체' }].concat(TEAMS.filter(tm => tm.id !== 'U' || tstat.find(t => t.tm.id === 'U').n));
+  const filters = [{ id: '', name: '전체' }].concat(TEAMS.filter(tm => tm.id !== 'U' || tstat.find(t => t.tm.id === 'U').n), BUSAN.length ? [{ id: 'B', name: '부산 미래로', busan: true }] : []);
   const ranking = '<section class="sec" id="rankSec"><div class="sec-head"><h2>개인 순위</h2><div class="right"><span class="meta">' + rank.length + '명</span>' +
     '<span class="seg" role="group" aria-label="집계 단위"><button data-unit="photos"' + (opts.unit === 'photos' ? ' class="on"' : '') + '>장수</button><button data-unit="posts"' + (opts.unit === 'posts' ? ' class="on"' : '') + '>건수</button></span></div></div>' +
     '<div class="rtools"><div class="filters" role="group" aria-label="사업단 보기">' + filters.map(f =>
-      '<button class="fbtn' + (teamFilter === f.id ? ' on' : '') + '" data-filter="' + f.id + '">' + (f.color ? '<span class="dot" style="background:' + f.color + '"></span>' : '') + f.name + '</button>').join('') + '</div>' +
+      '<button class="fbtn' + (teamFilter === f.id ? ' on' : '') + (f.busan ? ' busan' : '') + '" data-filter="' + f.id + '">' + (f.color ? '<span class="dot" style="background:' + f.color + '"></span>' : '') + f.name + '</button>').join('') + '</div>' +
     '<input type="search" class="rsearch" id="rankSearch" placeholder="순위에서 찾기" value="' + esc(rankQuery) + '" aria-label="순위에서 이름 찾기">' +
     (rank.length ? '<button class="btn sm" id="copyRank">순위 복사</button>' : '') + '</div>' +
     '<ol class="rank" id="rankList"></ol></section>';
@@ -1064,13 +1077,13 @@ function render() {
   /* rank list */
   const drawRank = () => {
     const rq = rankQuery.trim();
-    const rows = rank.map(([n, p], i) => [n, p, i]).filter(([n]) => !teamFilter || teamOf(n) === teamFilter)
+    const rows = rank.map(([n, p], i) => [n, p, i]).filter(([n]) => inFilter(n))
       .filter(([n]) => !rq || n.includes(rq) || teamOf.resolve(n).includes(rq));
     $('rankList').innerHTML = !rank.length ? '<li class="empty">이 기간에는 올라온 사진이 없습니다.</li>'
       : !rows.length ? '<li class="empty">조건에 맞는 사람이 없습니다.</li>'
       : rows.map(([n, p, i]) => {
         const tm = teamById(teamOf(n)), lead = LEADERS[baseName(n)] ? ' <em>단장</em>' : '';
-        return '<li><button class="rrow' + (isHit(n) ? ' hit' : '') + '" data-name="' + esc(n) + '"><span class="rpos num">' + ranks[i] + '</span>' +
+        return '<li><button class="rrow' + (isHit(n) ? ' hit' : '') + '" data-name="' + esc(n) + '"><span class="rpos num">' + rk(i) + '</span>' +
           '<span class="rmain"><span class="rname">' + esc(teamOf.resolve(n)) + (teamOf.resolve(n) !== n ? '<small>' + esc(n) + '</small>' : '') + '</span>' +
           '<span class="rteam-m"><span class="dot" style="background:' + tm.color + '"></span>' + tm.name + lead + '</span></span>' +
           '<span class="rteam"><span class="dot" style="background:' + tm.color + '"></span>' + tm.name + lead + '</span>' +
@@ -1110,22 +1123,27 @@ function render() {
 
   const cp = $('copyRank');
   if (cp) cp.addEventListener('click', async () => {
-    const shown = rank.map(([name, p], i) => [name, p, i]).filter(([n]) => !teamFilter || teamOf(n) === teamFilter);
+    const shown = rank.map(([name, p], i) => [name, p, i]).filter(([n]) => inFilter(n));
     const lines = [];
     let grp = null;
     shown.forEach(([name, p, i]) => {
       // 10위 단위로 한 줄 띄움 (공동 순위는 같은 묶음에)
-      const g = Math.floor((ranks[i] - 1) / 10);
+      const g = Math.floor((rk(i) - 1) / 10);
       if (grp !== null && g !== grp) lines.push('');
       grp = g;
       const nm = teamOf.resolve(name);
-      lines.push(teamById(teamOf(name)).emoji + ' ' + ranks[i] + '. ' + nm + (LEADERS[nm] ? ' 단장' : '') + ' ' + fmt(p.score) + U + (opts.video && p.videos ? ' (동영상 ' + p.videos + '개)' : ''));
+      lines.push(teamById(teamOf(name)).emoji + ' ' + rk(i) + '. ' + nm + (LEADERS[nm] ? ' 단장' : '') + ' ' + fmt(p.score) + U + (opts.video && p.videos ? ' (동영상 ' + p.videos + '개)' : ''));
     });
-    const sumLines = tstat.filter(t => t.n && (!teamFilter || t.tm.id === teamFilter))
+    // 부산 미래로만 볼 때는 사업단별 합계도 부산 사람만으로 다시 셈
+    const stat = teamFilter !== 'B' ? tstat : TEAMS.map(tm => {
+      const mem = shown.filter(([n]) => teamOf(n) === tm.id), sum = mem.reduce((a, [, p]) => a + p.score, 0);
+      return { tm, n: mem.length, sum, avg: mem.length ? sum / mem.length : 0 };
+    });
+    const sumLines = stat.filter(t => t.n && (!teamFilter || teamFilter === 'B' || t.tm.id === teamFilter))
       .sort((a, b) => ('WRA'.includes(b.tm.id) - 'WRA'.includes(a.tm.id)) || b.sum - a.sum)
       .map(t => t.tm.emoji + ' ' + t.tm.name + ' ' + fmt(t.sum) + U + ' · ' + t.n + '명' + ('WRA'.includes(t.tm.id) ? ' · 1인 ' + t.avg.toFixed(1) + U : ''));
     const per = (opts.from || '처음') + ' ~ ' + (opts.to || '끝');
-    const text = '📸 미래로 활동샷 순위' + (teamFilter ? ' · ' + teamById(teamFilter).name : '') + '\n' + per + ' · ' + (opts.unit === 'posts' ? '건수' : '사진 장수') + ' 기준\n\n' +
+    const text = '📸 미래로 활동샷 순위' + (teamFilter ? ' · ' + (teamFilter === 'B' ? '부산 미래로' : teamById(teamFilter).name) : '') + '\n' + per + ' · ' + (opts.unit === 'posts' ? '건수' : '사진 장수') + ' 기준\n\n' +
       '[사업단]\n' + sumLines.join('\n') + '\n\n[개인 ' + shown.length + '명]\n' + lines.join('\n');
     let ok = false;
     try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
