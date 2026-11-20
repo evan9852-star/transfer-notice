@@ -135,6 +135,7 @@ button.text:hover{color:var(--ink);text-decoration:underline}
 .tag{font-size:12px;line-height:1.5;padding:1px 7px;border-radius:var(--r-s);white-space:nowrap;font-weight:500}
 .tag.cnt{background:var(--rule-2);color:var(--ink-2)}
 .tag.lapse{background:var(--amber-soft);color:var(--amber)}
+.tag.self{background:var(--rule-2);color:var(--ink-2);border:1px dashed var(--ink-2)}
 .tag.optout{background:var(--plum-soft);color:var(--plum)}
 .tag.done{background:var(--moss-soft);color:var(--moss)}
 .tag.touch{background:var(--amber-soft);color:var(--amber)}
@@ -530,10 +531,13 @@ function group(rs){
   c.pays.push(r.pay||"");
   if(/실효/.test(r.note||""))c.lapsed.push(cleanProduct(r.product));
   if(/수신거부/.test((r.note||"")+(r.phone||"")))c.optout=true;
+  if(/자[가기]\s*계약/.test(r.note||""))c.self=true;
   if(String(r.contact||"").trim())c.contacted=true;
  }
  for(const c of m.values())c.phone=String(c.phone).split(" [")[0];
- return [...m.values()];
+ const all=[...m.values()];
+ // 자기계약(이전 담당자 본인 계약)은 연락 후순위라 목록 맨 뒤로
+ return all.filter(c=>!c.self).concat(all.filter(c=>c.self));
 }
 function noLabel(nos){const n=nos.filter(Number.isFinite);if(!n.length)return"";const a=Math.min(...n),b=Math.max(...n);return a===b?a+"번":(n.length===b-a+1?a+"–"+b+"번":n.join("·")+"번")}
 
@@ -682,6 +686,7 @@ function renderRoster(){
   if(c.products.length>1)tg.append(tag("cnt",c.products.length+"건"));
   if(c.lapsed.length)tg.append(tag("lapse","실효"));
   if(c.optout)tg.append(tag("optout","수신거부"));
+  if(c.self)tg.append(tag("self","자기계약 · 후순위"));
   if(isRe(c))tg.append(tag("hid",reLabel(c)));
   if(c.contacted)tg.append(tag("done","접촉함"));
   if(T(c).saved&&stage(c)==="none")tg.append(tag("cnt","연락처 저장됨"));
@@ -730,6 +735,7 @@ function renderOut(){
   const tg=document.createElement("div");tg.className="tags";
   if(c.lapsed.length)tg.append(tag("lapse","실효 계약"));
   if(c.optout)tg.append(tag("optout","문자 수신거부 · 전화 권장"));
+  if(c.self)tg.append(tag("self","자기계약 · 이전 담당자 본인 계약"));
   const t=T(c),k=tkey(c),isHid=!!t.hide;
   const re=isRe(c);
   if(re){tg.append(tag("hid",reLabel(c)));box.classList.add("hid")}
@@ -996,7 +1002,7 @@ function bookStatus(name,sheet,at,pendingHandle){
 async function forgetBook(){
  if(!confirm("화면에서 엑셀을 뺄까요? (컴퓨터의 엑셀 파일과 터치·콜 기록은 그대로 남습니다)"))return;
  await idb.del("book");await idb.del("handle");fileHandle=null;loadedName="";try{localStorage.removeItem("tcn_sel")}catch(e){}
- rows=SAMPLE;customers=group(rows);selected=new Set(visible().slice(0,topN).map(c=>c.key));
+ rows=SAMPLE;customers=group(rows);selected=new Set(visible().filter(c=>!c.self).slice(0,topN).map(c=>c.key));
  setStatus("sample",[document.createTextNode("지금 보이는 고객은 예시입니다. 엑셀을 넣으면 실제 고객으로 바뀝니다.")]);render();
 }
 async function loadFile(f,opt={}){
@@ -1064,7 +1070,7 @@ const setTop=n=>{topN=Math.max(1,Math.min(99,n));$("topNLabel").textContent=topN
 setTop(parseInt(store.get("tcn_topN"),10)||6);
 $("topMinus").addEventListener("click",()=>setTop(topN-1));
 $("topPlus").addEventListener("click",()=>setTop(topN+1));
-$("pickTop").addEventListener("click",()=>{selected=new Set(visible().slice(0,topN).map(c=>c.key));render()});
+$("pickTop").addEventListener("click",()=>{selected=new Set(visible().filter(c=>!c.self).slice(0,topN).map(c=>c.key));render()});
 $("pickNone").addEventListener("click",()=>{selected.clear();render()});
 $("vcf").addEventListener("click",saveVcf);
 $("oq").addEventListener("input",renderOut);
@@ -1163,7 +1169,7 @@ $("cardDel").addEventListener("click",()=>{card="";try{localStorage.removeItem("
 cardRender();if(card)cardPng();
 
 customers=group(rows);
-selected=new Set(visible().slice(0,topN).map(c=>c.key));
+selected=new Set(visible().filter(c=>!c.self).slice(0,topN).map(c=>c.key));
 render();
 // 지난번에 넣은 엑셀 되살리기
 (async()=>{
