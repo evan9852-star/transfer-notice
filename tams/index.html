@@ -356,8 +356,9 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
     <section class="msgs">
       <div class="book-h">
         <h2>터치 문자 <span id="msgN">0</span>건</h2>
-        <div class="row-btns filters"><input type="text" id="msgQ" placeholder="이름·번호 찾기" autocomplete="off" aria-label="터치 문자 이름 찾기"><label class="check"><input type="checkbox" id="hideSent" checked>보낸·거절한 사람 빼기</label></div>
+        <div class="row-btns filters"><label class="check"><input type="checkbox" id="hideSent" checked>보낸·거절한 사람 빼기</label></div>
       </div>
+      <div class="findrow"><input type="search" id="msgQ" data-find placeholder="이름이나 번호로 찾기" autocomplete="off" aria-label="터치 문자 이름·번호 찾기"></div>
       <div class="duebar"><label for="dueDate">지원서 마감</label><input type="date" id="dueDate"><select id="dueHour" aria-label="마감 시간"></select><span id="dueShow" class="hint"></span></div>
       <p class="hint">① 인사 복사 → 카톡에 붙여넣기, ② 지원서 파일을 카톡 창에 끌어 놓기, ③ 마감 안내 복사 → 붙여넣기 순서로 보내세요. 광고로 들어와 지원서를 먼저 받은 사람은 인사와 첨삭 안내만 나옵니다. 이름이나 번호 일부로 찾을 수 있고, 찾을 때는 이미 보낸 사람도 같이 나옵니다. '내가 발표했어요'를 켜고 넣은 사람은 B안, 아니면 A안입니다.</p>
       <div class="stack" id="msgs"></div>
@@ -413,6 +414,7 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
   <!-- 멘티 장부 -->
   <section class="pane" id="p-book" role="tabpanel" aria-labelledby="t-book" hidden>
     <div class="stack">
+      <div class="findrow"><input type="search" id="fQ" data-find placeholder="이름·번호·학교로 찾기" autocomplete="off" aria-label="멘티 장부 찾기"></div>
       <div class="counts" id="counts"></div>
       <div class="routes"><span>들어온 경로</span><span id="routeN"></span><button type="button" id="bTally">인원 취합 복사</button></div>
       <div class="pickbar">
@@ -420,7 +422,6 @@ td.nm{white-space:nowrap}td.nm .nmi{vertical-align:middle}
           <select id="fGisu" aria-label="기수"></select>
           <select id="fSrc" aria-label="들어온 경로"><option value="">모든 경로</option><option value="qr">캠리 QR</option><option value="cr">캠리 종이</option><option value="ad">탐스 광고</option></select>
           <select id="fTodo" aria-label="진행"><option value="">전체</option><option value="touch">터치할 사람</option><option value="wait">지원서 기다리는 중</option><option value="edit">첨삭할 차례</option><option value="sub">제출할 차례</option><option value="done">제출완료</option><option value="no">거절한 사람</option></select>
-          <input type="text" id="fQ" placeholder="이름·번호·학교 찾기" autocomplete="off">
         </div>
         <div class="row-btns">
           <button type="button" id="bVcf">연락처 파일</button><button type="button" id="bXlsx">엑셀로 받기</button>

@@ -250,12 +250,12 @@ tr.has-trk td{border-bottom:0}
     <div class="book-h">
       <h2 id="bookTitle">받은 DB 장부 <span id="bookN">0</span>명 <span class="selN" id="bookSel" aria-live="polite"></span></h2>
       <div class="row-btns">
-        <input type="text" id="bq" placeholder="이름·번호 찾기" autocomplete="off" style="width:160px">
         <button type="button" id="fixVcf">고친 사람만 연락처 파일</button><button type="button" id="bookVcf">장부 전체 연락처 파일</button>
         <button type="button" id="bookXlsx">엑셀로 받기</button>
         <button type="button" class="text" id="bookBackup" title="장부를 그대로 파일로 받아 둡니다">백업 받기</button><button type="button" class="text" id="bookRestore" title="받아 둔 백업 파일(.json)을 다시 넣습니다">불러오기</button><input type="file" id="bookRestoreFile" accept=".json,application/json" hidden>
       </div>
     </div>
+    <div class="findrow"><input type="search" id="bq" data-find placeholder="이름이나 번호로 찾기" autocomplete="off" aria-label="장부에서 이름·번호 찾기"></div>
     <p class="hint">연락처 파일을 받을 때마다 여기에 쌓입니다. 이 브라우저에만 저장되니, 가끔 <b>백업 받기</b>로 파일을 받아 두세요. 다른 컴퓨터나 브라우저에서는 <b>불러오기</b>로 그 파일을 넣으면 보냄 표시와 콜 기록까지 그대로 돌아옵니다. 왼쪽 칸을 고르면 <b>안내문자</b> 탭에 문자가 만들어집니다. 콜 스크립트는 사람마다 <b>콜 기록</b>을 펼치면 이름이 들어간 채로 보입니다.</p>
     <details class="tpl" id="csbox">
       <summary>콜 스크립트 고치기</summary>
